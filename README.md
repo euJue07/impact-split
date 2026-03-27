@@ -141,7 +141,7 @@ Pass `trace=True` or `verbose=True` to `fit()` to record one pre-order step per 
 
 ## Learn More
 
-- Full mathematical walkthrough and toy example:
+- Full mathematical walkthrough and toy example (documented synthetic DGP with expected structural impact, region-level bias, and noise—fit uses observed outcome only):
   - [`notebooks/1.0-jde-impact-split-explainer.ipynb`](notebooks/1.0-jde-impact-split-explainer.ipynb)
 - Kaggle Sample Supermarket data, `kagglehub` download, and step-by-step trace tables:
   - [`notebooks/2.0-jde-supermarket-kaggle-trace.ipynb`](notebooks/2.0-jde-supermarket-kaggle-trace.ipynb) (requires [Kaggle API credentials](https://github.com/Kaggle/kagglehub#authentication) for `kagglehub`)

@@ -48,4 +48,4 @@ The notebook label-encodes the chosen string columns into integer `numpy` arrays
 ## Where to Read Next
 
 - Project overview: `README.md`
-- Full deep dive with equations and worked example: `notebooks/1.0-jde-impact-split-explainer.ipynb`
+- Full deep dive with equations and worked example (synthetic DGP: structural `y_expected`, region bias, noise; the tree is fit on observed outcome only): `notebooks/1.0-jde-impact-split-explainer.ipynb`
