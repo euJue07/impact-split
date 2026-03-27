@@ -203,6 +203,40 @@ segments = model.get_impact_segments()
 print(segments.head())
 ```
 
+### Interactive Force Graph (Notebook + HTML Export)
+
+You can render a D3 force graph in notebooks and export the same interactive chart to standalone HTML:
+
+```python
+from impact_split import interactive_force_graph
+
+nodes = [
+    {"id": "root", "label": "Root", "group": "all", "tooltip": "Global node"},
+    {"id": "segA", "label": "Segment A", "group": "positive"},
+    {"id": "segB", "label": "Segment B", "group": "negative"},
+]
+links = [
+    {"source": "root", "target": "segA", "value": 2},
+    {"source": "root", "target": "segB", "value": 1},
+]
+
+def on_select(event: dict) -> None:
+    print("Selection event:", event)
+
+graph = interactive_force_graph(
+    nodes=nodes,
+    links=links,
+    filter_keys=["group"],
+    options={"width": 860, "height": 520, "charge_strength": -120},
+    on_selection=on_select,
+)
+
+graph.show()                      # notebook rendering
+graph.save_html("reports/force_graph.html")  # standalone interactive export
+```
+
+Interaction support includes drag (with simulation reheating), zoom/pan, hover tooltips, click-select highlighting, Python-side filter controls, and click events sent back to the Python callback payload.
+
 If you want the motivation behind each formula (not just usage), read the Story Behind the Math section above, then the explainer notebook linked below.
 
 ### Fit trace (optional)

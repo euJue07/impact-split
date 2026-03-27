@@ -57,6 +57,41 @@ model.plot_tree(figsize=(16, 10))
 segments = model.get_impact_segments()
 ```
 
+## Interactive Chart Workflow
+
+`impact_split` also includes a notebook-first interactive D3 force graph that can be exported to standalone HTML.
+
+```python
+from impact_split import interactive_force_graph
+
+nodes = [
+    {"id": "root", "label": "Root", "group": "all"},
+    {"id": "p1", "label": "Positive branch", "group": "positive"},
+    {"id": "n1", "label": "Negative branch", "group": "negative"},
+]
+links = [
+    {"source": "root", "target": "p1", "value": 3},
+    {"source": "root", "target": "n1", "value": 2},
+]
+
+def on_selection(event: dict) -> None:
+    print(event)
+
+graph = interactive_force_graph(
+    nodes=nodes,
+    links=links,
+    filter_keys=["group"],
+    on_selection=on_selection,
+)
+graph.show()
+graph.save_html("reports/figures/impact_force_graph.html")
+```
+
+The callback receives a payload with:
+- `event_type` (`"node_click"`)
+- `selected_node_id` (string or `None`)
+- `filters` (active filter dictionary)
+
 ### Kaggle example notebook
 
 To load [Sample Supermarket](https://www.kaggle.com/datasets/bravehart101/sample-supermarket-dataset) with `kagglehub` and print each algorithm step, run:
