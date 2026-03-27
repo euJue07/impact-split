@@ -199,7 +199,7 @@ model = ImpactSplitter(
 # y: 1D numpy ndarray or pandas Series with additive target (e.g., profit/loss)
 model.fit(X, y, trace=True)  # optional: populate model.fit_trace_
 
-model.plot_tree(figsize=(16, 10))
+model.plot_tree(figsize=(16, 10))  # returns a matplotlib Figure; pass show=False to save without displaying
 segments = model.get_impact_segments()
 print(segments.head())
 ```

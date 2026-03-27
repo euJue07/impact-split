@@ -5,11 +5,27 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
+from matplotlib.figure import Figure
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-_DEFAULT_PLOT_CATEGORY_LABELS = 5
+# Max decoded category labels per feature in stored segment paths (fit time).
+_PATH_SEGMENT_MAX_LABELS = 8
+
+# Short edge annotations (distinct from first-letter truncation: neutral was also "N").
+_BRANCH_EDGE_SHORT: dict[str, str] = {
+    "positive": "P",
+    "negative": "Neg",
+    "neutral": "Neu",
+}
+
+# Color-blind–friendly edge colors; redundant with text labels for accessibility.
+_DEFAULT_BRANCH_EDGE_COLORS: dict[str, str] = {
+    "positive": "#0173B2",
+    "negative": "#DE8F05",
+    "neutral": "#949494",
+}
 
 
 def _prepare_X_y(
@@ -75,6 +91,8 @@ class _TreeNode:
     n_samples: int
     total_sum: float
     path: str
+    s_node_p: float
+    s_node_n: float
     feature_index: int | None = None
     routing: dict[str, list[int]] | None = None
     children: dict[str, _TreeNode] | None = None
@@ -168,26 +186,44 @@ class ImpactSplitter:
         head = ", ".join(parts[:max_show])
         return f"{head} (+{len(parts) - max_show} more)"
 
-    def _format_split_node_label(
-        self,
-        n: _TreeNode,
-        *,
-        max_category_labels: int = _DEFAULT_PLOT_CATEGORY_LABELS,
-    ) -> str:
-        """Human-readable label for a split node (used by ``plot_tree`` and tests)."""
-        if n.is_leaf or n.feature_index is None or not n.routing:
-            return f"{n.node_id}\nΣy={n.total_sum:.1f}" if n.is_leaf else n.node_id
-        name = self._feature_display_name(n.feature_index)
-        lines = [n.node_id, name]
-        for branch_key, symbol in (
-            ("positive", "+"),
-            ("negative", "−"),
-            ("neutral", "~"),
-        ):
-            codes = n.routing.get(branch_key, [])
-            lines.append(
-                f"{symbol} {self._format_branch_values(n.feature_index, codes, max_category_labels)}",
-            )
+    def _path_segment_for_branch(self, feature_index: int, codes: list[int]) -> str:
+        """One path fragment: ``feature=decoded_categories`` (fit-time segment description)."""
+        feat_key = self._feature_path_key(feature_index)
+        return f"{feat_key}={self._format_branch_values(feature_index, codes, _PATH_SEGMENT_MAX_LABELS)}"
+
+    @staticmethod
+    def _last_path_segment_for_plot(path: str) -> str:
+        """Final ``feature=…`` fragment for this node's row subset; empty at root only."""
+        if not path or path == "root":
+            return ""
+        parts = [p.strip() for p in path.split(" / ") if p.strip()]
+        return parts[-1] if parts else ""
+
+    def _format_plot_node_label(self, n: _TreeNode) -> str:
+        """Label for ``plot_tree``: segment filter on every node, then local split when not a leaf.
+
+        Every node starts with the **last path segment** (``feature=categories`` for this
+        slice), or ``all data`` at the root. Non-leaf nodes add ``split on <feature>``.
+        All nodes include ``n`` and Σy / Σy⁺ / Σy⁻.
+        """
+        lines: list[str] = []
+        seg = self._last_path_segment_for_plot(n.path)
+        lines.append(seg if seg else "all data")
+
+        if not n.is_leaf:
+            if n.feature_index is None:
+                lines.append("split")
+            else:
+                fname = self._feature_display_name(n.feature_index)
+                lines.append(f"split on {fname}")
+        lines.extend(
+            (
+                f"n={n.n_samples}",
+                f"Σy={n.total_sum:.1f}",
+                f"Σy⁺={n.s_node_p:.1f}",
+                f"Σy⁻={n.s_node_n:.1f}",
+            ),
+        )
         return "\n".join(lines)
 
     def _next_node_id(self) -> str:
@@ -247,21 +283,21 @@ class ImpactSplitter:
             trace_entry["stop_reason"] = "materiality"
             if self._trace_enabled:
                 self.fit_trace_.append(trace_entry)
-            return _TreeNode(True, node_id, depth, n_samples, total_sum, path)
+            return _TreeNode(True, node_id, depth, n_samples, total_sum, path, s_node_p, s_node_n)
 
         if depth == self.max_depth:
             trace_entry["action"] = "leaf"
             trace_entry["stop_reason"] = "max_depth"
             if self._trace_enabled:
                 self.fit_trace_.append(trace_entry)
-            return _TreeNode(True, node_id, depth, n_samples, total_sum, path)
+            return _TreeNode(True, node_id, depth, n_samples, total_sum, path, s_node_p, s_node_n)
 
         if self._all_rows_identical(x_sub):
             trace_entry["action"] = "leaf"
             trace_entry["stop_reason"] = "identical_rows"
             if self._trace_enabled:
                 self.fit_trace_.append(trace_entry)
-            return _TreeNode(True, node_id, depth, n_samples, total_sum, path)
+            return _TreeNode(True, node_id, depth, n_samples, total_sum, path, s_node_p, s_node_n)
 
         best_gain = 0.0
         best_feature_index: int | None = None
@@ -338,7 +374,7 @@ class ImpactSplitter:
             trace_entry["stop_reason"] = "no_split"
             if self._trace_enabled:
                 self.fit_trace_.append(trace_entry)
-            return _TreeNode(True, node_id, depth, n_samples, total_sum, path)
+            return _TreeNode(True, node_id, depth, n_samples, total_sum, path, s_node_p, s_node_n)
 
         best_col_vals = x_sub[:, best_feature_index]
         mask_p = np.isin(best_col_vals, best_pos_categories)
@@ -361,28 +397,30 @@ class ImpactSplitter:
         if self._trace_enabled:
             self.fit_trace_.append(trace_entry)
 
-        feat_key = self._feature_path_key(best_feature_index)
+        seg_p = self._path_segment_for_branch(best_feature_index, best_pos_categories.tolist())
+        seg_n = self._path_segment_for_branch(best_feature_index, best_neg_categories.tolist())
+        seg_u = self._path_segment_for_branch(best_feature_index, best_neu_categories.tolist())
         children: dict[str, _TreeNode] = {}
         if np.any(mask_p):
             children["positive"] = self._build(
                 x_sub[mask_p],
                 y_sub[mask_p],
                 depth + 1,
-                f"{path} / {feat_key}=positive",
+                f"{path} / {seg_p}",
             )
         if np.any(mask_n):
             children["negative"] = self._build(
                 x_sub[mask_n],
                 y_sub[mask_n],
                 depth + 1,
-                f"{path} / {feat_key}=negative",
+                f"{path} / {seg_n}",
             )
         if np.any(mask_u):
             children["neutral"] = self._build(
                 x_sub[mask_u],
                 y_sub[mask_u],
                 depth + 1,
-                f"{path} / {feat_key}=neutral",
+                f"{path} / {seg_u}",
             )
 
         return _TreeNode(
@@ -392,6 +430,8 @@ class ImpactSplitter:
             n_samples,
             total_sum,
             path,
+            s_node_p,
+            s_node_n,
             feature_index=best_feature_index,
             routing={
                 "positive": best_pos_categories.tolist(),
@@ -437,15 +477,44 @@ class ImpactSplitter:
         self,
         figsize: tuple[float, float] = (16.0, 10.0),
         *,
-        max_category_labels: int = _DEFAULT_PLOT_CATEGORY_LABELS,
-    ) -> None:
+        fontsize: float = 7.0,
+        edge_label_fontsize: float | None = None,
+        node_bbox: dict[str, Any] | None = None,
+        branch_edge_colors: dict[str, str] | None = None,
+        show: bool = True,
+    ) -> Figure:
         """Plot the fitted tree with matplotlib.
 
-        When ``X`` was a DataFrame, split nodes show column names and decoded category
-        values (truncated to ``max_category_labels`` per branch when needed).
+        Every node shows the **segment** for its row subset (``all data`` at the root,
+        else the last ``feature=categories`` fragment). Non-leaf nodes also show
+        ``split on <feature>``. Row count ``n`` and ``Σy`` / ``Σy⁺`` / ``Σy⁻`` appear
+        on every node. Branch direction is on the edges (``P`` / ``Neg`` / ``Neu``).
+        Full cumulative paths remain in ``get_impact_segments()`` ``path`` column.
+
+        For **deep trees**, increase ``figsize`` (wider for many leaves, taller for
+        depth) or reduce ``fontsize``. For **publication or static files**, save
+        before displaying: ``fig = model.plot_tree(show=False); fig.savefig("tree.pdf")``
+        (vector PDF/SVG avoids raster scaling issues).
+
+        Args:
+            figsize: Figure size in inches.
+            fontsize: Font size for node text.
+            edge_label_fontsize: Font size for P/N edge labels; defaults to ``fontsize``.
+            node_bbox: Matplotlib ``bbox`` dict for node boxes; default is rounded wheat.
+            branch_edge_colors: Override per-branch edge colors (keys ``positive``,
+                ``negative``, ``neutral``). ``None`` uses built-in color-blind–friendly hues.
+            show: If True, call ``plt.show()`` after drawing.
         """
         if self._tree is None:
             raise RuntimeError("Call fit() before plot_tree().")
+
+        edge_fs = edge_label_fontsize if edge_label_fontsize is not None else fontsize
+        bbox_style = (
+            node_bbox
+            if node_bbox is not None
+            else {"boxstyle": "round", "facecolor": "wheat", "alpha": 0.8}
+        )
+        edge_colors = _DEFAULT_BRANCH_EDGE_COLORS if branch_edge_colors is None else branch_edge_colors
 
         fig, ax = plt.subplots(figsize=figsize)
         ax.set_axis_off()
@@ -485,19 +554,19 @@ class ImpactSplitter:
             if n.is_leaf or not n.children:
                 return
             x0, y0 = positions[n.node_id]
-            for label, ch in n.children.items():
+            for branch_key, ch in n.children.items():
                 x1, y1 = positions[ch.node_id]
-                ax.plot([x0, x1], [y0, y1], color="gray", linewidth=1)
+                ec = edge_colors.get(branch_key, "#888888")
+                short = _BRANCH_EDGE_SHORT.get(branch_key, branch_key[:3])
+                ax.plot([x0, x1], [y0, y1], color=ec, linewidth=1)
                 mx, my = (x0 + x1) / 2, (y0 + y1) / 2
-                ax.text(mx, my, label[:1].upper(), fontsize=7, ha="center")
+                ax.text(mx, my, short, fontsize=edge_fs, ha="center", color="0.2")
                 draw_edges(ch)
 
         draw_edges(self._tree)
 
         def node_label(n: _TreeNode) -> str:
-            if n.is_leaf:
-                return f"{n.node_id}\nΣy={n.total_sum:.1f}"
-            return self._format_split_node_label(n, max_category_labels=max_category_labels)
+            return self._format_plot_node_label(n)
 
         def label_positions(n: _TreeNode) -> None:
             x, y = positions[n.node_id]
@@ -507,8 +576,8 @@ class ImpactSplitter:
                 node_label(n),
                 ha="center",
                 va="center",
-                fontsize=7,
-                bbox={"boxstyle": "round", "facecolor": "wheat", "alpha": 0.8},
+                fontsize=fontsize,
+                bbox=bbox_style,
             )
             if n.children:
                 for ch in n.children.values():
@@ -519,4 +588,6 @@ class ImpactSplitter:
         ax.set_xlim(-tw / 2 - 0.5, tw / 2 + 0.5)
         ax.set_ylim(-self.max_depth - 2, 1)
         plt.tight_layout()
-        plt.show()
+        if show:
+            plt.show()
+        return fig

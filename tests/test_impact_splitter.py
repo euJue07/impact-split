@@ -1,5 +1,8 @@
 """Tests for ImpactSplitter with NumPy / pandas inputs and spec-aligned recursion."""
 
+import io
+
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import pytest
@@ -162,15 +165,37 @@ def test_dataframe_fit_stores_maps_and_paths_use_column_names() -> None:
     assert cat_row["category_label"] == "East"
 
 
-def test_format_split_node_label_shows_decoded_categories() -> None:
+def test_plot_node_label_segment_on_every_node_split_on_internal_only() -> None:
     x = pd.DataFrame({"dim": ["A", "B", "A", "B"]})
     y = np.array([10.0, -10.0, 10.0, -10.0], dtype=float)
-    model = ImpactSplitter(delta_pct=0.01, min_global_impact_pct=0.001, max_depth=1)
+    model = ImpactSplitter(delta_pct=0.01, min_global_impact_pct=0.001, max_depth=2)
     model.fit(x, y)
 
     assert model._tree is not None
     assert not model._tree.is_leaf
-    label = model._format_split_node_label(model._tree)
-    assert "dim" in label
-    assert "A" in label
-    assert "B" in label
+    root_label = model._format_plot_node_label(model._tree)
+    assert root_label.startswith("all data\n")
+    assert "split on dim" in root_label
+    assert "Σy" in root_label and "Σy⁺" in root_label and "Σy⁻" in root_label
+    assert "n=" in root_label
+    assert model._tree.children
+    for ch in model._tree.children.values():
+        ch_label = model._format_plot_node_label(ch)
+        assert "dim=" in ch_label
+        if ch.is_leaf:
+            assert "split on" not in ch_label
+        else:
+            assert "split on" in ch_label
+
+
+def test_plot_tree_smoke() -> None:
+    x = np.array([[0], [1], [0], [1]], dtype=np.int64)
+    y = np.array([1.0, -1.0, 1.0, -1.0], dtype=float)
+    model = ImpactSplitter(delta_pct=0.01, min_global_impact_pct=0.001, max_depth=2)
+    model.fit(x, y)
+
+    fig = model.plot_tree(show=False, fontsize=6.0, edge_label_fontsize=5.0)
+    buf = io.BytesIO()
+    fig.savefig(buf, format="png")
+    assert buf.tell() > 0
+    plt.close(fig)
