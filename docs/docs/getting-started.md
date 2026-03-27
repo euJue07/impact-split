@@ -43,7 +43,7 @@ To load [Sample Supermarket](https://www.kaggle.com/datasets/bravehart101/sample
 
 Configure Kaggle credentials first ([kagglehub authentication](https://github.com/Kaggle/kagglehub#authentication)).
 
-The notebook prints a per-node summary: assignment `delta` (`V_node * delta_pct`), `V_node`, node-level mass (`s_node_p`, `s_node_n`, `total_sum`), and selected split information.
+The notebook label-encodes the chosen string columns into integer `numpy` arrays (required by `fit`), fits with `trace=True`, prints a per-node summary (`delta`, `V_node`, `s_node_p` / `s_node_n`, `stop_reason`, `global_ratios`), and adds EDA that compares `delta` to per-category sums and sweeps `delta_pct`—useful when the tree stops at the root with `no_split`.
 
 ## Where to Read Next
 

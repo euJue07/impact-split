@@ -66,8 +66,11 @@ class ImpactSplitter:
             raise ValueError("X must be a numpy.ndarray.")
         if X.ndim != 2:
             raise ValueError("X must be a 2D numpy.ndarray.")
-        if not np.issubdtype(X.dtype, np.integer):
-            raise ValueError("X must contain integer label-encoded categories.")
+        # Prefer kind check over np.issubdtype: avoids rare dtype-hierarchy / third-party dtype edge cases.
+        if getattr(X.dtype, "kind", None) not in ("i", "u"):
+            raise ValueError(
+                "X must contain integer label-encoded categories (signed or unsigned int dtype)."
+            )
         if X.size and np.any(X < 0):
             raise ValueError("X categories must be non-negative integers.")
 
