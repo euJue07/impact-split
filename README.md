@@ -110,21 +110,25 @@ model = ImpactSplitter(
 
 # X: pandas DataFrame of categorical or pre-binned features
 # y: pandas Series with additive target (e.g., profit/loss)
-model.fit(X, y)
+model.fit(X, y, trace=True)  # optional: populate model.fit_trace_
 
 model.plot_tree(figsize=(16, 10))
 segments = model.get_impact_segments()
 print(segments.head())
 ```
 
+### Fit trace (optional)
+
+Pass `trace=True` to `fit()` to record one pre-order step per visited node in `model.fit_trace_`. Each step includes `delta`, global materiality ratios, per-feature candidate gains, category tables, `chosen_feature` when splitting, and `stop_reason` when a leaf is created (`materiality`, `max_depth`, `no_split`, or `empty_children`).
+
 ## Output
 
-`model.get_impact_segments()` returns terminal segments sorted by absolute impact, including:
+`model.get_impact_segments()` returns terminal segments sorted by absolute impact, with columns such as:
 
-- path of rules that define the segment,
-- node type (Positive/Neutral/Negative leaf),
-- total sum and global impact share,
-- row count.
+- `path` — rule path for the segment,
+- `total_sum` — sum of `y` in the segment,
+- `n_samples` — row count,
+- `node_id` — tree node identifier.
 
 ## Assumptions and Limitations
 
@@ -134,7 +138,9 @@ print(segments.head())
 
 ## Learn More
 
-- Full mathematical walkthrough and worked example notebook:
-  - `notebooks/1.0-jde-impact-split-explainer.ipynb`
+- Full mathematical walkthrough and toy example:
+  - [`notebooks/1.0-jde-impact-split-explainer.ipynb`](notebooks/1.0-jde-impact-split-explainer.ipynb)
+- Kaggle Sample Supermarket data, `kagglehub` download, and step-by-step trace tables:
+  - [`notebooks/2.0-jde-supermarket-kaggle-trace.ipynb`](notebooks/2.0-jde-supermarket-kaggle-trace.ipynb) (requires [Kaggle API credentials](https://github.com/Kaggle/kagglehub#authentication) for `kagglehub`)
 - Setup and navigation:
-  - `docs/docs/getting-started.md`
+  - [`docs/docs/getting-started.md`](docs/docs/getting-started.md)

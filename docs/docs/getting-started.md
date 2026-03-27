@@ -30,10 +30,18 @@ model = ImpactSplitter(
     max_depth=5,
 )
 
-model.fit(X, y)
+model.fit(X, y, trace=True)  # optional: inspect model.fit_trace_
 model.plot_tree(figsize=(16, 10))
 segments = model.get_impact_segments()
 ```
+
+### Kaggle example notebook
+
+To load [Sample Supermarket](https://www.kaggle.com/datasets/bravehart101/sample-supermarket-dataset) with `kagglehub` and print each algorithm step, run:
+
+- `notebooks/2.0-jde-supermarket-kaggle-trace.ipynb`
+
+Configure Kaggle credentials first ([kagglehub authentication](https://github.com/Kaggle/kagglehub#authentication)).
 
 ## Where to Read Next
 

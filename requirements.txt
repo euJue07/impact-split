@@ -1,5 +1,6 @@
 ipython
 jupyterlab
+kagglehub
 loguru
 matplotlib
 mkdocs
