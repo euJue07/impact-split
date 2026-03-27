@@ -1,6 +1,9 @@
 # Data
 /data/
 
+# Cursor IDE (workspace skills and local agent config)
+.cursor/
+
 # Mac OS-specific storage files
 .DS_Store
 
