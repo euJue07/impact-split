@@ -106,6 +106,7 @@ model = ImpactSplitter(
     delta_pct=0.05,
     min_global_impact_pct=0.01,
     max_depth=5,
+    neutral_root=True,  # default: root uses assignment delta 0; set False for legacy scaled root
 )
 
 # X: pandas DataFrame of categorical or pre-binned features
@@ -119,7 +120,7 @@ print(segments.head())
 
 ### Fit trace (optional)
 
-Pass `trace=True` to `fit()` to record one pre-order step per visited node in `model.fit_trace_`. Each step includes `delta`, global materiality ratios, per-feature candidate gains, category tables, `chosen_feature` when splitting, and `stop_reason` when a leaf is created (`materiality`, `max_depth`, `no_split`, or `empty_children`).
+Pass `trace=True` or `verbose=True` to `fit()` to record one pre-order step per visited node in `model.fit_trace_` (`verbose` is an alias for `trace`; there is no extra logging). With the default `neutral_root=True`, the **root** uses assignment thresholds `delta=0` (categories split by the sign of `S_cat`); deeper nodes use `delta = V_node * delta_pct`. Each step includes `delta_nominal` (always `V_node * delta_pct`), assignment `delta` / `delta_neg` / `neutral_band` (used for `S_cat`), `delta_pct`, `V_node`, `s_node_p`, `s_node_n`, `total_sum`, global materiality ratios, per-feature candidate gains, category tables, `chosen_feature` when splitting, and `stop_reason` when a leaf is created (`materiality`, `max_depth`, `no_split`, or `empty_children`).
 
 ## Output
 

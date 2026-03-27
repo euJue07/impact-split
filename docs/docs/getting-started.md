@@ -28,9 +28,10 @@ model = ImpactSplitter(
     delta_pct=0.05,
     min_global_impact_pct=0.01,
     max_depth=5,
+    neutral_root=True,
 )
 
-model.fit(X, y, trace=True)  # optional: inspect model.fit_trace_
+model.fit(X, y, trace=True)  # or verbose=True (alias); inspect model.fit_trace_
 model.plot_tree(figsize=(16, 10))
 segments = model.get_impact_segments()
 ```
@@ -42,6 +43,8 @@ To load [Sample Supermarket](https://www.kaggle.com/datasets/bravehart101/sample
 - `notebooks/2.0-jde-supermarket-kaggle-trace.ipynb`
 
 Configure Kaggle credentials first ([kagglehub authentication](https://github.com/Kaggle/kagglehub#authentication)).
+
+The notebook prints a per-node summary: `delta_nominal` (`V_node * delta_pct`), assignment `delta` / `delta_neg` (at the root these are zero by default so `S_cat` splits by sign), `neutral_band`, `V_node`, and node-level mass (`s_node_p`, `s_node_n`, `total_sum`).
 
 ## Where to Read Next
 

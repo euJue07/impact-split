@@ -27,8 +27,11 @@ class ImpactSplitter:
     """Ternary impact tree: categories route to positive / negative / neutral by local delta.
 
     Attributes:
-        fit_trace_: Populated after :meth:`fit` when ``trace=True`` — pre-order list of
-            per-node dicts (``delta``, candidate gains, ``chosen_feature``, ``stop_reason``, …).
+        fit_trace_: Populated after :meth:`fit` when ``trace=True`` or ``verbose=True`` —
+            pre-order list of per-node dicts with ``delta_nominal`` (``V_node * delta_pct``),
+            assignment ``delta`` / ``delta_neg`` / ``neutral_band``, ``delta_pct``, ``V_node``,
+            ``s_node_p``, ``s_node_n``, ``total_sum``, candidate gains, ``chosen_feature``,
+            ``stop_reason``, ….
     """
 
     def __init__(
@@ -36,10 +39,12 @@ class ImpactSplitter:
         delta_pct: float = 0.05,
         min_global_impact_pct: float = 0.01,
         max_depth: int = 5,
+        neutral_root: bool = True,
     ) -> None:
         self.delta_pct = delta_pct
         self.min_global_impact_pct = min_global_impact_pct
         self.max_depth = max_depth
+        self.neutral_root = neutral_root
         self._X: pd.DataFrame | None = None
         self._y: np.ndarray | None = None
         self._y_series: pd.Series | None = None
@@ -54,8 +59,14 @@ class ImpactSplitter:
         y: pd.Series,
         *,
         trace: bool = False,
+        verbose: bool = False,
     ) -> ImpactSplitter:
-        """Fit the impact tree. Set ``trace=True`` to populate :attr:`fit_trace_`."""
+        """Fit the impact tree.
+
+        Set ``trace=True`` or ``verbose=True`` to populate :attr:`fit_trace_`. ``verbose`` is
+        an alias for ``trace`` (no extra logging).
+        """
+        trace = trace or verbose
         if len(X) != len(y):
             raise ValueError("X and y must have the same number of rows.")
         if X.index.tolist() != y.index.tolist():
@@ -92,7 +103,10 @@ class ImpactSplitter:
         n_samples = int(len(indices))
         total_sum = float(y_sub.sum())
         v_node = float(np.abs(y_sub).sum())
-        delta = v_node * self.delta_pct
+        delta_nominal = v_node * self.delta_pct
+        assignment_delta = (
+            0.0 if depth == 0 and self.neutral_root else delta_nominal
+        )
 
         s_node_p = float(y_sub[y_sub > 0].sum())
         s_node_n = float((-y_sub[y_sub < 0]).sum())
@@ -102,12 +116,19 @@ class ImpactSplitter:
             ratio_n >= self.min_global_impact_pct
         )
 
+        delta_neg = -assignment_delta
         trace_entry: dict[str, Any] = {
             "node_id": None,
             "depth": depth,
             "n_samples": n_samples,
             "V_node": v_node,
-            "delta": delta,
+            "delta_pct": self.delta_pct,
+            "delta_nominal": delta_nominal,
+            "delta": assignment_delta,
+            "delta_neg": delta_neg,
+            "neutral_band": {"low": delta_neg, "high": assignment_delta},
+            "s_node_p": s_node_p,
+            "s_node_n": s_node_n,
             "total_sum": total_sum,
             "path": path,
             "global_ratios": {
@@ -180,9 +201,9 @@ class ImpactSplitter:
 
             assignment: dict[str, str] = {}
             for c, s_cat in s_by_cat.items():
-                if s_cat > delta:
+                if s_cat > assignment_delta:
                     assignment[c] = "P"
-                elif s_cat < -delta:
+                elif s_cat < -assignment_delta:
                     assignment[c] = "N"
                 else:
                     assignment[c] = "neutral"
