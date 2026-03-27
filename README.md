@@ -156,10 +156,22 @@ Current implementation applies $\delta = V_{node} \times \text{delta\_pct}$ cons
 ### Install
 
 ```bash
-python -m venv .venv
+python3 -m venv .venv
 source .venv/bin/activate
-pip install -r requirements.txt
+python -m pip install --upgrade pip
+python -m pip install -e .
+# For contributor tooling (lint/test/build/check): 
+python -m pip install -e ".[dev]"
 ```
+
+### Build & Package Validation
+
+```bash
+python -m build --no-isolation
+python -m twine check dist/*
+```
+
+This creates both wheel and sdist artifacts under `dist/` and validates long-description metadata before publishing.
 
 ### Basic Usage
 

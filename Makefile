@@ -46,6 +46,16 @@ format:
 test:
 	python -m pytest tests
 
+## Build package and validate metadata
+.PHONY: package-check
+package-check:
+	python -m build --no-isolation
+	python -m twine check dist/*
+
+## Full local quality gate (lint + tests + packaging)
+.PHONY: ci-check
+ci-check: lint test package-check
+
 
 ## Set up Python interpreter environment
 .PHONY: create_environment

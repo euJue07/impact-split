@@ -1,5 +1,5 @@
 [build-system]
-requires = ["flit_core >=3.2,<4"]
+requires = ["flit_core >=3.12,<4"]
 build-backend = "flit_core.buildapi"
 
 [project]
@@ -9,13 +9,43 @@ description = "A tree based approach to determine the driver of a KPI"
 authors = [
   { name = "Juedi Myro Eugenio" },
 ]
-license = { file = "LICENSE" }
+license = "MIT"
+license-files = ["LICEN[CS]E*"]
 readme = "README.md"
+keywords = ["eda", "kpi", "decision-tree", "segmentation", "impact-analysis"]
 classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Information Analysis",
     "Programming Language :: Python :: 3",
-    "License :: OSI Approved :: MIT License"
+    "Programming Language :: Python :: 3.13",
 ]
 requires-python = "~=3.13.0"
+dependencies = [
+    "loguru",
+    "matplotlib",
+    "numpy",
+    "pandas",
+    "python-dotenv",
+    "tqdm",
+    "typer",
+]
+
+[project.optional-dependencies]
+dev = [
+    "bandit",
+    "build",
+    "mypy",
+    "pytest",
+    "ruff",
+    "twine",
+]
+
+[project.urls]
+Homepage = "https://github.com/juedimyroeugenio/impact-split"
+Documentation = "https://juedimyroeugenio.github.io/impact-split/"
+Repository = "https://github.com/juedimyroeugenio/impact-split"
+Issues = "https://github.com/juedimyroeugenio/impact-split/issues"
 
 
 [tool.ruff]
@@ -29,4 +59,8 @@ extend-select = ["I"]  # Add import sorting
 [tool.ruff.lint.isort]
 known-first-party = ["impact_split"]
 force-sort-within-sections = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
 

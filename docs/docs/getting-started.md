@@ -10,9 +10,12 @@ Use this page to set up a local environment and run the first Impact Split workf
 ## Installation
 
 ```bash
-python -m venv .venv
+python3 -m venv .venv
 source .venv/bin/activate
-pip install -r requirements.txt
+python -m pip install --upgrade pip
+python -m pip install -e .
+# Optional contributor toolchain (lint, tests, packaging checks):
+python -m pip install -e ".[dev]"
 ```
 
 ## Why This Algorithm Is Different
@@ -53,6 +56,24 @@ To load [Sample Supermarket](https://www.kaggle.com/datasets/bravehart101/sample
 Configure Kaggle credentials first ([kagglehub authentication](https://github.com/Kaggle/kagglehub#authentication)).
 
 The notebook label-encodes the chosen string columns into integer `numpy` arrays (required by `fit`), fits with `trace=True`, prints a per-node summary (`delta`, `V_node`, `s_node_p` / `s_node_n`, `stop_reason`, `global_ratios`), and adds EDA that compares `delta` to per-category sums and sweeps `delta_pct`—useful when the tree stops at the root with `no_split`.
+
+## Packaging Validation
+
+Run these commands before releasing:
+
+```bash
+python -m build --no-isolation
+python -m twine check dist/*
+```
+
+Optional smoke-install check from the wheel:
+
+```bash
+python3 -m venv .venv-smoke
+source .venv-smoke/bin/activate
+python -m pip install dist/*.whl
+python -c "from impact_split import ImpactSplitter; print(ImpactSplitter.__name__)"
+```
 
 ## Where to Read Next
 
