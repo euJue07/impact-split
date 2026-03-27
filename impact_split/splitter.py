@@ -316,6 +316,8 @@ class ImpactSplitter:
             present_categories = np.flatnonzero(cat_counts)
             if present_categories.size == 0:
                 continue
+            if present_categories.size <= 1:
+                continue
 
             present_sums = cat_sums[present_categories]
             pos_mask = present_sums > delta
@@ -333,6 +335,16 @@ class ImpactSplitter:
             pos_categories = present_categories[pos_mask].astype(np.int64, copy=False)
             neg_categories = present_categories[neg_mask].astype(np.int64, copy=False)
             neu_categories = present_categories[neu_mask].astype(np.int64, copy=False)
+
+            row_p = np.isin(col_vals, pos_categories)
+            row_n = np.isin(col_vals, neg_categories)
+            row_u = ~(row_p | row_n)
+            if (
+                int(row_p.sum()) == n_samples
+                or int(row_n.sum()) == n_samples
+                or int(row_u.sum()) == n_samples
+            ):
+                continue
 
             cat_rows: list[dict[str, Any]] = []
             for cat, sum_val in zip(present_categories.tolist(), present_sums.tolist()):

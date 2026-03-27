@@ -83,7 +83,8 @@ The algorithm builds a ternary tree (Positive / Neutral / Negative) over categor
 
 - a local threshold (`delta_pct`) to separate strong positive and negative category impacts from neutral ones,
 - a gain metric that emphasizes outer-branch impact while penalizing high-cardinality noise,
-- a global stopping threshold (`min_global_impact_pct`) to stop splitting low-materiality nodes.
+- a global stopping threshold (`min_global_impact_pct`) to stop splitting low-materiality nodes,
+- guardrails that skip candidate splits which do not partition rows (a feature is constant on the current slice, or Act I routes every category to the same branch), avoiding redundant depth without new information.
 
 ## Story Behind the Math
 

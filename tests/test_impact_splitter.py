@@ -113,6 +113,51 @@ def test_identical_rows_stop_condition() -> None:
     assert model.fit_trace_[0]["stop_reason"] == "identical_rows"
 
 
+def test_noop_routing_skips_feature_prefers_partitioning_column() -> None:
+    """Feature 0 routes every category to P (no row partition); must not be chosen."""
+    x = np.array(
+        [
+            [0, 0],
+            [1, 0],
+            [0, 1],
+            [1, 1],
+        ],
+        dtype=np.int64,
+    )
+    y = np.array([100.0, 100.0, -50.0, -50.0], dtype=float)
+    model = ImpactSplitter(delta_pct=0.05, min_global_impact_pct=0.001, max_depth=3)
+
+    model.fit(x, y, trace=True)
+
+    root = model.fit_trace_[0]
+    assert root["action"] == "split"
+    assert root["chosen_feature_index"] == 1
+
+
+def test_constant_feature_skipped_child_prefers_other_column() -> None:
+    """After routing on col1, each child slice has a single col1 value (constant); split uses col0."""
+    x = np.array(
+        [
+            [0, 0],
+            [0, 1],
+            [1, 0],
+            [1, 1],
+        ],
+        dtype=np.int64,
+    )
+    y = np.array([100.0, -50.0, -20.0, 10.0], dtype=float)
+    model = ImpactSplitter(delta_pct=0.05, min_global_impact_pct=0.001, max_depth=3)
+
+    model.fit(x, y, trace=True)
+
+    assert model.fit_trace_[0]["chosen_feature_index"] == 1
+    depth1_splits = [
+        e for e in model.fit_trace_ if e["depth"] == 1 and e["action"] == "split"
+    ]
+    assert depth1_splits
+    assert all(e["chosen_feature_index"] == 0 for e in depth1_splits)
+
+
 def test_no_split_when_all_category_sums_within_delta() -> None:
     x = np.array([[0], [1], [2], [0], [1], [2]], dtype=np.int64)
     y = np.array([1.0, -1.0, 0.5, -0.5, 0.1, -0.1], dtype=float)
