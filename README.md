@@ -106,11 +106,10 @@ model = ImpactSplitter(
     delta_pct=0.05,
     min_global_impact_pct=0.01,
     max_depth=5,
-    neutral_root=True,  # default: root uses assignment delta 0; set False for legacy scaled root
 )
 
-# X: pandas DataFrame of categorical or pre-binned features
-# y: pandas Series with additive target (e.g., profit/loss)
+# X: 2D numpy ndarray of integer label-encoded categories (0, 1, 2, ...)
+# y: 1D numpy ndarray with additive target (e.g., profit/loss)
 model.fit(X, y, trace=True)  # optional: populate model.fit_trace_
 
 model.plot_tree(figsize=(16, 10))
@@ -120,7 +119,7 @@ print(segments.head())
 
 ### Fit trace (optional)
 
-Pass `trace=True` or `verbose=True` to `fit()` to record one pre-order step per visited node in `model.fit_trace_` (`verbose` is an alias for `trace`; there is no extra logging). With the default `neutral_root=True`, the **root** uses assignment thresholds `delta=0` (categories split by the sign of `S_cat`); deeper nodes use `delta = V_node * delta_pct`. Each step includes `delta_nominal` (always `V_node * delta_pct`), assignment `delta` / `delta_neg` / `neutral_band` (used for `S_cat`), `delta_pct`, `V_node`, `s_node_p`, `s_node_n`, `total_sum`, global materiality ratios, per-feature candidate gains, category tables, `chosen_feature` when splitting, and `stop_reason` when a leaf is created (`materiality`, `max_depth`, `no_split`, or `empty_children`).
+Pass `trace=True` or `verbose=True` to `fit()` to record one pre-order step per visited node in `model.fit_trace_` (`verbose` is an alias for `trace`; there is no extra logging). Every node uses `delta = V_node * delta_pct` for category assignment in split scoring/routing. Each step includes `delta`, `delta_pct`, `V_node`, `s_node_p`, `s_node_n`, `total_sum`, global materiality ratios, per-feature candidate gains, category tables, `chosen_feature_index` when splitting, and `stop_reason` when a leaf is created (`materiality`, `max_depth`, `identical_rows`, or `no_split`).
 
 ## Output
 
@@ -133,7 +132,10 @@ Pass `trace=True` or `verbose=True` to `fit()` to record one pre-order step per 
 
 ## Assumptions and Limitations
 
-- Inputs should be categorical or discretized before fitting.
+- `fit(X, y)` strictly requires NumPy arrays:
+  - `X`: `np.ndarray` with shape `(n_samples, n_features)` and integer label-encoded categories.
+  - `y`: `np.ndarray` with shape `(n_samples,)` and float-coercible additive target values.
+- Inputs should be categorical or discretized before fitting (label-encoded into integer bins).
 - Ternary recursion can still grow quickly with depth.
 - This is primarily an EDA summarization tool, not a cross-validation-first predictive workflow.
 

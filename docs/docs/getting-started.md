@@ -17,8 +17,8 @@ pip install -r requirements.txt
 
 ## First Run
 
-1. Prepare `X` as categorical or pre-binned features.
-2. Prepare `y` as an additive target (for example, profit/loss).
+1. Prepare `X` as a 2D `numpy.ndarray` of integer label-encoded categories.
+2. Prepare `y` as a 1D `numpy.ndarray` with additive target values (for example, profit/loss).
 3. Fit and inspect:
 
 ```python
@@ -28,7 +28,6 @@ model = ImpactSplitter(
     delta_pct=0.05,
     min_global_impact_pct=0.01,
     max_depth=5,
-    neutral_root=True,
 )
 
 model.fit(X, y, trace=True)  # or verbose=True (alias); inspect model.fit_trace_
@@ -44,7 +43,7 @@ To load [Sample Supermarket](https://www.kaggle.com/datasets/bravehart101/sample
 
 Configure Kaggle credentials first ([kagglehub authentication](https://github.com/Kaggle/kagglehub#authentication)).
 
-The notebook prints a per-node summary: `delta_nominal` (`V_node * delta_pct`), assignment `delta` / `delta_neg` (at the root these are zero by default so `S_cat` splits by sign), `neutral_band`, `V_node`, and node-level mass (`s_node_p`, `s_node_n`, `total_sum`).
+The notebook prints a per-node summary: assignment `delta` (`V_node * delta_pct`), `V_node`, node-level mass (`s_node_p`, `s_node_n`, `total_sum`), and selected split information.
 
 ## Where to Read Next
 

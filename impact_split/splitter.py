@@ -18,115 +18,114 @@ class _TreeNode:
     n_samples: int
     total_sum: float
     path: str
-    feature: str | None = None
-    assignment: dict[str, str] | None = None
+    feature_index: int | None = None
+    routing: dict[str, list[int]] | None = None
     children: dict[str, _TreeNode] | None = None
 
 
 class ImpactSplitter:
-    """Ternary impact tree: categories route to positive / negative / neutral by local delta.
-
-    Attributes:
-        fit_trace_: Populated after :meth:`fit` when ``trace=True`` or ``verbose=True`` —
-            pre-order list of per-node dicts with ``delta_nominal`` (``V_node * delta_pct``),
-            assignment ``delta`` / ``delta_neg`` / ``neutral_band``, ``delta_pct``, ``V_node``,
-            ``s_node_p``, ``s_node_n``, ``total_sum``, candidate gains, ``chosen_feature``,
-            ``stop_reason``, ….
-    """
+    """Ternary impact tree optimized for additive targets using NumPy arrays."""
 
     def __init__(
         self,
         delta_pct: float = 0.05,
         min_global_impact_pct: float = 0.01,
         max_depth: int = 5,
-        neutral_root: bool = True,
     ) -> None:
         self.delta_pct = delta_pct
         self.min_global_impact_pct = min_global_impact_pct
         self.max_depth = max_depth
-        self.neutral_root = neutral_root
-        self._X: pd.DataFrame | None = None
+        self._X: np.ndarray | None = None
         self._y: np.ndarray | None = None
-        self._y_series: pd.Series | None = None
         self._tree: _TreeNode | None = None
         self._v_global_p: float = 0.0
         self._v_global_n: float = 0.0
+        self._trace_enabled = False
+        self._node_counter = 0
         self.fit_trace_: list[dict[str, Any]] = []
 
     def fit(
         self,
-        X: pd.DataFrame,
-        y: pd.Series,
+        X: np.ndarray,
+        y: np.ndarray,
         *,
         trace: bool = False,
         verbose: bool = False,
     ) -> ImpactSplitter:
-        """Fit the impact tree.
+        """Fit the impact tree with strict NumPy inputs.
 
-        Set ``trace=True`` or ``verbose=True`` to populate :attr:`fit_trace_`. ``verbose`` is
-        an alias for ``trace`` (no extra logging).
+        Args:
+            X: 2D integer array with label-encoded categories per column.
+            y: 1D array with additive target values.
+            trace: Record per-node trace entries in ``fit_trace_``.
+            verbose: Alias for ``trace``.
         """
         trace = trace or verbose
-        if len(X) != len(y):
+
+        if not isinstance(X, np.ndarray):
+            raise ValueError("X must be a numpy.ndarray.")
+        if X.ndim != 2:
+            raise ValueError("X must be a 2D numpy.ndarray.")
+        if not np.issubdtype(X.dtype, np.integer):
+            raise ValueError("X must contain integer label-encoded categories.")
+        if X.size and np.any(X < 0):
+            raise ValueError("X categories must be non-negative integers.")
+
+        if not isinstance(y, np.ndarray):
+            raise ValueError("y must be a numpy.ndarray.")
+        if y.ndim != 1:
+            raise ValueError("y must be a 1D numpy.ndarray.")
+        if X.shape[0] != y.shape[0]:
             raise ValueError("X and y must have the same number of rows.")
-        if X.index.tolist() != y.index.tolist():
-            X = X.reset_index(drop=True)
-            y = y.reset_index(drop=True)
-        self._X = X
-        self._y_series = y
-        y_arr = y.astype(float).to_numpy()
+
+        y_arr = y.astype(float, copy=False)
+        x_arr = X.astype(np.int64, copy=False)
+
+        self._X = x_arr
         self._y = y_arr
-        pos = y_arr[y_arr > 0].sum()
-        neg = (-y_arr[y_arr < 0]).sum()
-        self._v_global_p = float(pos)
-        self._v_global_n = float(neg)
+        self._v_global_p = float(y_arr[y_arr > 0].sum())
+        self._v_global_n = float(np.abs(y_arr[y_arr < 0]).sum())
+        self._tree = None
         self.fit_trace_ = []
         self._trace_enabled = trace
         self._node_counter = 0
-        indices = np.arange(len(y_arr), dtype=np.intp)
-        self._tree = self._build(indices, depth=0, path="root", used_features=frozenset())
+
+        self._tree = self._build(x_arr, y_arr, depth=0, path="root")
         return self
 
     def _next_node_id(self) -> str:
-        nid = f"node_{self._node_counter}"
+        node_id = f"node_{self._node_counter}"
         self._node_counter += 1
-        return nid
+        return node_id
 
-    def _build(
-        self,
-        indices: np.ndarray,
-        depth: int,
-        path: str,
-        used_features: frozenset[str],
-    ) -> _TreeNode:
-        y_sub = self._y[indices]
-        n_samples = int(len(indices))
+    @staticmethod
+    def _all_rows_identical(x_sub: np.ndarray) -> bool:
+        if x_sub.shape[0] <= 1:
+            return True
+        return bool(np.all(x_sub == x_sub[0]))
+
+    def _build(self, x_sub: np.ndarray, y_sub: np.ndarray, depth: int, path: str) -> _TreeNode:
+        n_samples = int(y_sub.shape[0])
         total_sum = float(y_sub.sum())
-        v_node = float(np.abs(y_sub).sum())
-        delta_nominal = v_node * self.delta_pct
-        assignment_delta = (
-            0.0 if depth == 0 and self.neutral_root else delta_nominal
-        )
+        node_id = self._next_node_id()
 
         s_node_p = float(y_sub[y_sub > 0].sum())
-        s_node_n = float((-y_sub[y_sub < 0]).sum())
+        s_node_n = float(np.abs(y_sub[y_sub < 0]).sum())
         ratio_p = s_node_p / self._v_global_p if self._v_global_p > 0 else 0.0
         ratio_n = s_node_n / self._v_global_n if self._v_global_n > 0 else 0.0
-        materiality = (ratio_p >= self.min_global_impact_pct) or (
-            ratio_n >= self.min_global_impact_pct
-        )
+        positive_trigger = ratio_p > self.min_global_impact_pct
+        negative_trigger = ratio_n > self.min_global_impact_pct
 
-        delta_neg = -assignment_delta
+        v_node = float(np.abs(y_sub).sum())
+        delta = v_node * self.delta_pct
+
         trace_entry: dict[str, Any] = {
-            "node_id": None,
+            "node_id": node_id,
             "depth": depth,
             "n_samples": n_samples,
             "V_node": v_node,
             "delta_pct": self.delta_pct,
-            "delta_nominal": delta_nominal,
-            "delta": assignment_delta,
-            "delta_neg": delta_neg,
-            "neutral_band": {"low": delta_neg, "high": assignment_delta},
+            "delta": delta,
             "s_node_p": s_node_p,
             "s_node_n": s_node_n,
             "total_sum": total_sum,
@@ -137,176 +136,145 @@ class ImpactSplitter:
                 "V_global_P": self._v_global_p,
                 "V_global_N": self._v_global_n,
             },
-            "materiality_pass": materiality,
+            "positive_trigger": positive_trigger,
+            "negative_trigger": negative_trigger,
             "candidate_gains": [],
-            "chosen_feature": None,
+            "chosen_feature_index": None,
             "category_tables": {},
             "action": "split",
             "stop_reason": None,
         }
 
-        node_id = self._next_node_id()
-        trace_entry["node_id"] = node_id
-
-        if not materiality:
+        if (not positive_trigger) and (not negative_trigger):
             trace_entry["action"] = "leaf"
             trace_entry["stop_reason"] = "materiality"
             if self._trace_enabled:
                 self.fit_trace_.append(trace_entry)
-            return _TreeNode(
-                True,
-                node_id,
-                depth,
-                n_samples,
-                total_sum,
-                path,
-            )
+            return _TreeNode(True, node_id, depth, n_samples, total_sum, path)
 
-        if depth >= self.max_depth:
+        if depth == self.max_depth:
             trace_entry["action"] = "leaf"
             trace_entry["stop_reason"] = "max_depth"
             if self._trace_enabled:
                 self.fit_trace_.append(trace_entry)
-            return _TreeNode(
-                True,
-                node_id,
-                depth,
-                n_samples,
-                total_sum,
-                path,
-            )
+            return _TreeNode(True, node_id, depth, n_samples, total_sum, path)
 
-        best_gain = -1.0
-        best_feature: str | None = None
-        best_assignment: dict[str, str] | None = None
-        best_detail: dict[str, Any] = {}
+        if self._all_rows_identical(x_sub):
+            trace_entry["action"] = "leaf"
+            trace_entry["stop_reason"] = "identical_rows"
+            if self._trace_enabled:
+                self.fit_trace_.append(trace_entry)
+            return _TreeNode(True, node_id, depth, n_samples, total_sum, path)
 
-        X_df = self._X
-        assert X_df is not None
+        best_gain = 0.0
+        best_feature_index: int | None = None
+        best_pos_categories = np.array([], dtype=np.int64)
+        best_neg_categories = np.array([], dtype=np.int64)
+        best_neu_categories = np.array([], dtype=np.int64)
 
-        for col in X_df.columns:
-            if col in used_features:
-                continue
-            col_vals = X_df.iloc[indices][col].astype(str)
-            cats = col_vals.unique()
-            if len(cats) < 2:
+        for feature_index in range(x_sub.shape[1]):
+            col_vals = x_sub[:, feature_index]
+            if col_vals.size == 0:
                 continue
 
-            s_by_cat: dict[str, float] = {}
-            for c in cats:
-                mask = col_vals == c
-                idx_local = np.where(mask)[0]
-                idx_global = indices[idx_local]
-                s_by_cat[str(c)] = float(self._y[idx_global].sum())
+            max_cat = int(col_vals.max(initial=0))
+            cat_sums = np.bincount(col_vals, weights=y_sub, minlength=max_cat + 1)
+            cat_counts = np.bincount(col_vals, minlength=max_cat + 1)
+            present_categories = np.flatnonzero(cat_counts)
+            if present_categories.size == 0:
+                continue
 
-            assignment: dict[str, str] = {}
-            for c, s_cat in s_by_cat.items():
-                if s_cat > assignment_delta:
-                    assignment[c] = "P"
-                elif s_cat < -assignment_delta:
-                    assignment[c] = "N"
-                else:
-                    assignment[c] = "neutral"
+            present_sums = cat_sums[present_categories]
+            pos_mask = present_sums > delta
+            neg_mask = present_sums < -delta
+            neu_mask = ~(pos_mask | neg_mask)
 
-            k_p = sum(1 for v in assignment.values() if v == "P")
-            k_n = sum(1 for v in assignment.values() if v == "N")
-            if k_p == 0 or k_n == 0:
-                gain = 0.0
-            else:
-                s_p = sum(s_by_cat[c] for c, a in assignment.items() if a == "P")
-                s_n = sum(s_by_cat[c] for c, a in assignment.items() if a == "N")
-                gain = abs(s_p) / k_p + abs(s_n) / k_n
+            s_p = float(present_sums[pos_mask].sum())
+            s_n = float(present_sums[neg_mask].sum())
+            k_p = int(pos_mask.sum())
+            k_n = int(neg_mask.sum())
+            gain_p = abs(s_p) / k_p if k_p > 0 else 0.0
+            gain_n = abs(s_n) / k_n if k_n > 0 else 0.0
+            total_gain = gain_p + gain_n
 
-            cat_rows = [
+            pos_categories = present_categories[pos_mask].astype(np.int64, copy=False)
+            neg_categories = present_categories[neg_mask].astype(np.int64, copy=False)
+            neu_categories = present_categories[neu_mask].astype(np.int64, copy=False)
+
+            trace_entry["category_tables"][feature_index] = [
                 {
-                    "category": c,
-                    "S_cat": s_by_cat[c],
-                    "branch": assignment[c],
+                    "category": int(cat),
+                    "S_cat": float(sum_val),
+                    "branch": (
+                        "P"
+                        if sum_val > delta
+                        else ("N" if sum_val < -delta else "neutral")
+                    ),
                 }
-                for c in sorted(s_by_cat.keys(), key=lambda x: (-abs(s_by_cat[x]), x))
+                for cat, sum_val in zip(present_categories.tolist(), present_sums.tolist())
             ]
-            trace_entry["category_tables"][col] = cat_rows
             trace_entry["candidate_gains"].append(
                 {
-                    "feature": col,
-                    "gain": gain,
+                    "feature_index": feature_index,
+                    "gain": total_gain,
+                    "gain_P": gain_p,
+                    "gain_N": gain_n,
                     "k_P": k_p,
                     "k_N": k_n,
                 }
             )
 
-            if gain > best_gain:
-                best_gain = gain
-                best_feature = col
-                best_assignment = assignment
-                best_detail = {
-                    "k_P": k_p,
-                    "k_N": k_n,
-                    "gain": gain,
-                }
+            if total_gain > best_gain:
+                best_gain = total_gain
+                best_feature_index = feature_index
+                best_pos_categories = pos_categories
+                best_neg_categories = neg_categories
+                best_neu_categories = neu_categories
 
-        trace_entry["candidate_gains"].sort(key=lambda x: -x["gain"])
+        trace_entry["candidate_gains"].sort(key=lambda item: -item["gain"])
 
-        if best_feature is None or best_gain <= 0 or best_assignment is None:
+        if best_gain == 0.0 or best_feature_index is None:
             trace_entry["action"] = "leaf"
             trace_entry["stop_reason"] = "no_split"
             if self._trace_enabled:
                 self.fit_trace_.append(trace_entry)
-            return _TreeNode(
-                True,
-                node_id,
-                depth,
-                n_samples,
-                total_sum,
-                path,
-            )
+            return _TreeNode(True, node_id, depth, n_samples, total_sum, path)
 
-        trace_entry["chosen_feature"] = best_feature
-        trace_entry["chosen_gain"] = best_detail.get("gain", best_gain)
+        best_col_vals = x_sub[:, best_feature_index]
+        mask_p = np.isin(best_col_vals, best_pos_categories)
+        mask_n = np.isin(best_col_vals, best_neg_categories)
+        mask_u = ~mask_p & ~mask_n
 
-        col_vals = X_df.iloc[indices][best_feature].astype(str)
-        new_used = used_features | {best_feature}
-        child_plan: list[tuple[str, np.ndarray, str]] = []
-        for branch_label, branch_code in (
-            ("positive", "P"),
-            ("negative", "N"),
-            ("neutral", "neutral"),
-        ):
-            cat_set = {c for c, a in best_assignment.items() if a == branch_code}
-            if not cat_set:
-                continue
-            mask = col_vals.isin(cat_set)
-            child_idx = indices[np.where(mask)[0]]
-            if len(child_idx) == 0:
-                continue
-            child_path = f"{path} / {best_feature}={branch_label}"
-            child_plan.append((branch_label, child_idx, child_path))
-
-        if not child_plan:
-            trace_entry["action"] = "leaf"
-            trace_entry["stop_reason"] = "empty_children"
-            if self._trace_enabled:
-                self.fit_trace_.append(trace_entry)
-            return _TreeNode(
-                True,
-                node_id,
-                depth,
-                n_samples,
-                total_sum,
-                path,
-            )
-
-        trace_entry["action"] = "split"
+        trace_entry["chosen_feature_index"] = best_feature_index
+        trace_entry["routing"] = {
+            "positive": best_pos_categories.tolist(),
+            "negative": best_neg_categories.tolist(),
+            "neutral": best_neu_categories.tolist(),
+        }
         if self._trace_enabled:
             self.fit_trace_.append(trace_entry)
 
         children: dict[str, _TreeNode] = {}
-        for branch_label, child_idx, child_path in child_plan:
-            children[branch_label] = self._build(
-                child_idx,
+        if np.any(mask_p):
+            children["positive"] = self._build(
+                x_sub[mask_p],
+                y_sub[mask_p],
                 depth + 1,
-                child_path,
-                new_used,
+                f"{path} / f{best_feature_index}=positive",
+            )
+        if np.any(mask_n):
+            children["negative"] = self._build(
+                x_sub[mask_n],
+                y_sub[mask_n],
+                depth + 1,
+                f"{path} / f{best_feature_index}=negative",
+            )
+        if np.any(mask_u):
+            children["neutral"] = self._build(
+                x_sub[mask_u],
+                y_sub[mask_u],
+                depth + 1,
+                f"{path} / f{best_feature_index}=neutral",
             )
 
         return _TreeNode(
@@ -316,8 +284,12 @@ class ImpactSplitter:
             n_samples,
             total_sum,
             path,
-            feature=best_feature,
-            assignment=best_assignment,
+            feature_index=best_feature_index,
+            routing={
+                "positive": best_pos_categories.tolist(),
+                "negative": best_neg_categories.tolist(),
+                "neutral": best_neu_categories.tolist(),
+            },
             children=children,
         )
 
@@ -408,7 +380,7 @@ class ImpactSplitter:
         def node_label(n: _TreeNode) -> str:
             if n.is_leaf:
                 return f"{n.node_id}\nΣy={n.total_sum:.1f}"
-            feat = n.feature or ""
+            feat = f"f{n.feature_index}" if n.feature_index is not None else ""
             return f"{n.node_id}\n{feat}"
 
         def label_positions(n: _TreeNode) -> None:
