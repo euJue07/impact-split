@@ -87,6 +87,72 @@ The algorithm builds a ternary tree (Positive / Neutral / Negative) over categor
 - a gain metric that emphasizes outer-branch impact while penalizing high-cardinality noise,
 - a global stopping threshold (`min_global_impact_pct`) to stop splitting low-materiality nodes.
 
+## Story Behind the Math
+
+Most decision-tree algorithms were designed to minimize variance and isolate segments with similar average values. In business work, averages can hide what matters most: total impact.
+
+Example: a tiny segment with 2 churn events at -$5,000 each can look "purer" than a segment with 10,000 churn events at -$40 each. But the second segment carries far more total business weight.
+
+`impact-split` was designed to solve this exact mismatch by optimizing for additive totals.
+
+### Act I: The Local Sieve (`delta`)
+
+**Problem:** forcing every category into binary good/bad branches hides the baseline. For additive KPIs, we need Positive, Negative, and Neutral branches.
+
+**Formula:**
+
+$$
+\delta = V_{node} \times \text{delta\_pct}
+$$
+
+Where $V_{node}$ is the absolute sum of target values inside the current node.
+
+**Why it works:** Neutral boundaries scale with local volume, so sensitivity adapts by depth. High-volume nodes ignore small noise; lower-volume nodes detect finer impacts.
+
+### Act II: The Gain Metric (Category-Averaged Impact Divergence)
+
+**Problem:** after routing categories to Positive/Negative/Neutral, we still need to choose the best splitting feature.
+
+**Evolution:**
+
+- Start from sign-separation intuition (split positive and negative mass so they do not cancel).
+- Penalize high-cardinality slicing to avoid overfitting.
+- Focus on outer branches because this EDA method is built to find extremes.
+
+**Final formula:**
+
+$$
+Gain(X_i) = \frac{|S_P|}{k_P} + \frac{|S_N|}{k_N}
+$$
+
+Where $S_P, S_N$ are outer-branch sums and $k_P, k_N$ are the number of categories assigned to each branch.
+
+**Why it works:** It balances volume and density, rewarding features that isolate large positive/negative totals with fewer actionable categories.
+
+### Act III: The Global Kill Switch (Dual Materiality)
+
+**Problem:** as the tree deepens, local thresholds shrink, so eventually even tiny noise can look meaningful.
+
+Standard stopping rules like max depth or min samples are not tied to financial materiality. `impact-split` stops when a branch is globally irrelevant for both positive and negative pools.
+
+**Global theoretical maximums:**
+
+$$
+V_{global\_P} = \sum_{y_i > 0} y_i \quad \text{and} \quad V_{global\_N} = \sum_{y_i < 0} |y_i|
+$$
+
+**Stopping rule:**
+
+$$
+\text{Stop if: } \left( \frac{S_{node\_P}}{V_{global\_P}} \le \theta_{stop} \right) \text{ AND } \left( \frac{S_{node\_N}}{V_{global\_N}} \le \theta_{stop} \right)
+$$
+
+**Why it works:** positive and negative impacts are graded against their own global pools, avoiding net-sum distortions and preserving business materiality.
+
+### Implementation note
+
+Current implementation applies $\delta = V_{node} \times \text{delta\_pct}$ consistently at every depth, including the root.
+
 ## Quick Start
 
 ### Install
@@ -117,6 +183,8 @@ segments = model.get_impact_segments()
 print(segments.head())
 ```
 
+If you want the motivation behind each formula (not just usage), read the Story Behind the Math section above, then the explainer notebook linked below.
+
 ### Fit trace (optional)
 
 Pass `trace=True` or `verbose=True` to `fit()` to record one pre-order step per visited node in `model.fit_trace_` (`verbose` is an alias for `trace`; there is no extra logging). Every node uses `delta = V_node * delta_pct` for category assignment in split scoring/routing. Each step includes `delta`, `delta_pct`, `V_node`, `s_node_p`, `s_node_n`, `total_sum`, global materiality ratios, per-feature candidate gains, category tables, `chosen_feature_index` when splitting, and `stop_reason` when a leaf is created (`materiality`, `max_depth`, `identical_rows`, or `no_split`).
@@ -141,7 +209,7 @@ Pass `trace=True` or `verbose=True` to `fit()` to record one pre-order step per 
 
 ## Learn More
 
-- Full mathematical walkthrough and toy example (documented synthetic DGP with expected structural impact, region-level bias, and noise—fit uses observed outcome only):
+- Full mathematical walkthrough and toy example (documented synthetic DGP: planted category-interaction effects plus noise; fit uses observed outcome only):
   - [`notebooks/1.0-jde-impact-split-explainer.ipynb`](notebooks/1.0-jde-impact-split-explainer.ipynb)
 - Kaggle Sample Supermarket data, `kagglehub` download, and step-by-step trace tables:
   - [`notebooks/2.0-jde-supermarket-kaggle-trace.ipynb`](notebooks/2.0-jde-supermarket-kaggle-trace.ipynb) (requires [Kaggle API credentials](https://github.com/Kaggle/kagglehub#authentication) for `kagglehub`)

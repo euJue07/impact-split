@@ -15,6 +15,15 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
+## Why This Algorithm Is Different
+
+`impact-split` is designed for additive business KPIs where totals matter more than average purity. It uses a local sieve (`delta = V_node * delta_pct`) to create Positive/Neutral/Negative branches, a gain metric that rewards concentrated outer-branch impact, and a dual-materiality stopping rule that halts branches with globally irrelevant positive and negative mass.
+
+For the full three-act origin story and formulas, read:
+
+- `README.md` ("Story Behind the Math")
+- `notebooks/1.0-jde-impact-split-explainer.ipynb`
+
 ## First Run
 
 1. Prepare `X` as a 2D `numpy.ndarray` of integer label-encoded categories.
@@ -48,4 +57,5 @@ The notebook label-encodes the chosen string columns into integer `numpy` arrays
 ## Where to Read Next
 
 - Project overview: `README.md`
-- Full deep dive with equations and worked example (synthetic DGP: structural `y_expected`, region bias, noise; the tree is fit on observed outcome only): `notebooks/1.0-jde-impact-split-explainer.ipynb`
+- Full deep dive with equations and worked example (synthetic DGP: structural `y_expected` from planted category interactions, noise; the tree is fit on observed outcome only): `notebooks/1.0-jde-impact-split-explainer.ipynb`
+- Practical trace walkthrough on Kaggle data: `notebooks/2.0-jde-supermarket-kaggle-trace.ipynb`
