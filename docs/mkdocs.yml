@@ -2,3 +2,6 @@ site_name: impact-split
 # 
 site_author: Juedi Myro Eugenio
 # 
+nav:
+  - Home: index.md
+  - Getting Started: getting-started.md

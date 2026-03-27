@@ -12,8 +12,10 @@ This creates a tree that stays focused on business-impactful structure instead o
 
 ## Read Paths
 
-- **Concept + full origin story:** [README](../../README.md)
-- **Mathematical deep dive + synthetic worked example:** [notebooks/1.0-jde-impact-split-explainer.ipynb](../../notebooks/1.0-jde-impact-split-explainer.ipynb)
-- **Practical trace diagnostics on real data:** [notebooks/2.0-jde-supermarket-kaggle-trace.ipynb](../../notebooks/2.0-jde-supermarket-kaggle-trace.ipynb)
+- **Concept + full origin story:** `README.md`
+- **Mathematical deep dive + synthetic worked example:** `notebooks/1.0-jde-impact-split-explainer.ipynb`
+- **Practical trace diagnostics on real data:** `notebooks/2.0-jde-supermarket-kaggle-trace.ipynb`
 - **Environment setup + first run:** [getting-started.md](getting-started.md)
+
+When browsing the generated docs site (outside the repository file view), notebook links may not open directly. In that case, open the repository and navigate to the `notebooks/` folder.
 
