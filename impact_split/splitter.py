@@ -9,6 +9,63 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
+_DEFAULT_PLOT_CATEGORY_LABELS = 5
+
+
+def _prepare_X_y(
+    X: np.ndarray | pd.DataFrame,
+    y: np.ndarray | pd.Series,
+) -> tuple[np.ndarray, np.ndarray, list[str] | None, tuple[np.ndarray, ...] | None]:
+    """Validate inputs and return integer matrix, float target, and optional pandas metadata."""
+    if isinstance(y, pd.Series):
+        y_arr = np.asarray(y, dtype=float)
+    elif isinstance(y, np.ndarray):
+        y_arr = y.astype(float, copy=False)
+    else:
+        raise ValueError("y must be a numpy.ndarray or pandas.Series.")
+
+    if y_arr.ndim != 1:
+        raise ValueError("y must be a 1D numpy.ndarray or pandas.Series.")
+
+    feature_names: list[str] | None = None
+    category_maps: tuple[np.ndarray, ...] | None = None
+
+    if isinstance(X, pd.DataFrame):
+        if X.ndim != 2:
+            raise ValueError("X must be a 2D pandas.DataFrame.")
+        if X.shape[0] != y_arr.shape[0]:
+            raise ValueError("X and y must have the same number of rows.")
+        cols: list[np.ndarray] = []
+        maps: list[np.ndarray] = []
+        feature_names = [str(c) for c in X.columns]
+        for name in X.columns:
+            s = X[name]
+            if s.isna().any():
+                raise ValueError("X must not contain missing values.")
+            codes, uniques = pd.factorize(s, sort=True)
+            if np.any(codes < 0):
+                raise ValueError("X categories must be non-negative integer codes after factorization.")
+            cols.append(codes.astype(np.int64, copy=False))
+            maps.append(np.asarray(uniques, dtype=object))
+        x_arr = np.column_stack(cols) if cols else np.empty((X.shape[0], 0), dtype=np.int64)
+        category_maps = tuple(maps)
+    elif isinstance(X, np.ndarray):
+        if X.ndim != 2:
+            raise ValueError("X must be a 2D numpy.ndarray.")
+        if getattr(X.dtype, "kind", None) not in ("i", "u"):
+            raise ValueError(
+                "X must contain integer label-encoded categories (signed or unsigned int dtype)."
+            )
+        if X.size and np.any(X < 0):
+            raise ValueError("X categories must be non-negative integers.")
+        if X.shape[0] != y_arr.shape[0]:
+            raise ValueError("X and y must have the same number of rows.")
+        x_arr = X.astype(np.int64, copy=False)
+    else:
+        raise ValueError("X must be a numpy.ndarray or pandas.DataFrame.")
+
+    return x_arr, y_arr, feature_names, category_maps
+
 
 @dataclass
 class _TreeNode:
@@ -24,7 +81,7 @@ class _TreeNode:
 
 
 class ImpactSplitter:
-    """Ternary impact tree optimized for additive targets using NumPy arrays."""
+    """Ternary impact tree for additive targets over categorical features (NumPy or pandas)."""
 
     def __init__(
         self,
@@ -43,49 +100,35 @@ class ImpactSplitter:
         self._trace_enabled = False
         self._node_counter = 0
         self.fit_trace_: list[dict[str, Any]] = []
+        self.feature_names_in_: list[str] | None = None
+        self.category_maps_: tuple[np.ndarray, ...] | None = None
 
     def fit(
         self,
-        X: np.ndarray,
-        y: np.ndarray,
+        X: np.ndarray | pd.DataFrame,
+        y: np.ndarray | pd.Series,
         *,
         trace: bool = False,
         verbose: bool = False,
     ) -> ImpactSplitter:
-        """Fit the impact tree with strict NumPy inputs.
+        """Fit the impact tree on categorical features and an additive target.
 
         Args:
-            X: 2D integer array with label-encoded categories per column.
-            y: 1D array with additive target values.
+            X: 2D ``numpy.ndarray`` of non-negative integer label-encoded categories
+                per column, or a ``pandas.DataFrame`` of categorical columns (factorized
+                internally).
+            y: 1D ``numpy.ndarray`` or ``pandas.Series`` with additive target values.
             trace: Record per-node trace entries in ``fit_trace_``.
             verbose: Alias for ``trace``.
         """
         trace = trace or verbose
 
-        if not isinstance(X, np.ndarray):
-            raise ValueError("X must be a numpy.ndarray.")
-        if X.ndim != 2:
-            raise ValueError("X must be a 2D numpy.ndarray.")
-        # Prefer kind check over np.issubdtype: avoids rare dtype-hierarchy / third-party dtype edge cases.
-        if getattr(X.dtype, "kind", None) not in ("i", "u"):
-            raise ValueError(
-                "X must contain integer label-encoded categories (signed or unsigned int dtype)."
-            )
-        if X.size and np.any(X < 0):
-            raise ValueError("X categories must be non-negative integers.")
-
-        if not isinstance(y, np.ndarray):
-            raise ValueError("y must be a numpy.ndarray.")
-        if y.ndim != 1:
-            raise ValueError("y must be a 1D numpy.ndarray.")
-        if X.shape[0] != y.shape[0]:
-            raise ValueError("X and y must have the same number of rows.")
-
-        y_arr = y.astype(float, copy=False)
-        x_arr = X.astype(np.int64, copy=False)
+        x_arr, y_arr, feature_names, category_maps = _prepare_X_y(X, y)
 
         self._X = x_arr
         self._y = y_arr
+        self.feature_names_in_ = feature_names
+        self.category_maps_ = category_maps
         self._v_global_p = float(y_arr[y_arr > 0].sum())
         self._v_global_n = float(np.abs(y_arr[y_arr < 0]).sum())
         self._tree = None
@@ -95,6 +138,57 @@ class ImpactSplitter:
 
         self._tree = self._build(x_arr, y_arr, depth=0, path="root")
         return self
+
+    def _feature_path_key(self, feature_index: int) -> str:
+        if self.feature_names_in_ is not None:
+            return str(self.feature_names_in_[feature_index])
+        return f"f{feature_index}"
+
+    def _decode_codes(self, feature_index: int, codes: list[int]) -> list[Any]:
+        if self.category_maps_ is None:
+            return list(codes)
+        m = self.category_maps_[feature_index]
+        return [m[int(c)] for c in codes]
+
+    def _feature_display_name(self, feature_index: int) -> str:
+        if self.feature_names_in_ is not None:
+            return str(self.feature_names_in_[feature_index])
+        return f"f{feature_index}"
+
+    def _format_branch_values(self, feature_index: int, codes: list[int], max_show: int) -> str:
+        if not codes:
+            return "—"
+        if self.category_maps_ is None:
+            parts = [str(c) for c in codes]
+        else:
+            m = self.category_maps_[feature_index]
+            parts = [str(m[int(c)]) for c in codes]
+        if len(parts) <= max_show:
+            return ", ".join(parts)
+        head = ", ".join(parts[:max_show])
+        return f"{head} (+{len(parts) - max_show} more)"
+
+    def _format_split_node_label(
+        self,
+        n: _TreeNode,
+        *,
+        max_category_labels: int = _DEFAULT_PLOT_CATEGORY_LABELS,
+    ) -> str:
+        """Human-readable label for a split node (used by ``plot_tree`` and tests)."""
+        if n.is_leaf or n.feature_index is None or not n.routing:
+            return f"{n.node_id}\nΣy={n.total_sum:.1f}" if n.is_leaf else n.node_id
+        name = self._feature_display_name(n.feature_index)
+        lines = [n.node_id, name]
+        for branch_key, symbol in (
+            ("positive", "+"),
+            ("negative", "−"),
+            ("neutral", "~"),
+        ):
+            codes = n.routing.get(branch_key, [])
+            lines.append(
+                f"{symbol} {self._format_branch_values(n.feature_index, codes, max_category_labels)}",
+            )
+        return "\n".join(lines)
 
     def _next_node_id(self) -> str:
         node_id = f"node_{self._node_counter}"
@@ -204,8 +298,9 @@ class ImpactSplitter:
             neg_categories = present_categories[neg_mask].astype(np.int64, copy=False)
             neu_categories = present_categories[neu_mask].astype(np.int64, copy=False)
 
-            trace_entry["category_tables"][feature_index] = [
-                {
+            cat_rows: list[dict[str, Any]] = []
+            for cat, sum_val in zip(present_categories.tolist(), present_sums.tolist()):
+                row: dict[str, Any] = {
                     "category": int(cat),
                     "S_cat": float(sum_val),
                     "branch": (
@@ -214,8 +309,10 @@ class ImpactSplitter:
                         else ("N" if sum_val < -delta else "neutral")
                     ),
                 }
-                for cat, sum_val in zip(present_categories.tolist(), present_sums.tolist())
-            ]
+                if self.category_maps_ is not None:
+                    row["category_label"] = self.category_maps_[feature_index][int(cat)]
+                cat_rows.append(row)
+            trace_entry["category_tables"][feature_index] = cat_rows
             trace_entry["candidate_gains"].append(
                 {
                     "feature_index": feature_index,
@@ -254,30 +351,38 @@ class ImpactSplitter:
             "negative": best_neg_categories.tolist(),
             "neutral": best_neu_categories.tolist(),
         }
+        if self.feature_names_in_ is not None and best_feature_index is not None:
+            trace_entry["chosen_feature_name"] = self.feature_names_in_[best_feature_index]
+            trace_entry["routing_labels"] = {
+                "positive": self._decode_codes(best_feature_index, best_pos_categories.tolist()),
+                "negative": self._decode_codes(best_feature_index, best_neg_categories.tolist()),
+                "neutral": self._decode_codes(best_feature_index, best_neu_categories.tolist()),
+            }
         if self._trace_enabled:
             self.fit_trace_.append(trace_entry)
 
+        feat_key = self._feature_path_key(best_feature_index)
         children: dict[str, _TreeNode] = {}
         if np.any(mask_p):
             children["positive"] = self._build(
                 x_sub[mask_p],
                 y_sub[mask_p],
                 depth + 1,
-                f"{path} / f{best_feature_index}=positive",
+                f"{path} / {feat_key}=positive",
             )
         if np.any(mask_n):
             children["negative"] = self._build(
                 x_sub[mask_n],
                 y_sub[mask_n],
                 depth + 1,
-                f"{path} / f{best_feature_index}=negative",
+                f"{path} / {feat_key}=negative",
             )
         if np.any(mask_u):
             children["neutral"] = self._build(
                 x_sub[mask_u],
                 y_sub[mask_u],
                 depth + 1,
-                f"{path} / f{best_feature_index}=neutral",
+                f"{path} / {feat_key}=neutral",
             )
 
         return _TreeNode(
@@ -328,8 +433,17 @@ class ImpactSplitter:
         )
         return df.drop(columns=["abs_impact"]).reset_index(drop=True)
 
-    def plot_tree(self, figsize: tuple[float, float] = (16.0, 10.0)) -> None:
-        """Plot the fitted tree with matplotlib."""
+    def plot_tree(
+        self,
+        figsize: tuple[float, float] = (16.0, 10.0),
+        *,
+        max_category_labels: int = _DEFAULT_PLOT_CATEGORY_LABELS,
+    ) -> None:
+        """Plot the fitted tree with matplotlib.
+
+        When ``X`` was a DataFrame, split nodes show column names and decoded category
+        values (truncated to ``max_category_labels`` per branch when needed).
+        """
         if self._tree is None:
             raise RuntimeError("Call fit() before plot_tree().")
 
@@ -383,8 +497,7 @@ class ImpactSplitter:
         def node_label(n: _TreeNode) -> str:
             if n.is_leaf:
                 return f"{n.node_id}\nΣy={n.total_sum:.1f}"
-            feat = f"f{n.feature_index}" if n.feature_index is not None else ""
-            return f"{n.node_id}\n{feat}"
+            return self._format_split_node_label(n, max_category_labels=max_category_labels)
 
         def label_positions(n: _TreeNode) -> None:
             x, y = positions[n.node_id]

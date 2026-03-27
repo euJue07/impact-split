@@ -195,7 +195,8 @@ model = ImpactSplitter(
 )
 
 # X: 2D numpy ndarray of integer label-encoded categories (0, 1, 2, ...)
-# y: 1D numpy ndarray with additive target (e.g., profit/loss)
+#     or a pandas DataFrame of categorical columns (factorized internally).
+# y: 1D numpy ndarray or pandas Series with additive target (e.g., profit/loss)
 model.fit(X, y, trace=True)  # optional: populate model.fit_trace_
 
 model.plot_tree(figsize=(16, 10))
@@ -241,7 +242,7 @@ If you want the motivation behind each formula (not just usage), read the Story 
 
 ### Fit trace (optional)
 
-Pass `trace=True` or `verbose=True` to `fit()` to record one pre-order step per visited node in `model.fit_trace_` (`verbose` is an alias for `trace`; there is no extra logging). Every node uses `delta = V_node * delta_pct` for category assignment in split scoring/routing. Each step includes `delta`, `delta_pct`, `V_node`, `s_node_p`, `s_node_n`, `total_sum`, global materiality ratios, per-feature candidate gains, category tables, `chosen_feature_index` when splitting, and `stop_reason` when a leaf is created (`materiality`, `max_depth`, `identical_rows`, or `no_split`).
+Pass `trace=True` or `verbose=True` to `fit()` to record one pre-order step per visited node in `model.fit_trace_` (`verbose` is an alias for `trace`; there is no extra logging). Every node uses `delta = V_node * delta_pct` for category assignment in split scoring/routing. Each step includes `delta`, `delta_pct`, `V_node`, `s_node_p`, `s_node_n`, `total_sum`, global materiality ratios, per-feature candidate gains, category tables, `chosen_feature_index` when splitting, and `stop_reason` when a leaf is created (`materiality`, `max_depth`, `identical_rows`, or `no_split`). When `X` is a DataFrame, trace rows also include `chosen_feature_name`, `routing_labels`, and per-row `category_label` in category tables where applicable.
 
 ## Output
 
@@ -254,10 +255,10 @@ Pass `trace=True` or `verbose=True` to `fit()` to record one pre-order step per 
 
 ## Assumptions and Limitations
 
-- `fit(X, y)` strictly requires NumPy arrays:
-  - `X`: `np.ndarray` with shape `(n_samples, n_features)` and integer label-encoded categories.
-  - `y`: `np.ndarray` with shape `(n_samples,)` and float-coercible additive target values.
-- Inputs should be categorical or discretized before fitting (label-encoded into integer bins).
+- `fit(X, y)` accepts:
+  - `X`: `np.ndarray` with shape `(n_samples, n_features)` and non-negative integer label-encoded categories, or a `pandas.DataFrame` (each column is factorized to integer codes; see `feature_names_in_` and `category_maps_` after fitting).
+  - `y`: `np.ndarray` or `pandas.Series` with shape `(n_samples,)` and float-coercible additive target values.
+- For NumPy `X`, inputs should be categorical or discretized before fitting (label-encoded into integer bins). DataFrame columns are treated as categorical.
 - Ternary recursion can still grow quickly with depth.
 - This is primarily an EDA summarization tool, not a cross-validation-first predictive workflow.
 
