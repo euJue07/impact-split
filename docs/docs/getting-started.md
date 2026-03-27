@@ -18,6 +18,16 @@ python -m pip install -e .
 python -m pip install -e ".[dev]"
 ```
 
+## Reproducible Notebook Run
+
+For a deterministic run of `notebooks/1.0-jde-impact-split-explainer.ipynb`:
+
+1. Activate the environment from Installation.
+2. Open the notebook and execute **Kernel -> Restart & Run All**.
+3. Compare the printed `repro_fingerprint` dictionary across reruns.
+
+This notebook uses synthetic data only, with randomness seeded via `np.random.default_rng(42)`, so reruns should match.
+
 ## Why This Algorithm Is Different
 
 `impact-split` is designed for additive business KPIs where totals matter more than average purity. It uses a local sieve (`delta = V_node * delta_pct`) to create Positive/Neutral/Negative branches, a gain metric that rewards concentrated outer-branch impact, and a dual-materiality stopping rule that halts branches with globally irrelevant positive and negative mass.

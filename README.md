@@ -164,6 +164,16 @@ python -m pip install -e .
 python -m pip install -e ".[dev]"
 ```
 
+### Reproduce The Explainer Notebook
+
+To reproduce `notebooks/1.0-jde-impact-split-explainer.ipynb` from a clean start:
+
+1. Activate the project environment above.
+2. Open the notebook and run **Kernel -> Restart & Run All**.
+3. Use the notebook's `repro_fingerprint` output to compare reruns.
+
+The explainer notebook is deterministic by design: it uses a seeded RNG (`np.random.default_rng(42)`) and does not require external data/API calls.
+
 ### Build & Package Validation
 
 ```bash
