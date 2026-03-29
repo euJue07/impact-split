@@ -2,6 +2,10 @@
 
 import io
 
+import matplotlib
+
+matplotlib.use("Agg")
+
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -233,6 +237,19 @@ def test_plot_node_label_segment_on_every_node_split_on_internal_only() -> None:
             assert "split on" in ch_label
 
 
+def test_format_plot_node_label_compact_omits_signed_sums() -> None:
+    x = pd.DataFrame({"dim": ["A", "B", "A", "B"]})
+    y = np.array([10.0, -10.0, 10.0, -10.0], dtype=float)
+    model = ImpactSplitter(delta_pct=0.01, min_global_impact_pct=0.001, max_depth=2)
+    model.fit(x, y)
+    assert model._tree is not None
+    full = model._format_plot_node_label(model._tree, compact_stats=False)
+    compact = model._format_plot_node_label(model._tree, compact_stats=True)
+    assert "Σy⁺" in full and "Σy⁻" in full
+    assert "Σy⁺" not in compact and "Σy⁻" not in compact
+    assert "n=" in compact and "Σy=" in compact
+
+
 def test_plot_tree_smoke() -> None:
     x = np.array([[0], [1], [0], [1]], dtype=np.int64)
     y = np.array([1.0, -1.0, 1.0, -1.0], dtype=float)
@@ -244,3 +261,78 @@ def test_plot_tree_smoke() -> None:
     fig.savefig(buf, format="png")
     assert buf.tell() > 0
     plt.close(fig)
+
+
+def test_plot_tree_label_truncation_smoke() -> None:
+    x = np.array([[0], [1], [0], [1]], dtype=np.int64)
+    y = np.array([1.0, -1.0, 1.0, -1.0], dtype=float)
+    model = ImpactSplitter(delta_pct=0.01, min_global_impact_pct=0.001, max_depth=2)
+    model.fit(x, y)
+
+    fig = model.plot_tree(show=False, node_label_max_chars=20)
+    buf = io.BytesIO()
+    fig.savefig(buf, format="png")
+    assert buf.tell() > 0
+    plt.close(fig)
+
+
+def test_plot_tree_max_leaf_width_budget_truncates_labels() -> None:
+    long_name = "feature_" + "x" * 60
+    x = pd.DataFrame({long_name: [0, 1, 0, 1]})
+    y = np.array([1.0, -1.0, 1.0, -1.0], dtype=float)
+    model = ImpactSplitter(delta_pct=0.01, min_global_impact_pct=0.001, max_depth=2)
+    model.fit(x, y)
+
+    fig_full = model.plot_tree(show=False, node_label_max_chars=None)
+    texts_full = [t.get_text() for t in fig_full.axes[0].texts if "\n" in t.get_text()]
+    plt.close(fig_full)
+    assert texts_full
+    max_len_full = max(len(s) for s in texts_full)
+
+    fig_budget = model.plot_tree(show=False, node_label_max_chars=200, max_leaf_width=1.0)
+    texts_budget = [t.get_text() for t in fig_budget.axes[0].texts if "\n" in t.get_text()]
+    plt.close(fig_budget)
+    assert texts_budget
+    assert any("..." in txt for txt in texts_budget)
+    assert max(len(s) for s in texts_budget) < max_len_full * 0.85
+
+
+def test_plot_tree_impact_encoding_sets_contrasting_text_color() -> None:
+    x = np.array([[0], [1], [0], [1]], dtype=np.int64)
+    y = np.array([10.0, -10.0, 10.0, -10.0], dtype=float)
+    model = ImpactSplitter(delta_pct=0.01, min_global_impact_pct=0.001, max_depth=2)
+    model.fit(x, y)
+    fig = model.plot_tree(show=False, node_facecolor="impact", compact_stats=True)
+    node_texts = [t for t in fig.axes[0].texts if "\n" in t.get_text()]
+    plt.close(fig)
+    assert node_texts
+    colors = {t.get_color() for t in node_texts}
+    assert len(colors) >= 2
+
+
+def test_plot_tree_layout_and_facecolor_smoke() -> None:
+    x = np.array([[0], [1], [0], [1]], dtype=np.int64)
+    y = np.array([1.0, -1.0, 1.0, -1.0], dtype=float)
+    model = ImpactSplitter(delta_pct=0.01, min_global_impact_pct=0.001, max_depth=2)
+    model.fit(x, y)
+
+    fig = model.plot_tree(
+        show=False,
+        compact_stats=True,
+        level_gap=1.4,
+        sibling_gap=0.2,
+        min_leaf_width=1.1,
+        edge_label_pos=0.25,
+        edge_label_bbox=False,
+        node_facecolor="impact",
+    )
+    buf = io.BytesIO()
+    fig.savefig(buf, format="png")
+    assert buf.tell() > 0
+    plt.close(fig)
+
+    fig_n = model.plot_tree(show=False, node_facecolor="n")
+    buf_n = io.BytesIO()
+    fig_n.savefig(buf_n, format="png")
+    assert buf_n.tell() > 0
+    plt.close(fig_n)

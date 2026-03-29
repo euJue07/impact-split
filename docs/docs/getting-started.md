@@ -57,7 +57,8 @@ model.fit(X, y, trace=True)  # or verbose=True (alias); inspect model.fit_trace_
 # hold column names and code-to-value maps for each feature.
 model.plot_tree(figsize=(16, 10))  # returns a matplotlib Figure; use show=False to save without plt.show()
 # plot_tree shows segment (all data or feature=categories) on every node; internal nodes add "split on <feature>", plus n and Σy stats.
-# For deep trees, use a larger figsize or smaller fontsize. For PDF/SVG export:
+# For crowded trees: increase figsize width, pass level_gap and sibling_gap, or use compact_stats=True; layout uses measured label widths (iterative), and node_label_max_chars trims long lines before layout. Optional max_leaf_width (data coordinates) tightens per-line truncation further via a binary search on character budget; default None uses no width budget. Raise layout_max_iterations only if needed. Optional node_facecolor="impact" (|Σy|) or "n" (sample count) adds a colorbar and contrasting label text.
+# For PDF/SVG export:
 # fig = model.plot_tree(figsize=(16, 10), show=False); fig.savefig("reports/figures/tree.pdf")
 segments = model.get_impact_segments()
 ```

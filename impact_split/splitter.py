@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Callable
 
+from matplotlib.colors import Normalize
 from matplotlib.figure import Figure
 import matplotlib.pyplot as plt
 import numpy as np
@@ -26,6 +27,9 @@ _DEFAULT_BRANCH_EDGE_COLORS: dict[str, str] = {
     "negative": "#DE8F05",
     "neutral": "#949494",
 }
+
+# Minimum vertical gap between tree levels vs tallest node label (data coordinates).
+_VERTICAL_LABEL_MARGIN = 1.28
 
 
 def _prepare_X_y(
@@ -96,6 +100,14 @@ class _TreeNode:
     feature_index: int | None = None
     routing: dict[str, list[int]] | None = None
     children: dict[str, _TreeNode] | None = None
+
+
+def _iter_tree_nodes(root: _TreeNode) -> Any:
+    """Depth-first iteration over nodes in stable child order."""
+    yield root
+    if root.children:
+        for ch in root.children.values():
+            yield from _iter_tree_nodes(ch)
 
 
 class ImpactSplitter:
@@ -199,12 +211,13 @@ class ImpactSplitter:
         parts = [p.strip() for p in path.split(" / ") if p.strip()]
         return parts[-1] if parts else ""
 
-    def _format_plot_node_label(self, n: _TreeNode) -> str:
+    def _format_plot_node_label(self, n: _TreeNode, *, compact_stats: bool = False) -> str:
         """Label for ``plot_tree``: segment filter on every node, then local split when not a leaf.
 
         Every node starts with the **last path segment** (``feature=categories`` for this
         slice), or ``all data`` at the root. Non-leaf nodes add ``split on <feature>``.
-        All nodes include ``n`` and Σy / Σy⁺ / Σy⁻.
+        All nodes include ``n`` and Σy / Σy⁺ / Σy⁻ (or one compact stats line when
+        ``compact_stats`` is True).
         """
         lines: list[str] = []
         seg = self._last_path_segment_for_plot(n.path)
@@ -216,15 +229,119 @@ class ImpactSplitter:
             else:
                 fname = self._feature_display_name(n.feature_index)
                 lines.append(f"split on {fname}")
-        lines.extend(
-            (
-                f"n={n.n_samples}",
-                f"Σy={n.total_sum:.1f}",
-                f"Σy⁺={n.s_node_p:.1f}",
-                f"Σy⁻={n.s_node_n:.1f}",
-            ),
-        )
+        if compact_stats:
+            lines.append(
+                f"n={n.n_samples}  Σy={n.total_sum:.1f}",
+            )
+        else:
+            lines.extend(
+                (
+                    f"n={n.n_samples}",
+                    f"Σy={n.total_sum:.1f}",
+                    f"Σy⁺={n.s_node_p:.1f}",
+                    f"Σy⁻={n.s_node_n:.1f}",
+                ),
+            )
         return "\n".join(lines)
+
+    @staticmethod
+    def _estimate_plot_label_bbox_units(
+        label: str,
+        *,
+        fontsize: float,
+        min_leaf_width: float,
+        min_height: float = 0.12,
+    ) -> tuple[float, float]:
+        """Heuristic (width, height) for a multi-line label in abstract layout units."""
+        lines = label.split("\n") if label else [""]
+        longest_line = max(lines, key=len) if lines else ""
+        longest = len(longest_line)
+        unicode_bump = 1.15 if any(ord(c) > 127 for c in longest_line) else 1.0
+        n_lines = max(len(lines), 1)
+        scale = fontsize / 7.0
+        w = longest * 0.12 * scale * unicode_bump + (n_lines - 1) * 0.18 * scale
+        h = n_lines * 0.24 * scale
+        return float(max(min_leaf_width, w)), float(max(min_height, h))
+
+    @staticmethod
+    def _relative_luminance_srgb(rgb: tuple[float, float, float]) -> float:
+        """Relative luminance in [0, 1] for sRGB components in [0, 1]."""
+
+        def _lin(c: float) -> float:
+            return c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4
+
+        r, g, b = (float(rgb[0]), float(rgb[1]), float(rgb[2]))
+        return 0.2126 * _lin(r) + 0.7152 * _lin(g) + 0.0722 * _lin(b)
+
+    @staticmethod
+    def _text_color_for_face_rgb(rgb: tuple[float, float, float]) -> str:
+        return "white" if ImpactSplitter._relative_luminance_srgb(rgb) < 0.45 else "black"
+
+    @staticmethod
+    def _measure_text_bbox_size_data(
+        ax: Any,
+        fig: Figure,
+        label: str,
+        *,
+        fontsize: float,
+        bbox_style: dict[str, Any],
+        renderer: Any | None = None,
+    ) -> tuple[float, float]:
+        """Width and height of a node label in data coordinates (matches ``ax`` limits)."""
+        try:
+            if renderer is None:
+                fig.canvas.draw()
+                renderer = fig.canvas.get_renderer()
+        except Exception:
+            w, h = ImpactSplitter._estimate_plot_label_bbox_units(
+                label,
+                fontsize=fontsize,
+                min_leaf_width=1.0,
+            )
+            return w, h
+        t = ax.text(
+            0.0,
+            0.0,
+            label,
+            fontsize=fontsize,
+            bbox=bbox_style,
+            ha="center",
+            va="center",
+        )
+        try:
+            bbox_disp = t.get_window_extent(renderer=renderer)
+            bbox_disp = bbox_disp.expanded(1.05, 1.05)
+            pts = bbox_disp.get_points()
+            x0, y0 = float(pts[0, 0]), float(pts[0, 1])
+            x1, y1 = float(pts[1, 0]), float(pts[1, 1])
+            corners = np.array([[x0, y0], [x1, y0], [x1, y1], [x0, y1]], dtype=float)
+            data = ax.transData.inverted().transform(corners)
+            xs = data[:, 0]
+            ys = data[:, 1]
+            return float(max(np.ptp(xs), 1e-6)), float(max(np.ptp(ys), 1e-6))
+        finally:
+            t.remove()
+
+    @staticmethod
+    def _measure_text_bbox_width_data(
+        ax: Any,
+        fig: Figure,
+        label: str,
+        *,
+        fontsize: float,
+        bbox_style: dict[str, Any],
+        renderer: Any | None = None,
+    ) -> float:
+        """Horizontal extent of a node label in data coordinates (matches ``ax`` limits)."""
+        w, _ = ImpactSplitter._measure_text_bbox_size_data(
+            ax,
+            fig,
+            label,
+            fontsize=fontsize,
+            bbox_style=bbox_style,
+            renderer=renderer,
+        )
+        return w
 
     def _next_node_id(self) -> str:
         node_id = f"node_{self._node_counter}"
@@ -494,39 +611,76 @@ class ImpactSplitter:
         node_bbox: dict[str, Any] | None = None,
         branch_edge_colors: dict[str, str] | None = None,
         show: bool = True,
+        level_gap: float = 1.4,
+        min_leaf_width: float = 1.2,
+        max_leaf_width: float | None = None,
+        sibling_gap: float = 0.35,
+        layout_max_iterations: int = 24,
+        edge_label_pos: float = 0.22,
+        edge_label_bbox: bool = True,
+        compact_stats: bool = False,
+        node_label_max_chars: int | None = 44,
+        node_facecolor: str | None = None,
     ) -> Figure:
         """Plot the fitted tree with matplotlib.
 
         Every node shows the **segment** for its row subset (``all data`` at the root,
         else the last ``feature=categories`` fragment). Non-leaf nodes also show
         ``split on <feature>``. Row count ``n`` and ``Σy`` / ``Σy⁺`` / ``Σy⁻`` appear
-        on every node. Branch direction is on the edges (``P`` / ``Neg`` / ``Neu``).
-        Full cumulative paths remain in ``get_impact_segments()`` ``path`` column.
+        on every node (unless ``compact_stats`` is True). Branch direction is on the
+        edges (``P`` / ``Neg`` / ``Neu``). Full cumulative paths remain in
+        ``get_impact_segments()`` ``path`` column.
 
-        For **deep trees**, increase ``figsize`` (wider for many leaves, taller for
-        depth) or reduce ``fontsize``. For **publication or static files**, save
-        before displaying: ``fig = model.plot_tree(show=False); fig.savefig("tree.pdf")``
+        **Readability:** subtree layout uses **matplotlib-measured** label widths in data
+        coordinates (iterated with ``layout_max_iterations``) so spacing matches what is
+        drawn. Increase ``figsize`` (width), ``level_gap`` (minimum vertical step),
+        ``min_leaf_width``, or ``sibling_gap``; reduce ``fontsize``, set
+        ``node_label_max_chars``, use ``compact_stats=True``, or pass ``max_leaf_width``
+        to tighten per-line truncation until labels fit that width budget.
+
+        For **publication or static files**, save before displaying:
+        ``fig = model.plot_tree(show=False); fig.savefig("tree.pdf")``
         (vector PDF/SVG avoids raster scaling issues).
 
         Args:
             figsize: Figure size in inches.
             fontsize: Font size for node text.
             edge_label_fontsize: Font size for P/N edge labels; defaults to ``fontsize``.
-            node_bbox: Matplotlib ``bbox`` dict for node boxes; default is rounded wheat.
+            node_bbox: Matplotlib ``bbox`` dict for node boxes; default depends on
+                ``node_facecolor`` (rounded boxes; ``wheat`` when encoding is off).
             branch_edge_colors: Override per-branch edge colors (keys ``positive``,
                 ``negative``, ``neutral``). ``None`` uses built-in color-blind–friendly hues.
             show: If True, call ``plt.show()`` after drawing.
+            level_gap: Minimum vertical distance between tree levels (data coordinates);
+                may grow with the tallest measured node label.
+            min_leaf_width: Minimum width reserved per leaf in layout data coordinates.
+            max_leaf_width: If set, per-line truncation is tightened (binary search on
+                character budget) so measured label widths stay within this data-space
+                budget where possible; layout always uses true measured widths.
+            sibling_gap: Extra horizontal space between sibling subtrees (data coordinates).
+            layout_max_iterations: Iterations to converge node widths with measured text
+                boxes (matplotlib bbox in data coordinates; avoids overlap).
+            edge_label_pos: Interpolation factor from parent toward child (0–1) for edge
+                labels; ``0.22`` places text near the parent fork.
+            edge_label_bbox: If True, draw a light background behind P/Neu/Neg labels.
+            compact_stats: If True, show one stats line per node (``n`` and Σy only).
+            node_label_max_chars: Optional per-line cap for node label text. Longer
+                lines are truncated with ``...`` before layout/painting.
+            node_facecolor: If ``"impact"``, shade node boxes by ``|total_sum|`` (light
+                sequential tint, contrasting text). If ``"n"``, encode ``n_samples``.
+                ``None`` uses uniform facecolor (``wheat`` when ``node_bbox`` is unset).
         """
         if self._tree is None:
             raise RuntimeError("Call fit() before plot_tree().")
 
         edge_fs = edge_label_fontsize if edge_label_fontsize is not None else fontsize
-        bbox_style = (
-            node_bbox
-            if node_bbox is not None
-            else {"boxstyle": "round", "facecolor": "wheat", "alpha": 0.8}
-        )
         edge_colors = _DEFAULT_BRANCH_EDGE_COLORS if branch_edge_colors is None else branch_edge_colors
+
+        default_wheat = {"boxstyle": "round", "facecolor": "wheat", "alpha": 0.8}
+        if node_bbox is not None:
+            bbox_style: dict[str, Any] = dict(node_bbox)
+        else:
+            bbox_style = dict(default_wheat)
 
         fig, ax = plt.subplots(figsize=figsize)
         ax.set_axis_off()
@@ -535,32 +689,155 @@ class ImpactSplitter:
         positions: dict[str, tuple[float, float]] = {}
         subtree_width: dict[str, float] = {}
 
-        def measure(n: _TreeNode) -> float:
-            if n.is_leaf or not n.children:
-                w = 1.0
+        user_cap = (
+            node_label_max_chars
+            if node_label_max_chars is not None and node_label_max_chars >= 4
+            else None
+        )
+
+        def max_raw_line_len() -> int:
+            m = 0
+            for node in _iter_tree_nodes(self._tree):
+                raw_ln = self._format_plot_node_label(node, compact_stats=compact_stats)
+                for line in raw_ln.split("\n"):
+                    m = max(m, len(line))
+            return max(m, 4)
+
+        def make_label_fn(budget_cap_inner: int | None) -> Callable[[_TreeNode], str]:
+            def label_fn(n: _TreeNode) -> str:
+                raw = self._format_plot_node_label(n, compact_stats=compact_stats)
+                caps = [c for c in (user_cap, budget_cap_inner) if c is not None and c >= 4]
+                eff = min(caps) if caps else None
+                if eff is None:
+                    return raw
+                lines = raw.split("\n")
+                clipped = [
+                    (ln if len(ln) <= eff else f"{ln[: eff - 3]}...")
+                    for ln in lines
+                ]
+                return "\n".join(clipped)
+
+            return label_fn
+
+        def run_horizontal_pass(
+            label_fn: Callable[[_TreeNode], str],
+        ) -> tuple[float, float]:
+            """Return ``(tree_total_width, max_own_label_width)``."""
+
+            def own_label_width_heuristic(n: _TreeNode) -> float:
+                w, _ = self._estimate_plot_label_bbox_units(
+                    label_fn(n),
+                    fontsize=fontsize,
+                    min_leaf_width=min_leaf_width,
+                )
+                return w
+
+            def measure(n: _TreeNode, own_width_fn: Callable[[_TreeNode], float]) -> float:
+                own = own_width_fn(n)
+                if n.is_leaf or not n.children:
+                    subtree_width[n.node_id] = own
+                    return own
+                child_list = list(n.children.values())
+                k = len(child_list)
+                child_sum = sum(measure(c, own_width_fn) for c in child_list) + (k - 1) * sibling_gap
+                w = max(own, child_sum)
                 subtree_width[n.node_id] = w
                 return w
-            s = sum(measure(c) for c in n.children.values())
-            subtree_width[n.node_id] = s
-            return s
 
-        measure(self._tree)
+            subtree_width.clear()
+            measure(self._tree, own_label_width_heuristic)
+            tw = subtree_width[self._tree.node_id]
+            max_own = 0.0
+            width_cache: dict[str, float] = {}
+            for _ in range(max(1, layout_max_iterations)):
+                ax.set_xlim(-tw / 2 - 0.5, tw / 2 + 0.5)
+                ax.set_ylim(-self.max_depth * level_gap - 2, 1)
+                fig.canvas.draw()
+                renderer = fig.canvas.get_renderer()
+                width_cache.clear()
 
-        def place(n: _TreeNode, x: float, y: float, x_span: float) -> None:
+                def own_label_width_measured(n: _TreeNode) -> float:
+                    if n.node_id not in width_cache:
+                        width_cache[n.node_id] = self._measure_text_bbox_width_data(
+                            ax,
+                            fig,
+                            label_fn(n),
+                            fontsize=fontsize,
+                            bbox_style=bbox_style,
+                            renderer=renderer,
+                        )
+                    w_m = width_cache[n.node_id]
+                    return float(max(min_leaf_width, w_m))
+
+                subtree_width.clear()
+                measure(self._tree, own_label_width_measured)
+                tw_new = subtree_width[self._tree.node_id]
+                max_own = max(width_cache.values()) if width_cache else max_own
+                if abs(tw_new - tw) <= 1e-2 * max(1.0, tw):
+                    tw = tw_new
+                    break
+                tw = tw_new
+            return tw, max_own
+
+        budget_cap_final: int | None = None
+        if max_leaf_width is not None:
+            hi = max_raw_line_len()
+            if user_cap is not None:
+                hi = min(hi, user_cap)
+            lo, hi_b = 4, hi
+            best = 4
+            while lo <= hi_b:
+                mid = (lo + hi_b) // 2
+                _, max_own = run_horizontal_pass(make_label_fn(mid))
+                if max_own <= max_leaf_width:
+                    best = mid
+                    lo = mid + 1
+                else:
+                    hi_b = mid - 1
+            budget_cap_final = best
+
+        label_fn_final = make_label_fn(budget_cap_final)
+        tw, _ = run_horizontal_pass(label_fn_final)
+
+        ax.set_xlim(-tw / 2 - 0.5, tw / 2 + 0.5)
+        ax.set_ylim(-self.max_depth * level_gap - 2, 1)
+        fig.canvas.draw()
+        renderer = fig.canvas.get_renderer()
+        max_h = 0.0
+        for node in _iter_tree_nodes(self._tree):
+            _, h = self._measure_text_bbox_size_data(
+                ax,
+                fig,
+                label_fn_final(node),
+                fontsize=fontsize,
+                bbox_style=bbox_style,
+                renderer=renderer,
+            )
+            max_h = max(max_h, h)
+        effective_level_gap = max(level_gap, max_h * _VERTICAL_LABEL_MARGIN)
+
+        def place(n: _TreeNode, x: float, y: float, x_span: float, y_gap: float) -> None:
             positions[n.node_id] = (x, y)
             if n.is_leaf or not n.children:
                 return
             child_nodes = list(n.children.values())
+            k = len(child_nodes)
             total = subtree_width[n.node_id]
-            cur = x - x_span * (total - 1) / 2
-            for ch in child_nodes:
-                w = subtree_width[ch.node_id]
-                cx = cur + (w - 1) / 2
-                place(ch, cx, y - 1.2, x_span)
-                cur += w
+            child_total = sum(subtree_width[ch.node_id] for ch in child_nodes) + (k - 1) * sibling_gap
+            pad = max(0.0, (total - child_total) / 2.0)
+            cur = x - x_span * (total - 1) / 2 + x_span * pad
+            for i, ch in enumerate(child_nodes):
+                w_ch = subtree_width[ch.node_id]
+                cx = cur + (w_ch - 1) / 2
+                place(ch, cx, y - y_gap, x_span, y_gap)
+                cur += w_ch
+                if i < k - 1:
+                    cur += sibling_gap
 
         tw = subtree_width[self._tree.node_id]
-        place(self._tree, 0.0, 0.0, 1.0 / max(tw, 1.0))
+        place(self._tree, 0.0, 0.0, 1.0 / max(tw, 1.0), effective_level_gap)
+
+        t_pos = float(min(0.95, max(0.05, edge_label_pos)))
 
         def draw_edges(n: _TreeNode) -> None:
             if n.is_leaf or not n.children:
@@ -570,36 +847,106 @@ class ImpactSplitter:
                 x1, y1 = positions[ch.node_id]
                 ec = edge_colors.get(branch_key, "#888888")
                 short = _BRANCH_EDGE_SHORT.get(branch_key, branch_key[:3])
-                ax.plot([x0, x1], [y0, y1], color=ec, linewidth=1)
-                mx, my = (x0 + x1) / 2, (y0 + y1) / 2
-                ax.text(mx, my, short, fontsize=edge_fs, ha="center", color="0.2")
+                ax.plot([x0, x1], [y0, y1], color=ec, linewidth=1, zorder=1)
+                lx = x0 + t_pos * (x1 - x0)
+                ly = y0 + t_pos * (y1 - y0)
+                elab_kwargs: dict[str, Any] = {
+                    "fontsize": edge_fs,
+                    "ha": "center",
+                    "va": "center",
+                    "color": ec,
+                    "zorder": 3,
+                }
+                if edge_label_bbox:
+                    elab_kwargs["bbox"] = {
+                        "boxstyle": "round,pad=0.15",
+                        "facecolor": "white",
+                        "edgecolor": ec,
+                        "alpha": 0.92,
+                        "linewidth": 0.6,
+                    }
+                ax.text(lx, ly, short, **elab_kwargs)
                 draw_edges(ch)
 
         draw_edges(self._tree)
 
-        def node_label(n: _TreeNode) -> str:
-            return self._format_plot_node_label(n)
+        node_colors: dict[str, tuple[float, float, float]] | None = None
+        cmap = None
+        norm: Normalize | None = None
+        if node_facecolor == "impact":
+            values: list[float] = []
+
+            def collect_vals(n: _TreeNode) -> None:
+                values.append(abs(n.total_sum))
+                if n.children:
+                    for ch in n.children.values():
+                        collect_vals(ch)
+
+            collect_vals(self._tree)
+            vmax = max(values) if values else 1.0
+            vmin = 0.0
+            norm = Normalize(vmin=vmin, vmax=max(vmax, 1e-9))
+            cmap = plt.get_cmap("YlOrBr")
+
+            def face_for_node(n: _TreeNode) -> tuple[float, float, float]:
+                return cmap(norm(abs(n.total_sum)))[:3]
+
+            node_colors = {n.node_id: face_for_node(n) for n in _iter_tree_nodes(self._tree)}
+        elif node_facecolor == "n":
+            values = []
+
+            def collect_n(n: _TreeNode) -> None:
+                values.append(float(n.n_samples))
+                if n.children:
+                    for ch in n.children.values():
+                        collect_n(ch)
+
+            collect_n(self._tree)
+            vmax = max(values) if values else 1.0
+            vmin = min(values) if values else 0.0
+            norm = Normalize(vmin=vmin, vmax=max(vmax, vmin + 1.0))
+            cmap = plt.get_cmap("YlGnBu")
+
+            def face_for_node_n(n: _TreeNode) -> tuple[float, float, float]:
+                return cmap(norm(float(n.n_samples)))[:3]
+
+            node_colors = {n.node_id: face_for_node_n(n) for n in _iter_tree_nodes(self._tree)}
 
         def label_positions(n: _TreeNode) -> None:
             x, y = positions[n.node_id]
-            ax.text(
-                x,
-                y,
-                node_label(n),
-                ha="center",
-                va="center",
-                fontsize=fontsize,
-                bbox=bbox_style,
-            )
+            one_bbox = dict(bbox_style)
+            txt_kwargs: dict[str, Any] = {
+                "ha": "center",
+                "va": "center",
+                "fontsize": fontsize,
+                "bbox": one_bbox,
+                "zorder": 5,
+            }
+            if node_colors is not None:
+                fc = node_colors[n.node_id]
+                one_bbox["facecolor"] = fc
+                one_bbox.setdefault("edgecolor", "0.35")
+                one_bbox.setdefault("linewidth", 0.6)
+                txt_kwargs["color"] = self._text_color_for_face_rgb(fc)
+            ax.text(x, y, label_fn_final(n), **txt_kwargs)
             if n.children:
                 for ch in n.children.values():
                     label_positions(ch)
 
         label_positions(self._tree)
 
+        use_cbar = node_facecolor in ("impact", "n") and cmap is not None and norm is not None
+        if use_cbar:
+            fig.subplots_adjust(left=0.06, right=0.86, top=0.90, bottom=0.06)
+            sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
+            sm.set_array([])
+            cbar_label = "|Σy|" if node_facecolor == "impact" else "n samples"
+            fig.colorbar(sm, ax=ax, shrink=0.35, label=cbar_label, pad=0.02)
+        else:
+            fig.subplots_adjust(left=0.06, right=0.96, top=0.90, bottom=0.06)
+
         ax.set_xlim(-tw / 2 - 0.5, tw / 2 + 0.5)
-        ax.set_ylim(-self.max_depth - 2, 1)
-        plt.tight_layout()
+        ax.set_ylim(-self.max_depth * effective_level_gap - 2, 1)
         if show:
             plt.show()
         return fig
