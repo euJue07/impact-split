@@ -1,7 +1,26 @@
 site_name: impact-split
-# 
+site_description: EDA-first tree method for additive KPIs with business-materiality splits.
 site_author: Juedi Myro Eugenio
-# 
+site_url: https://juedimyroeugenio.github.io/impact-split/
+
+repo_url: https://github.com/juedimyroeugenio/impact-split
+repo_name: juedimyroeugenio/impact-split
+edit_uri: edit/main/docs/docs/
+
+docs_dir: docs
+
+theme:
+  name: readthedocs
+  highlightjs: true
+
+plugins:
+  - search
+
+markdown_extensions:
+  - admonition
+
 nav:
   - Home: index.md
   - Getting Started: getting-started.md
+
+copyright: Copyright &copy; Juedi Myro Eugenio

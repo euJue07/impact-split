@@ -1,73 +1,19 @@
 # impact-split
 
+[![CI](https://github.com/juedimyroeugenio/impact-split/actions/workflows/ci.yml/badge.svg)](https://github.com/juedimyroeugenio/impact-split/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/juedimyroeugenio/impact-split/blob/main/LICENSE)
+
 <a target="_blank" href="https://cookiecutter-data-science.drivendata.org/">
-    <img src="https://img.shields.io/badge/CCDS-Project%20template-328F97?logo=cookiecutter" />
+    <img src="https://img.shields.io/badge/CCDS-Project%20template-328F97?logo=cookiecutter" alt="Cookiecutter Data Science project template" />
 </a>
 
-A tree based approach to determine the driver of a KPI
+**Documentation:** [juedimyroeugenio.github.io/impact-split](https://juedimyroeugenio.github.io/impact-split/) · **Repository:** [github.com/juedimyroeugenio/impact-split](https://github.com/juedimyroeugenio/impact-split) · **Issues:** [github.com/juedimyroeugenio/impact-split/issues](https://github.com/juedimyroeugenio/impact-split/issues)
 
-## Impact Split
+Contributions and security reports: [CONTRIBUTING.md](CONTRIBUTING.md) · [SECURITY.md](SECURITY.md)
 
-`impact-split` is an ML-driven EDA approach for additive KPIs (extensive metrics), such as:
+A tree-based approach to determine the driver of a KPI. The installable Python package is **`impact_split`** (`import impact_split` / `from impact_split import ImpactSplitter`).
 
-- Total Revenue
-- Total Hours Watched
-- Total Profit/Loss
-
-Unlike standard decision trees that optimize for variance reduction (often favoring "pure" average-based segments), Impact Split prioritizes **material business impact** by focusing on segment-level totals.
-
-## Project Organization
-
-```
-├── LICENSE            <- Open-source license if one is chosen
-├── Makefile           <- Makefile with convenience commands like `make data` or `make train`
-├── README.md          <- The top-level README for developers using this project.
-├── data
-│   ├── external       <- Data from third party sources.
-│   ├── interim        <- Intermediate data that has been transformed.
-│   ├── processed      <- The final, canonical data sets for modeling.
-│   └── raw            <- The original, immutable data dump.
-│
-├── docs               <- A default mkdocs project; see www.mkdocs.org for details
-│
-├── models             <- Trained and serialized models, model predictions, or model summaries
-│
-├── notebooks          <- Jupyter notebooks. Naming convention is a number (for ordering),
-│                         the creator's initials, and a short `-` delimited description, e.g.
-│                         `1.0-jqp-initial-data-exploration`.
-│
-├── pyproject.toml     <- Project configuration file with package metadata for 
-│                         impact_split and configuration for tools like black
-│
-├── references         <- Data dictionaries, manuals, and all other explanatory materials.
-│
-├── reports            <- Generated analysis as HTML, PDF, LaTeX, etc.
-│   └── figures        <- Generated graphics and figures to be used in reporting
-│
-├── requirements.txt   <- The requirements file for reproducing the analysis environment, e.g.
-│                         generated with `pip freeze > requirements.txt`
-│
-└── impact_split   <- Source code for use in this project.
-    │
-    ├── __init__.py             <- Makes impact_split a Python module
-    │
-    ├── config.py               <- Store useful variables and configuration
-    │
-    ├── dataset.py              <- Scripts to download or generate data
-    │
-    ├── features.py             <- Code to create features for modeling
-    │
-    ├── modeling                
-    │   ├── __init__.py 
-    │   ├── predict.py          <- Code to run model inference with trained models          
-    │   └── train.py            <- Code to train models
-    │
-    └── plots.py                <- Code to create visualizations
-```
-
---------
-
-## Overview
+## What is impact-split?
 
 `impact-split` is an ML-driven EDA approach for additive KPIs (extensive metrics), such as:
 
@@ -75,7 +21,17 @@ Unlike standard decision trees that optimize for variance reduction (often favor
 - Total Hours Watched
 - Total Profit/Loss
 
-Traditional trees optimize for average purity. `impact-split` instead prioritizes **material business impact** by ranking segments based on total contribution.
+Unlike standard decision trees that optimize for variance reduction (often favoring "pure" average-based segments), impact-split prioritizes **material business impact** by focusing on segment-level totals instead of average purity alone.
+
+## Repository layout
+
+| Path | Purpose |
+|------|---------|
+| [`impact_split/`](impact_split/) | Library source: [`splitter.py`](impact_split/splitter.py) (`ImpactSplitter`), [`plots.py`](impact_split/plots.py) (`interactive_force_graph`), plus config, features, dataset, and modeling helpers |
+| [`tests/`](tests/) | Pytest suite |
+| [`docs/`](docs/) | MkDocs site ([local build](docs/README.md)) |
+| [`notebooks/`](notebooks/) | Explainer and trace walkthrough notebooks |
+| [`pyproject.toml`](pyproject.toml) | Package metadata and tool configuration |
 
 ## Core Idea
 
@@ -265,9 +221,10 @@ Pass `trace=True` or `verbose=True` to `fit()` to record one pre-order step per 
 
 ## Learn More
 
+- Hosted documentation (MkDocs): [juedimyroeugenio.github.io/impact-split](https://juedimyroeugenio.github.io/impact-split/)
 - Full mathematical walkthrough and toy example (documented synthetic DGP: planted category-interaction effects plus noise; fit uses observed outcome only):
   - [`notebooks/1.0-jde-impact-split-explainer.ipynb`](notebooks/1.0-jde-impact-split-explainer.ipynb)
 - Kaggle Sample Supermarket data, `kagglehub` download, and step-by-step trace tables:
   - [`notebooks/2.0-jde-supermarket-kaggle-trace.ipynb`](notebooks/2.0-jde-supermarket-kaggle-trace.ipynb) (requires [Kaggle API credentials](https://github.com/Kaggle/kagglehub#authentication) for `kagglehub`)
-- Setup and navigation:
+- Setup and navigation (source for the docs site):
   - [`docs/docs/getting-started.md`](docs/docs/getting-started.md)

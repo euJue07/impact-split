@@ -23,8 +23,17 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -e ".[dev]"
 
-      - name: Lint
+      - name: Ruff format
+        run: python -m ruff format --check .
+
+      - name: Ruff lint
         run: python -m ruff check .
+
+      - name: Mypy
+        run: python -m mypy impact_split
+
+      - name: Bandit
+        run: python -m bandit -r impact_split -ll
 
       - name: Run tests
         run: python -m pytest

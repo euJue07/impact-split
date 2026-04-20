@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable, Iterator
 from dataclasses import dataclass
-from typing import Any, Callable
+from typing import Any, cast
 
 from matplotlib.colors import Normalize
 from matplotlib.figure import Figure
@@ -20,6 +21,12 @@ _BRANCH_EDGE_SHORT: dict[str, str] = {
     "negative": "Neg",
     "neutral": "Neu",
 }
+
+
+def _canvas_renderer(fig: Figure) -> Any:
+    """Return Agg canvas renderer; base ``FigureCanvasBase`` stubs omit ``get_renderer``."""
+    return cast(Any, fig.canvas).get_renderer()
+
 
 # Color-blind–friendly edge colors; redundant with text labels for accessibility.
 _DEFAULT_BRANCH_EDGE_COLORS: dict[str, str] = {
@@ -64,7 +71,9 @@ def _prepare_X_y(
                 raise ValueError("X must not contain missing values.")
             codes, uniques = pd.factorize(s, sort=True)
             if np.any(codes < 0):
-                raise ValueError("X categories must be non-negative integer codes after factorization.")
+                raise ValueError(
+                    "X categories must be non-negative integer codes after factorization."
+                )
             cols.append(codes.astype(np.int64, copy=False))
             maps.append(np.asarray(uniques, dtype=object))
         x_arr = np.column_stack(cols) if cols else np.empty((X.shape[0], 0), dtype=np.int64)
@@ -102,7 +111,7 @@ class _TreeNode:
     children: dict[str, _TreeNode] | None = None
 
 
-def _iter_tree_nodes(root: _TreeNode) -> Any:
+def _iter_tree_nodes(root: _TreeNode) -> Iterator[_TreeNode]:
     """Depth-first iteration over nodes in stable child order."""
     yield root
     if root.children:
@@ -291,7 +300,7 @@ class ImpactSplitter:
         try:
             if renderer is None:
                 fig.canvas.draw()
-                renderer = fig.canvas.get_renderer()
+                renderer = _canvas_renderer(fig)
         except Exception:
             w, h = ImpactSplitter._estimate_plot_label_bbox_units(
                 label,
@@ -464,14 +473,16 @@ class ImpactSplitter:
                 continue
 
             cat_rows: list[dict[str, Any]] = []
-            for cat, sum_val in zip(present_categories.tolist(), present_sums.tolist()):
+            for cat, sum_val in zip(
+                present_categories.tolist(),
+                present_sums.tolist(),
+                strict=True,
+            ):
                 row: dict[str, Any] = {
                     "category": int(cat),
                     "S_cat": float(sum_val),
                     "branch": (
-                        "P"
-                        if sum_val > delta
-                        else ("N" if sum_val < -delta else "neutral")
+                        "P" if sum_val > delta else ("N" if sum_val < -delta else "neutral")
                     ),
                 }
                 if self.category_maps_ is not None:
@@ -672,9 +683,12 @@ class ImpactSplitter:
         """
         if self._tree is None:
             raise RuntimeError("Call fit() before plot_tree().")
+        tree = self._tree
 
         edge_fs = edge_label_fontsize if edge_label_fontsize is not None else fontsize
-        edge_colors = _DEFAULT_BRANCH_EDGE_COLORS if branch_edge_colors is None else branch_edge_colors
+        edge_colors = (
+            _DEFAULT_BRANCH_EDGE_COLORS if branch_edge_colors is None else branch_edge_colors
+        )
 
         default_wheat = {"boxstyle": "round", "facecolor": "wheat", "alpha": 0.8}
         if node_bbox is not None:
@@ -697,7 +711,7 @@ class ImpactSplitter:
 
         def max_raw_line_len() -> int:
             m = 0
-            for node in _iter_tree_nodes(self._tree):
+            for node in _iter_tree_nodes(tree):
                 raw_ln = self._format_plot_node_label(node, compact_stats=compact_stats)
                 for line in raw_ln.split("\n"):
                     m = max(m, len(line))
@@ -711,10 +725,7 @@ class ImpactSplitter:
                 if eff is None:
                     return raw
                 lines = raw.split("\n")
-                clipped = [
-                    (ln if len(ln) <= eff else f"{ln[: eff - 3]}...")
-                    for ln in lines
-                ]
+                clipped = [(ln if len(ln) <= eff else f"{ln[: eff - 3]}...") for ln in lines]
                 return "\n".join(clipped)
 
             return label_fn
@@ -739,24 +750,30 @@ class ImpactSplitter:
                     return own
                 child_list = list(n.children.values())
                 k = len(child_list)
-                child_sum = sum(measure(c, own_width_fn) for c in child_list) + (k - 1) * sibling_gap
+                child_sum = (
+                    sum(measure(c, own_width_fn) for c in child_list) + (k - 1) * sibling_gap
+                )
                 w = max(own, child_sum)
                 subtree_width[n.node_id] = w
                 return w
 
             subtree_width.clear()
-            measure(self._tree, own_label_width_heuristic)
-            tw = subtree_width[self._tree.node_id]
+            measure(tree, own_label_width_heuristic)
+            tw = subtree_width[tree.node_id]
             max_own = 0.0
             width_cache: dict[str, float] = {}
             for _ in range(max(1, layout_max_iterations)):
                 ax.set_xlim(-tw / 2 - 0.5, tw / 2 + 0.5)
                 ax.set_ylim(-self.max_depth * level_gap - 2, 1)
                 fig.canvas.draw()
-                renderer = fig.canvas.get_renderer()
+                loop_renderer = _canvas_renderer(fig)
                 width_cache.clear()
 
-                def own_label_width_measured(n: _TreeNode) -> float:
+                def own_label_width_measured(
+                    n: _TreeNode,
+                    *,
+                    _renderer: Any = loop_renderer,
+                ) -> float:
                     if n.node_id not in width_cache:
                         width_cache[n.node_id] = self._measure_text_bbox_width_data(
                             ax,
@@ -764,14 +781,14 @@ class ImpactSplitter:
                             label_fn(n),
                             fontsize=fontsize,
                             bbox_style=bbox_style,
-                            renderer=renderer,
+                            renderer=_renderer,
                         )
                     w_m = width_cache[n.node_id]
                     return float(max(min_leaf_width, w_m))
 
                 subtree_width.clear()
-                measure(self._tree, own_label_width_measured)
-                tw_new = subtree_width[self._tree.node_id]
+                measure(tree, own_label_width_measured)
+                tw_new = subtree_width[tree.node_id]
                 max_own = max(width_cache.values()) if width_cache else max_own
                 if abs(tw_new - tw) <= 1e-2 * max(1.0, tw):
                     tw = tw_new
@@ -802,9 +819,9 @@ class ImpactSplitter:
         ax.set_xlim(-tw / 2 - 0.5, tw / 2 + 0.5)
         ax.set_ylim(-self.max_depth * level_gap - 2, 1)
         fig.canvas.draw()
-        renderer = fig.canvas.get_renderer()
+        renderer = _canvas_renderer(fig)
         max_h = 0.0
-        for node in _iter_tree_nodes(self._tree):
+        for node in _iter_tree_nodes(tree):
             _, h = self._measure_text_bbox_size_data(
                 ax,
                 fig,
@@ -823,7 +840,9 @@ class ImpactSplitter:
             child_nodes = list(n.children.values())
             k = len(child_nodes)
             total = subtree_width[n.node_id]
-            child_total = sum(subtree_width[ch.node_id] for ch in child_nodes) + (k - 1) * sibling_gap
+            child_total = (
+                sum(subtree_width[ch.node_id] for ch in child_nodes) + (k - 1) * sibling_gap
+            )
             pad = max(0.0, (total - child_total) / 2.0)
             cur = x - x_span * (total - 1) / 2 + x_span * pad
             for i, ch in enumerate(child_nodes):
@@ -834,8 +853,8 @@ class ImpactSplitter:
                 if i < k - 1:
                     cur += sibling_gap
 
-        tw = subtree_width[self._tree.node_id]
-        place(self._tree, 0.0, 0.0, 1.0 / max(tw, 1.0), effective_level_gap)
+        tw = subtree_width[tree.node_id]
+        place(tree, 0.0, 0.0, 1.0 / max(tw, 1.0), effective_level_gap)
 
         t_pos = float(min(0.95, max(0.05, edge_label_pos)))
 
@@ -868,7 +887,7 @@ class ImpactSplitter:
                 ax.text(lx, ly, short, **elab_kwargs)
                 draw_edges(ch)
 
-        draw_edges(self._tree)
+        draw_edges(tree)
 
         node_colors: dict[str, tuple[float, float, float]] | None = None
         cmap = None
@@ -882,16 +901,18 @@ class ImpactSplitter:
                     for ch in n.children.values():
                         collect_vals(ch)
 
-            collect_vals(self._tree)
+            collect_vals(tree)
             vmax = max(values) if values else 1.0
             vmin = 0.0
-            norm = Normalize(vmin=vmin, vmax=max(vmax, 1e-9))
-            cmap = plt.get_cmap("YlOrBr")
+            norm_imp = Normalize(vmin=vmin, vmax=max(vmax, 1e-9))
+            cmap_imp = plt.get_cmap("YlOrBr")
+            assert cmap_imp is not None
 
             def face_for_node(n: _TreeNode) -> tuple[float, float, float]:
-                return cmap(norm(abs(n.total_sum)))[:3]
+                return cmap_imp(norm_imp(abs(n.total_sum)))[:3]
 
-            node_colors = {n.node_id: face_for_node(n) for n in _iter_tree_nodes(self._tree)}
+            node_colors = {n.node_id: face_for_node(n) for n in _iter_tree_nodes(tree)}
+            norm, cmap = norm_imp, cmap_imp
         elif node_facecolor == "n":
             values = []
 
@@ -901,16 +922,18 @@ class ImpactSplitter:
                     for ch in n.children.values():
                         collect_n(ch)
 
-            collect_n(self._tree)
+            collect_n(tree)
             vmax = max(values) if values else 1.0
             vmin = min(values) if values else 0.0
-            norm = Normalize(vmin=vmin, vmax=max(vmax, vmin + 1.0))
-            cmap = plt.get_cmap("YlGnBu")
+            norm_n = Normalize(vmin=vmin, vmax=max(vmax, vmin + 1.0))
+            cmap_n = plt.get_cmap("YlGnBu")
+            assert cmap_n is not None
 
             def face_for_node_n(n: _TreeNode) -> tuple[float, float, float]:
-                return cmap(norm(float(n.n_samples)))[:3]
+                return cmap_n(norm_n(float(n.n_samples)))[:3]
 
-            node_colors = {n.node_id: face_for_node_n(n) for n in _iter_tree_nodes(self._tree)}
+            node_colors = {n.node_id: face_for_node_n(n) for n in _iter_tree_nodes(tree)}
+            norm, cmap = norm_n, cmap_n
 
         def label_positions(n: _TreeNode) -> None:
             x, y = positions[n.node_id]
@@ -933,7 +956,7 @@ class ImpactSplitter:
                 for ch in n.children.values():
                     label_positions(ch)
 
-        label_positions(self._tree)
+        label_positions(tree)
 
         use_cbar = node_facecolor in ("impact", "n") and cmap is not None and norm is not None
         if use_cbar:

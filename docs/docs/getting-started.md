@@ -53,15 +53,21 @@ model = ImpactSplitter(
 )
 
 model.fit(X, y, trace=True)  # or verbose=True (alias); inspect model.fit_trace_
-# After fitting with a DataFrame, model.feature_names_in_ and model.category_maps_
-# hold column names and code-to-value maps for each feature.
-model.plot_tree(figsize=(16, 10))  # returns a matplotlib Figure; use show=False to save without plt.show()
-# plot_tree shows segment (all data or feature=categories) on every node; internal nodes add "split on <feature>", plus n and Σy stats.
-# For crowded trees: increase figsize width, pass level_gap and sibling_gap, or use compact_stats=True; layout uses measured label widths (iterative), and node_label_max_chars trims long lines before layout. Optional max_leaf_width (data coordinates) tightens per-line truncation further via a binary search on character budget; default None uses no width budget. Raise layout_max_iterations only if needed. Optional node_facecolor="impact" (|Σy|) or "n" (sample count) adds a colorbar and contrasting label text.
-# For PDF/SVG export:
-# fig = model.plot_tree(figsize=(16, 10), show=False); fig.savefig("reports/figures/tree.pdf")
+model.plot_tree(figsize=(16, 10))
 segments = model.get_impact_segments()
 ```
+
+After fitting with a `DataFrame`, `model.feature_names_in_` and `model.category_maps_` hold column names and code-to-value maps for each feature.
+
+`plot_tree` returns a matplotlib `Figure`. Pass `show=False` if you want to save without calling `plt.show()`.
+
+!!! note "`plot_tree` layout, crowded trees, and export"
+
+    - Node labels show the segment (all data or `feature=categories`) on every node; internal nodes add which feature is split on, plus **n** and **Σy** stats.
+    - For crowded trees: widen `figsize`, tune `level_gap` and `sibling_gap`, or set `compact_stats=True`. Layout uses measured label widths (iterative); `node_label_max_chars` trims long lines before layout.
+    - Optional `max_leaf_width` (in data coordinates) tightens per-line truncation via a binary search on character budget; default `None` means no width budget. Raise `layout_max_iterations` only if needed.
+    - Optional `node_facecolor="impact"` (magnitude of **Σy**) or `"n"` (sample count) adds a colorbar and contrasting label text.
+    - PDF/SVG export: `fig = model.plot_tree(figsize=(16, 10), show=False); fig.savefig("reports/figures/tree.pdf")`.
 
 ## Interactive Chart Workflow
 

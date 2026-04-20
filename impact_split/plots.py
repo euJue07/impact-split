@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
 import html
 import json
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 from uuid import uuid4
 
 SelectionCallback = Callable[[dict[str, Any]], None]
@@ -275,7 +276,8 @@ class InteractiveForceGraph:
         }
 
     def _register_callback_comm(self) -> str | None:
-        if self.on_selection is None:
+        on_selection = self.on_selection
+        if on_selection is None:
             return None
         try:
             from ipykernel.comm import Comm
@@ -294,7 +296,7 @@ class InteractiveForceGraph:
             def _recv(msg: dict[str, Any]) -> None:
                 payload = msg.get("content", {}).get("data", {})
                 validated = _validate_selection_event(payload)
-                self.on_selection(validated)
+                on_selection(validated)
 
         ipy.kernel.comm_manager.register_target(target_name, _target)
         return target_name
