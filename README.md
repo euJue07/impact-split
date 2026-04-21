@@ -51,6 +51,8 @@ Example: a tiny segment with 2 churn events at -$5,000 each can look "purer" tha
 
 `impact-split` was designed to solve this exact mismatch by optimizing for additive totals.
 
+Notation (used across all acts): $y_i$ is the row-level target value for row $i$; $V_{node}=\sum_{i \in node}|y_i|$ is node absolute volume; $S_{cat}=\sum_{i \in cat} y_i$ is the raw sum for a category inside the current node; $n_{cat}$ is that category's row count; $S_P, S_N$ are the current node's positive/negative outer-branch sums; and $k_P, k_N$ are the number of categories routed to each outer branch.
+
 ### Act I: The Local Sieve (`delta`)
 
 **Problem:** forcing every category into binary good/bad branches hides the baseline. For additive KPIs, we need Positive, Negative, and Neutral branches.
@@ -65,19 +67,21 @@ Where $V_{node}$ is the absolute sum of target values inside the current node.
 
 **Why it works:** Neutral boundaries scale with local volume, so sensitivity adapts by depth. High-volume nodes ignore small noise; lower-volume nodes detect finer impacts.
 
-**One-sided fallback (default):** if raw category sums route all rows to one branch (noop routing), the splitter computes centered category excess
+**Fallback Problem:** raw category sums can route all rows to one branch (noop routing), which blocks meaningful partitioning.
+
+**Fallback Formula:** the splitter computes centered category excess
 
 ```math
 D_{cat} = S_{cat} - n_{cat}\cdot \bar{y}_{node}
 ```
 
-with its own threshold
+where $S_{cat}$ is the category-level sum within the node and $n_{cat}$ is the category row count, then applies its own threshold
 
 ```math
 \delta_{centered} = \left(\sum |y_i-\bar{y}_{node}|\right)\times \mathrm{delta\_pct}
 ```
 
-and routes using $D_{cat}$, allowing meaningful splits even when all raw category sums are positive (or negative).
+**Why it works:** routing with $D_{cat}$ enables meaningful splits even when all raw category sums are positive (or all negative).
 
 ### Act II: The Gain Metric (Category-Averaged Impact Divergence)
 
@@ -97,7 +101,7 @@ Gain(X_i) = \frac{|S_P|}{k_P} + \frac{|S_N|}{k_N}
 
 Where $S_P, S_N$ are outer-branch sums and $k_P, k_N$ are the number of categories assigned to each branch.
 
-**Why it works:** It balances volume and density, rewarding features that isolate large positive/negative totals with fewer actionable categories.
+**Why it works:** It balances volume and density, rewarding features that isolate large positive/negative totals with fewer actionable categories; without dividing by $k$, high-cardinality fields like Customer ID or ZIP Code can win by shattering rows into many tiny, low-actionability slices.
 
 ### Act III: The Global Kill Switch (Dual Materiality)
 
@@ -107,6 +111,8 @@ Standard stopping rules like max depth or min samples are not tied to financial 
 
 **Global theoretical maximums:**
 
+Here, each $y_i$ is an individual row-level target value in the full dataset.
+
 ```math
 V_{global\_P} = \sum_{y_i > 0} y_i \quad \text{and} \quad V_{global\_N} = \sum_{y_i < 0} |y_i|
 ```
@@ -114,7 +120,7 @@ V_{global\_P} = \sum_{y_i > 0} y_i \quad \text{and} \quad V_{global\_N} = \sum_{
 **Stopping rule:**
 
 ```math
-\text{Stop if: } \left( \frac{S_{node\_P}}{V_{global\_P}} \le \theta_{stop} \right) \text{ AND } \left( \frac{S_{node\_N}}{V_{global\_N}} \le \theta_{stop} \right)
+\text{Stop if: } \left( \frac{S_P}{V_{global\_P}} \le \theta_{stop} \right) \text{ AND } \left( \frac{S_N}{V_{global\_N}} \le \theta_{stop} \right)
 ```
 
 **Why it works:** positive and negative impacts are graded against their own global pools, avoiding net-sum distortions and preserving business materiality.
