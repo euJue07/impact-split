@@ -57,9 +57,9 @@ Example: a tiny segment with 2 churn events at -$5,000 each can look "purer" tha
 
 **Formula:**
 
-$$
-\delta = V_{node} \times \text{delta\_pct}
-$$
+```math
+\delta = V_{node} \times \mathrm{delta\_pct}
+```
 
 Where $V_{node}$ is the absolute sum of target values inside the current node.
 
@@ -67,15 +67,15 @@ Where $V_{node}$ is the absolute sum of target values inside the current node.
 
 **One-sided fallback (default):** if raw category sums route all rows to one branch (noop routing), the splitter computes centered category excess
 
-$$
+```math
 D_{cat} = S_{cat} - n_{cat}\cdot \bar{y}_{node}
-$$
+```
 
 with its own threshold
 
-$$
-\delta_{centered} = \left(\sum |y_i-\bar{y}_{node}|\right)\times \text{delta\_pct}
-$$
+```math
+\delta_{centered} = \left(\sum |y_i-\bar{y}_{node}|\right)\times \mathrm{delta\_pct}
+```
 
 and routes using $D_{cat}$, allowing meaningful splits even when all raw category sums are positive (or negative).
 
@@ -91,9 +91,9 @@ and routes using $D_{cat}$, allowing meaningful splits even when all raw categor
 
 **Final formula:**
 
-$$
+```math
 Gain(X_i) = \frac{|S_P|}{k_P} + \frac{|S_N|}{k_N}
-$$
+```
 
 Where $S_P, S_N$ are outer-branch sums and $k_P, k_N$ are the number of categories assigned to each branch.
 
@@ -107,21 +107,21 @@ Standard stopping rules like max depth or min samples are not tied to financial 
 
 **Global theoretical maximums:**
 
-$$
+```math
 V_{global\_P} = \sum_{y_i > 0} y_i \quad \text{and} \quad V_{global\_N} = \sum_{y_i < 0} |y_i|
-$$
+```
 
 **Stopping rule:**
 
-$$
+```math
 \text{Stop if: } \left( \frac{S_{node\_P}}{V_{global\_P}} \le \theta_{stop} \right) \text{ AND } \left( \frac{S_{node\_N}}{V_{global\_N}} \le \theta_{stop} \right)
-$$
+```
 
 **Why it works:** positive and negative impacts are graded against their own global pools, avoiding net-sum distortions and preserving business materiality.
 
 ### Implementation note
 
-Current implementation first tries raw routing with $\delta = V_{node} \times \text{delta\_pct}$ and automatically falls back to centered-excess routing when raw routing cannot produce a valid split at a node.
+Current implementation first tries raw routing with $\delta = V_{node} \times \mathrm{delta\_pct}$ and automatically falls back to centered-excess routing when raw routing cannot produce a valid split at a node.
 
 ## Quick Start
 
