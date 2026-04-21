@@ -88,8 +88,30 @@ def test_one_sided_gain_can_split() -> None:
 
     assert root["action"] == "split"
     assert root["chosen_feature_index"] == 0
+    assert root["routing_mode"] == "raw"
     assert root["candidate_gains"][0]["gain_P"] > 0.0
     assert root["candidate_gains"][0]["gain_N"] == pytest.approx(0.0)
+
+
+def test_centered_excess_fallback_splits_one_sided_target() -> None:
+    x = np.array([[0], [0], [1], [1]], dtype=np.int64)
+    y = np.array([10.0, 10.0, 1.0, 1.0], dtype=float)
+    model = ImpactSplitter(delta_pct=0.05, min_global_impact_pct=0.001, max_depth=2)
+
+    model.fit(x, y, trace=True)
+    root = model.fit_trace_[0]
+
+    assert root["action"] == "split"
+    assert root["routing_mode"] == "centered_excess"
+    assert root["chosen_feature_index"] == 0
+    assert root["delta_centered_excess"] > 0.0
+    assert root["candidate_gains_by_mode"]["raw"] == []
+    assert root["candidate_gains_by_mode"]["centered_excess"]
+    assert root["category_tables_by_mode"]["centered_excess"][0][0]["D_cat"] != 0.0
+
+    segments = model.get_impact_segments()
+    assert len(segments) == 2
+    assert np.isclose(float(segments["total_sum"].sum()), float(y.sum()), rtol=1e-6)
 
 
 def test_materiality_uses_strict_greater_than() -> None:

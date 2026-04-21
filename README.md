@@ -38,6 +38,7 @@ Unlike standard decision trees that optimize for variance reduction (often favor
 The algorithm builds a ternary tree (Positive / Neutral / Negative) over categorical or pre-binned features and uses:
 
 - a local threshold (`delta_pct`) to separate strong positive and negative category impacts from neutral ones,
+- a centered-excess fallback for one-sided nodes (`D_cat = S_cat - n_cat * mean(y_node)`) when raw routing cannot partition rows,
 - a gain metric that emphasizes outer-branch impact while penalizing high-cardinality noise,
 - a global stopping threshold (`min_global_impact_pct`) to stop splitting low-materiality nodes,
 - guardrails that skip candidate splits which do not partition rows (a feature is constant on the current slice, or Act I routes every category to the same branch), avoiding redundant depth without new information.
@@ -63,6 +64,20 @@ $$
 Where $V_{node}$ is the absolute sum of target values inside the current node.
 
 **Why it works:** Neutral boundaries scale with local volume, so sensitivity adapts by depth. High-volume nodes ignore small noise; lower-volume nodes detect finer impacts.
+
+**One-sided fallback (default):** if raw category sums route all rows to one branch (noop routing), the splitter computes centered category excess
+
+$$
+D_{cat} = S_{cat} - n_{cat}\cdot \bar{y}_{node}
+$$
+
+with its own threshold
+
+$$
+\delta_{centered} = \left(\sum |y_i-\bar{y}_{node}|\right)\times \text{delta\_pct}
+$$
+
+and routes using $D_{cat}$, allowing meaningful splits even when all raw category sums are positive (or negative).
 
 ### Act II: The Gain Metric (Category-Averaged Impact Divergence)
 
@@ -106,7 +121,7 @@ $$
 
 ### Implementation note
 
-Current implementation applies $\delta = V_{node} \times \text{delta\_pct}$ consistently at every depth, including the root.
+Current implementation first tries raw routing with $\delta = V_{node} \times \text{delta\_pct}$ and automatically falls back to centered-excess routing when raw routing cannot produce a valid split at a node.
 
 ## Quick Start
 
@@ -199,7 +214,7 @@ If you want the motivation behind each formula (not just usage), read the Story 
 
 ### Fit trace (optional)
 
-Pass `trace=True` or `verbose=True` to `fit()` to record one pre-order step per visited node in `model.fit_trace_` (`verbose` is an alias for `trace`; there is no extra logging). Every node uses `delta = V_node * delta_pct` for category assignment in split scoring/routing. Each step includes `delta`, `delta_pct`, `V_node`, `s_node_p`, `s_node_n`, `total_sum`, global materiality ratios, per-feature candidate gains, category tables, `chosen_feature_index` when splitting, and `stop_reason` when a leaf is created (`materiality`, `max_depth`, `identical_rows`, or `no_split`). When `X` is a DataFrame, trace rows also include `chosen_feature_name`, `routing_labels`, and per-row `category_label` in category tables where applicable.
+Pass `trace=True` or `verbose=True` to `fit()` to record one pre-order step per visited node in `model.fit_trace_` (`verbose` is an alias for `trace`; there is no extra logging). Each step includes raw and centered diagnostics (`delta_raw`, `delta_centered_excess`, `V_node`, `V_node_centered`), selected `routing_mode` (`raw` or `centered_excess`), `delta_pct`, `s_node_p`, `s_node_n`, `total_sum`, global materiality ratios, per-feature candidate gains, category tables, `chosen_feature_index` when splitting, and `stop_reason` when a leaf is created (`materiality`, `max_depth`, `identical_rows`, or `no_split`). When `X` is a DataFrame, trace rows also include `chosen_feature_name`, `routing_labels`, and per-row `category_label` in category tables where applicable.
 
 ## Output
 

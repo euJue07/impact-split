@@ -111,6 +111,16 @@ class _TreeNode:
     children: dict[str, _TreeNode] | None = None
 
 
+@dataclass
+class _SplitDecision:
+    gain: float
+    feature_index: int
+    pos_categories: np.ndarray
+    neg_categories: np.ndarray
+    neu_categories: np.ndarray
+    mode: str
+
+
 def _iter_tree_nodes(root: _TreeNode) -> Iterator[_TreeNode]:
     """Depth-first iteration over nodes in stable child order."""
     yield root
@@ -376,15 +386,21 @@ class ImpactSplitter:
         negative_trigger = ratio_n > self.min_global_impact_pct
 
         v_node = float(np.abs(y_sub).sum())
-        delta = v_node * self.delta_pct
+        delta_raw = v_node * self.delta_pct
+        y_centered = y_sub - float(y_sub.mean()) if n_samples > 0 else y_sub
+        v_node_centered = float(np.abs(y_centered).sum())
+        delta_centered = v_node_centered * self.delta_pct
 
         trace_entry: dict[str, Any] = {
             "node_id": node_id,
             "depth": depth,
             "n_samples": n_samples,
             "V_node": v_node,
+            "V_node_centered": v_node_centered,
             "delta_pct": self.delta_pct,
-            "delta": delta,
+            "delta": delta_raw,
+            "delta_raw": delta_raw,
+            "delta_centered_excess": delta_centered,
             "s_node_p": s_node_p,
             "s_node_n": s_node_n,
             "total_sum": total_sum,
@@ -398,8 +414,11 @@ class ImpactSplitter:
             "positive_trigger": positive_trigger,
             "negative_trigger": negative_trigger,
             "candidate_gains": [],
+            "candidate_gains_by_mode": {"raw": [], "centered_excess": []},
             "chosen_feature_index": None,
+            "routing_mode": None,
             "category_tables": {},
+            "category_tables_by_mode": {},
             "action": "split",
             "stop_reason": None,
         }
@@ -425,96 +444,151 @@ class ImpactSplitter:
                 self.fit_trace_.append(trace_entry)
             return _TreeNode(True, node_id, depth, n_samples, total_sum, path, s_node_p, s_node_n)
 
-        best_gain = 0.0
-        best_feature_index: int | None = None
-        best_pos_categories = np.array([], dtype=np.int64)
-        best_neg_categories = np.array([], dtype=np.int64)
-        best_neu_categories = np.array([], dtype=np.int64)
+        def evaluate_split_mode(
+            *,
+            mode: str,
+            signal_values: np.ndarray,
+            delta_mode: float,
+            include_centered_signal: bool,
+        ) -> tuple[list[dict[str, Any]], dict[int, list[dict[str, Any]]], _SplitDecision | None]:
+            mode_candidates: list[dict[str, Any]] = []
+            mode_tables: dict[int, list[dict[str, Any]]] = {}
+            best: _SplitDecision | None = None
+            best_gain = 0.0
 
-        for feature_index in range(x_sub.shape[1]):
-            col_vals = x_sub[:, feature_index]
-            if col_vals.size == 0:
-                continue
+            for feature_index in range(x_sub.shape[1]):
+                col_vals = x_sub[:, feature_index]
+                if col_vals.size == 0:
+                    continue
 
-            max_cat = int(col_vals.max(initial=0))
-            cat_sums = np.bincount(col_vals, weights=y_sub, minlength=max_cat + 1)
-            cat_counts = np.bincount(col_vals, minlength=max_cat + 1)
-            present_categories = np.flatnonzero(cat_counts)
-            if present_categories.size == 0:
-                continue
-            if present_categories.size <= 1:
-                continue
+                max_cat = int(col_vals.max(initial=0))
+                cat_signal_sums = np.bincount(
+                    col_vals,
+                    weights=signal_values,
+                    minlength=max_cat + 1,
+                )
+                cat_raw_sums = np.bincount(col_vals, weights=y_sub, minlength=max_cat + 1)
+                cat_counts = np.bincount(col_vals, minlength=max_cat + 1)
+                present_categories = np.flatnonzero(cat_counts)
+                if present_categories.size <= 1:
+                    continue
 
-            present_sums = cat_sums[present_categories]
-            pos_mask = present_sums > delta
-            neg_mask = present_sums < -delta
-            neu_mask = ~(pos_mask | neg_mask)
+                present_signal_sums = cat_signal_sums[present_categories]
+                present_raw_sums = cat_raw_sums[present_categories]
 
-            s_p = float(present_sums[pos_mask].sum())
-            s_n = float(present_sums[neg_mask].sum())
-            k_p = int(pos_mask.sum())
-            k_n = int(neg_mask.sum())
-            gain_p = abs(s_p) / k_p if k_p > 0 else 0.0
-            gain_n = abs(s_n) / k_n if k_n > 0 else 0.0
-            total_gain = gain_p + gain_n
+                pos_mask = present_signal_sums > delta_mode
+                neg_mask = present_signal_sums < -delta_mode
+                neu_mask = ~(pos_mask | neg_mask)
 
-            pos_categories = present_categories[pos_mask].astype(np.int64, copy=False)
-            neg_categories = present_categories[neg_mask].astype(np.int64, copy=False)
-            neu_categories = present_categories[neu_mask].astype(np.int64, copy=False)
+                s_p = float(present_signal_sums[pos_mask].sum())
+                s_n = float(present_signal_sums[neg_mask].sum())
+                k_p = int(pos_mask.sum())
+                k_n = int(neg_mask.sum())
+                gain_p = abs(s_p) / k_p if k_p > 0 else 0.0
+                gain_n = abs(s_n) / k_n if k_n > 0 else 0.0
+                total_gain = gain_p + gain_n
 
-            row_p = np.isin(col_vals, pos_categories)
-            row_n = np.isin(col_vals, neg_categories)
-            row_u = ~(row_p | row_n)
-            if (
-                int(row_p.sum()) == n_samples
-                or int(row_n.sum()) == n_samples
-                or int(row_u.sum()) == n_samples
-            ):
-                continue
+                pos_categories = present_categories[pos_mask].astype(np.int64, copy=False)
+                neg_categories = present_categories[neg_mask].astype(np.int64, copy=False)
+                neu_categories = present_categories[neu_mask].astype(np.int64, copy=False)
 
-            cat_rows: list[dict[str, Any]] = []
-            for cat, sum_val in zip(
-                present_categories.tolist(),
-                present_sums.tolist(),
-                strict=True,
-            ):
-                row: dict[str, Any] = {
-                    "category": int(cat),
-                    "S_cat": float(sum_val),
-                    "branch": (
-                        "P" if sum_val > delta else ("N" if sum_val < -delta else "neutral")
-                    ),
-                }
-                if self.category_maps_ is not None:
-                    row["category_label"] = self.category_maps_[feature_index][int(cat)]
-                cat_rows.append(row)
-            trace_entry["category_tables"][feature_index] = cat_rows
-            trace_entry["candidate_gains"].append(
-                {
-                    "feature_index": feature_index,
-                    "gain": total_gain,
-                    "gain_P": gain_p,
-                    "gain_N": gain_n,
-                    "k_P": k_p,
-                    "k_N": k_n,
-                }
+                row_p = np.isin(col_vals, pos_categories)
+                row_n = np.isin(col_vals, neg_categories)
+                row_u = ~(row_p | row_n)
+                if (
+                    int(row_p.sum()) == n_samples
+                    or int(row_n.sum()) == n_samples
+                    or int(row_u.sum()) == n_samples
+                ):
+                    continue
+
+                cat_rows: list[dict[str, Any]] = []
+                for cat, raw_val, signal_val in zip(
+                    present_categories.tolist(),
+                    present_raw_sums.tolist(),
+                    present_signal_sums.tolist(),
+                    strict=True,
+                ):
+                    row: dict[str, Any] = {
+                        "category": int(cat),
+                        "S_cat": float(raw_val),
+                        "branch": (
+                            "P"
+                            if signal_val > delta_mode
+                            else ("N" if signal_val < -delta_mode else "neutral")
+                        ),
+                    }
+                    if include_centered_signal:
+                        row["D_cat"] = float(signal_val)
+                    if self.category_maps_ is not None:
+                        row["category_label"] = self.category_maps_[feature_index][int(cat)]
+                    cat_rows.append(row)
+                mode_tables[feature_index] = cat_rows
+
+                mode_candidates.append(
+                    {
+                        "feature_index": feature_index,
+                        "gain": total_gain,
+                        "gain_P": gain_p,
+                        "gain_N": gain_n,
+                        "k_P": k_p,
+                        "k_N": k_n,
+                        "mode": mode,
+                        "delta_mode": delta_mode,
+                    }
+                )
+                if total_gain > best_gain:
+                    best_gain = total_gain
+                    best = _SplitDecision(
+                        gain=total_gain,
+                        feature_index=feature_index,
+                        pos_categories=pos_categories,
+                        neg_categories=neg_categories,
+                        neu_categories=neu_categories,
+                        mode=mode,
+                    )
+
+            mode_candidates.sort(key=lambda item: -item["gain"])
+            return mode_candidates, mode_tables, best
+
+        raw_candidates, raw_tables, best_decision = evaluate_split_mode(
+            mode="raw",
+            signal_values=y_sub,
+            delta_mode=delta_raw,
+            include_centered_signal=False,
+        )
+        trace_entry["candidate_gains_by_mode"]["raw"] = raw_candidates
+        trace_entry["category_tables_by_mode"]["raw"] = raw_tables
+        trace_entry["candidate_gains"].extend(raw_candidates)
+
+        if best_decision is None:
+            centered_candidates, centered_tables, best_decision = evaluate_split_mode(
+                mode="centered_excess",
+                signal_values=y_centered,
+                delta_mode=delta_centered,
+                include_centered_signal=True,
             )
-
-            if total_gain > best_gain:
-                best_gain = total_gain
-                best_feature_index = feature_index
-                best_pos_categories = pos_categories
-                best_neg_categories = neg_categories
-                best_neu_categories = neu_categories
+            trace_entry["candidate_gains_by_mode"]["centered_excess"] = centered_candidates
+            trace_entry["category_tables_by_mode"]["centered_excess"] = centered_tables
+            trace_entry["candidate_gains"].extend(centered_candidates)
+        else:
+            trace_entry["candidate_gains_by_mode"]["centered_excess"] = []
+            trace_entry["category_tables_by_mode"]["centered_excess"] = {}
 
         trace_entry["candidate_gains"].sort(key=lambda item: -item["gain"])
 
-        if best_gain == 0.0 or best_feature_index is None:
+        if best_decision is None or best_decision.gain == 0.0:
             trace_entry["action"] = "leaf"
             trace_entry["stop_reason"] = "no_split"
             if self._trace_enabled:
                 self.fit_trace_.append(trace_entry)
             return _TreeNode(True, node_id, depth, n_samples, total_sum, path, s_node_p, s_node_n)
+
+        best_feature_index = best_decision.feature_index
+        best_pos_categories = best_decision.pos_categories
+        best_neg_categories = best_decision.neg_categories
+        best_neu_categories = best_decision.neu_categories
+        best_mode = best_decision.mode
 
         best_col_vals = x_sub[:, best_feature_index]
         mask_p = np.isin(best_col_vals, best_pos_categories)
@@ -522,6 +596,8 @@ class ImpactSplitter:
         mask_u = ~mask_p & ~mask_n
 
         trace_entry["chosen_feature_index"] = best_feature_index
+        trace_entry["routing_mode"] = best_mode
+        trace_entry["category_tables"] = trace_entry["category_tables_by_mode"].get(best_mode, {})
         trace_entry["routing"] = {
             "positive": best_pos_categories.tolist(),
             "negative": best_neg_categories.tolist(),

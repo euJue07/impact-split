@@ -30,7 +30,7 @@ This notebook uses synthetic data only, with randomness seeded via `np.random.de
 
 ## Why This Algorithm Is Different
 
-`impact-split` is designed for additive business KPIs where totals matter more than average purity. It uses a local sieve (`delta = V_node * delta_pct`) to create Positive/Neutral/Negative branches, a gain metric that rewards concentrated outer-branch impact, and a dual-materiality stopping rule that halts branches with globally irrelevant positive and negative mass. Candidate features that would send 100% of rows down a single branch (or are constant on the current slice) are skipped so the tree does not repeat the same split with identical data.
+`impact-split` is designed for additive business KPIs where totals matter more than average purity. It uses a local sieve (`delta = V_node * delta_pct`) to create Positive/Neutral/Negative branches, a centered-excess fallback (`D_cat = S_cat - n_cat * mean(y_node)`) when raw routing cannot partition a node, a gain metric that rewards concentrated outer-branch impact, and a dual-materiality stopping rule that halts branches with globally irrelevant positive and negative mass. Candidate features that would still send 100% of rows down a single branch (or are constant on the current slice) are skipped so the tree does not repeat the same split with identical data.
 
 For the full three-act origin story and formulas, read:
 
