@@ -49,6 +49,55 @@ def test_fit_validates_shapes_and_integer_encoding() -> None:
         model.fit(x_good, np.array([1.0], dtype=float))
 
 
+def test_constructor_validates_numeric_binning_parameters() -> None:
+    with pytest.raises(ValueError, match="numeric_binning_strategy"):
+        ImpactSplitter(numeric_binning_strategy="bad")
+    with pytest.raises(ValueError, match="numeric_n_bins"):
+        ImpactSplitter(numeric_n_bins=1)
+    with pytest.raises(ValueError, match="numeric_n_bins"):
+        ImpactSplitter(numeric_n_bins=True)
+
+
+def test_dataframe_float_column_quantile_binning_persists_edges() -> None:
+    x = pd.DataFrame({"cont": [0.1, 0.2, 0.9, 1.0]})
+    y = np.array([10.0, 9.0, -9.0, -10.0], dtype=float)
+    model = ImpactSplitter(
+        delta_pct=0.01,
+        min_global_impact_pct=0.001,
+        max_depth=2,
+        numeric_binning_strategy="quantiles",
+        numeric_n_bins=2,
+    )
+
+    model.fit(x, y, trace=True)
+
+    assert 0 in model.numeric_bin_edges_
+    edges = model.numeric_bin_edges_[0]
+    assert len(edges) == 3
+    assert model.category_maps_ is not None
+    assert len(model.category_maps_[0]) == 2
+    assert all(str(label).startswith("[") for label in model.category_maps_[0])
+    root = model.fit_trace_[0]
+    assert root["chosen_feature_name"] == "cont"
+
+
+def test_dataframe_float_column_interval_binning_uses_equal_width_edges() -> None:
+    x = pd.DataFrame({"cont": [0.0, 0.1, 0.4, 0.9, 1.0]})
+    y = np.array([5.0, 4.0, 0.0, -4.0, -5.0], dtype=float)
+    model = ImpactSplitter(
+        delta_pct=0.01,
+        min_global_impact_pct=0.001,
+        max_depth=2,
+        numeric_binning_strategy="interval",
+        numeric_n_bins=4,
+    )
+
+    model.fit(x, y)
+
+    assert 0 in model.numeric_bin_edges_
+    assert np.allclose(model.numeric_bin_edges_[0], np.linspace(0.0, 1.0, num=5))
+
+
 def test_trace_records_split_and_conserves_total_sum() -> None:
     x = np.array(
         [

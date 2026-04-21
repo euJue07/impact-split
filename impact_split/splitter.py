@@ -11,6 +11,7 @@ from matplotlib.figure import Figure
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from pandas.api.types import is_bool_dtype, is_float_dtype
 
 # Max decoded category labels per feature in stored segment paths (fit time).
 _PATH_SEGMENT_MAX_LABELS = 8
@@ -42,8 +43,17 @@ _VERTICAL_LABEL_MARGIN = 1.28
 def _prepare_X_y(
     X: np.ndarray | pd.DataFrame,
     y: np.ndarray | pd.Series,
-) -> tuple[np.ndarray, np.ndarray, list[str] | None, tuple[np.ndarray, ...] | None]:
-    """Validate inputs and return integer matrix, float target, and optional pandas metadata."""
+    *,
+    numeric_binning_strategy: str,
+    numeric_n_bins: int,
+) -> tuple[
+    np.ndarray,
+    np.ndarray,
+    list[str] | None,
+    tuple[np.ndarray, ...] | None,
+    dict[int, np.ndarray],
+]:
+    """Validate inputs and return integer matrix, target, and fitted DataFrame metadata."""
     if isinstance(y, pd.Series):
         y_arr = np.asarray(y, dtype=float)
     elif isinstance(y, np.ndarray):
@@ -56,6 +66,7 @@ def _prepare_X_y(
 
     feature_names: list[str] | None = None
     category_maps: tuple[np.ndarray, ...] | None = None
+    numeric_bin_edges: dict[int, np.ndarray] = {}
 
     if isinstance(X, pd.DataFrame):
         if X.ndim != 2:
@@ -65,17 +76,28 @@ def _prepare_X_y(
         cols: list[np.ndarray] = []
         maps: list[np.ndarray] = []
         feature_names = [str(c) for c in X.columns]
-        for name in X.columns:
+        for feature_index, name in enumerate(X.columns):
             s = X[name]
             if s.isna().any():
                 raise ValueError("X must not contain missing values.")
-            codes, uniques = pd.factorize(s, sort=True)
-            if np.any(codes < 0):
-                raise ValueError(
-                    "X categories must be non-negative integer codes after factorization."
+            if is_float_dtype(s) and not is_bool_dtype(s):
+                values = np.asarray(s, dtype=float)
+                codes, edges, labels = _bin_numeric_values(
+                    values,
+                    strategy=numeric_binning_strategy,
+                    n_bins=numeric_n_bins,
                 )
-            cols.append(codes.astype(np.int64, copy=False))
-            maps.append(np.asarray(uniques, dtype=object))
+                cols.append(codes.astype(np.int64, copy=False))
+                maps.append(labels)
+                numeric_bin_edges[feature_index] = edges
+            else:
+                codes, uniques = pd.factorize(s, sort=True)
+                if np.any(codes < 0):
+                    raise ValueError(
+                        "X categories must be non-negative integer codes after factorization."
+                    )
+                cols.append(codes.astype(np.int64, copy=False))
+                maps.append(np.asarray(uniques, dtype=object))
         x_arr = np.column_stack(cols) if cols else np.empty((X.shape[0], 0), dtype=np.int64)
         category_maps = tuple(maps)
     elif isinstance(X, np.ndarray):
@@ -93,7 +115,46 @@ def _prepare_X_y(
     else:
         raise ValueError("X must be a numpy.ndarray or pandas.DataFrame.")
 
-    return x_arr, y_arr, feature_names, category_maps
+    return x_arr, y_arr, feature_names, category_maps, numeric_bin_edges
+
+
+def _bin_numeric_values(
+    values: np.ndarray,
+    *,
+    strategy: str,
+    n_bins: int,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Bin numeric values into integer categories and return codes, edges, and labels."""
+    min_value = float(values.min(initial=0.0))
+    max_value = float(values.max(initial=0.0))
+    if min_value == max_value:
+        single_label = f"[{min_value:.6g}, {max_value:.6g}]"
+        return (
+            np.zeros(values.shape[0], dtype=np.int64),
+            np.array([min_value, max_value], dtype=float),
+            np.array([single_label], dtype=object),
+        )
+
+    if strategy == "quantiles":
+        quantiles = np.linspace(0.0, 1.0, num=n_bins + 1)
+        edges = np.quantile(values, quantiles)
+        edges = np.unique(edges)
+    else:
+        edges = np.linspace(min_value, max_value, num=n_bins + 1)
+
+    if edges.size < 2:
+        edges = np.array([min_value, max_value], dtype=float)
+
+    codes = np.digitize(values, edges[1:-1], right=False).astype(np.int64, copy=False)
+    labels = [
+        (
+            f"[{edges[i]:.6g}, {edges[i + 1]:.6g})"
+            if i < edges.size - 2
+            else f"[{edges[i]:.6g}, {edges[i + 1]:.6g}]"
+        )
+        for i in range(edges.size - 1)
+    ]
+    return codes, edges.astype(float, copy=False), np.asarray(labels, dtype=object)
 
 
 @dataclass
@@ -137,10 +198,23 @@ class ImpactSplitter:
         delta_pct: float = 0.05,
         min_global_impact_pct: float = 0.01,
         max_depth: int = 5,
+        numeric_binning_strategy: str = "quantiles",
+        numeric_n_bins: int = 10,
     ) -> None:
+        if numeric_binning_strategy not in {"quantiles", "interval"}:
+            raise ValueError(
+                "numeric_binning_strategy must be one of {'quantiles', 'interval'}."
+            )
+        if isinstance(numeric_n_bins, bool) or not isinstance(numeric_n_bins, int):
+            raise ValueError("numeric_n_bins must be an integer >= 2.")
+        if numeric_n_bins < 2:
+            raise ValueError("numeric_n_bins must be an integer >= 2.")
+
         self.delta_pct = delta_pct
         self.min_global_impact_pct = min_global_impact_pct
         self.max_depth = max_depth
+        self.numeric_binning_strategy = numeric_binning_strategy
+        self.numeric_n_bins = numeric_n_bins
         self._X: np.ndarray | None = None
         self._y: np.ndarray | None = None
         self._tree: _TreeNode | None = None
@@ -151,6 +225,7 @@ class ImpactSplitter:
         self.fit_trace_: list[dict[str, Any]] = []
         self.feature_names_in_: list[str] | None = None
         self.category_maps_: tuple[np.ndarray, ...] | None = None
+        self.numeric_bin_edges_: dict[int, np.ndarray] = {}
 
     def fit(
         self,
@@ -172,12 +247,18 @@ class ImpactSplitter:
         """
         trace = trace or verbose
 
-        x_arr, y_arr, feature_names, category_maps = _prepare_X_y(X, y)
+        x_arr, y_arr, feature_names, category_maps, numeric_bin_edges = _prepare_X_y(
+            X,
+            y,
+            numeric_binning_strategy=self.numeric_binning_strategy,
+            numeric_n_bins=self.numeric_n_bins,
+        )
 
         self._X = x_arr
         self._y = y_arr
         self.feature_names_in_ = feature_names
         self.category_maps_ = category_maps
+        self.numeric_bin_edges_ = numeric_bin_edges
         self._v_global_p = float(y_arr[y_arr > 0].sum())
         self._v_global_n = float(np.abs(y_arr[y_arr < 0]).sum())
         self._tree = None

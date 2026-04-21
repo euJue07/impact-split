@@ -164,10 +164,14 @@ model = ImpactSplitter(
     delta_pct=0.05,
     min_global_impact_pct=0.01,
     max_depth=5,
+    numeric_binning_strategy="quantiles",  # "quantiles" or "interval"
+    numeric_n_bins=10,                     # number of bins for float columns
 )
 
 # X: 2D numpy ndarray of integer label-encoded categories (0, 1, 2, ...)
-#     or a pandas DataFrame of categorical columns (factorized internally).
+#     or a pandas DataFrame.
+#     - float columns are pre-binned using the selected strategy.
+#     - non-float columns are treated as categorical (factorized internally).
 # y: 1D numpy ndarray or pandas Series with additive target (e.g., profit/loss)
 model.fit(X, y, trace=True)  # optional: populate model.fit_trace_
 
@@ -228,9 +232,12 @@ Pass `trace=True` or `verbose=True` to `fit()` to record one pre-order step per 
 ## Assumptions and Limitations
 
 - `fit(X, y)` accepts:
-  - `X`: `np.ndarray` with shape `(n_samples, n_features)` and non-negative integer label-encoded categories, or a `pandas.DataFrame` (each column is factorized to integer codes; see `feature_names_in_` and `category_maps_` after fitting).
+  - `X`: `np.ndarray` with shape `(n_samples, n_features)` and non-negative integer label-encoded categories, or a `pandas.DataFrame`:
+    - float columns are converted to bin IDs via `numeric_binning_strategy` and `numeric_n_bins`,
+    - other columns are factorized as categorical codes.
   - `y`: `np.ndarray` or `pandas.Series` with shape `(n_samples,)` and float-coercible additive target values.
-- For NumPy `X`, inputs should be categorical or discretized before fitting (label-encoded into integer bins). DataFrame columns are treated as categorical.
+- For NumPy `X`, inputs should be categorical or discretized before fitting (label-encoded into integer bins).
+- Learned bin edges for float columns are stored in `model.numeric_bin_edges_` keyed by feature index.
 - Ternary recursion can still grow quickly with depth.
 - This is primarily an EDA summarization tool, not a cross-validation-first predictive workflow.
 

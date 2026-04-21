@@ -243,11 +243,17 @@ Dataset: Synthetic Business (10K rows, 5 features)
 
 ### Potential improvements
 
-1. **Continuous feature support** — Add pre-binning or threshold-based splits for numeric features.
-2. **Out-of-sample validation** — Add a method to score new data against fitted segments.
+1. **Continuous feature support (current scope)** — Add train-only pre-binning for float features with two user parameters: binning strategy (`quantiles` or `interval`) and number of bins. Persist learned bin edges in fitted model state for reuse by future inference APIs.
+2. **Out-of-sample validation** — Add a `score_segments(X_new)`-style API that routes new rows to fitted terminal segments, applies an explicit unknown-category policy, and reports scoring coverage. Validate with holdout or k-fold CV (use time-aware splits for temporal data), ensure leakage-safe preprocessing (fit transforms on train only), and monitor segment-mix drift over time.
 3. **Segment stability metric** — Quantify how robust segments are across parameter perturbations.
 4. **Pruning** — Post-fit pruning based on segment impact to reduce tree complexity.
 5. **Segment comparison** — Method to compare segments across two time periods or cohorts.
+
+### Best-practice basis
+
+- scikit-learn decision trees (split behavior, complexity control, practical overfitting safeguards): https://scikit-learn.org/stable/modules/tree.html
+- scikit-learn cross-validation (holdout/CV patterns, estimator evaluation): https://scikit-learn.org/stable/modules/cross_validation.html
+- scikit-learn leakage pitfalls (fit preprocessing on train only; pipeline discipline): https://scikit-learn.org/stable/common_pitfalls.html
 
 ---
 
