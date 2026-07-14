@@ -850,6 +850,7 @@ class ImpactSplitter:
                 s.pop("mask", None)
             return segs
 
+        X = self._X
         y = self._y
         # Pooled robust residual scale (within-segment).
         resid = np.empty_like(y)
@@ -866,7 +867,7 @@ class ImpactSplitter:
             out = {}
             for f, codes in cond.items():
                 if f not in universes:
-                    universes[f] = frozenset(int(c) for c in np.unique(self._X[:, f]))
+                    universes[f] = frozenset(int(c) for c in np.unique(X[:, f]))
                 if codes < universes[f]:
                     out[f] = codes
             return out
