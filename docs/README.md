@@ -2,7 +2,7 @@
 
 This directory contains the **MkDocs** project for the published site:
 
-[https://juedimyroeugenio.github.io/impact-split/](https://juedimyroeugenio.github.io/impact-split/)
+[https://eujue07.github.io/impact-split/](https://eujue07.github.io/impact-split/)
 
 Sources live in [`docs/docs/`](docs/docs/) with configuration in [`mkdocs.yml`](mkdocs.yml).
 

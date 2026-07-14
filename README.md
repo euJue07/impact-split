@@ -1,13 +1,13 @@
 # impact-split
 
-[![CI](https://github.com/juedimyroeugenio/impact-split/actions/workflows/ci.yml/badge.svg)](https://github.com/juedimyroeugenio/impact-split/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/juedimyroeugenio/impact-split/blob/main/LICENSE)
+[![CI](https://github.com/euJue07/impact-split/actions/workflows/ci.yml/badge.svg)](https://github.com/euJue07/impact-split/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/euJue07/impact-split/blob/main/LICENSE)
 
 <a target="_blank" href="https://cookiecutter-data-science.drivendata.org/">
     <img src="https://img.shields.io/badge/CCDS-Project%20template-328F97?logo=cookiecutter" alt="Cookiecutter Data Science project template" />
 </a>
 
-**Documentation:** [juedimyroeugenio.github.io/impact-split](https://juedimyroeugenio.github.io/impact-split/) · **Repository:** [github.com/juedimyroeugenio/impact-split](https://github.com/juedimyroeugenio/impact-split) · **Issues:** [github.com/juedimyroeugenio/impact-split/issues](https://github.com/juedimyroeugenio/impact-split/issues)
+**Documentation:** [eujue07.github.io/impact-split](https://eujue07.github.io/impact-split/) · **Repository:** [github.com/euJue07/impact-split](https://github.com/euJue07/impact-split) · **Issues:** [github.com/euJue07/impact-split/issues](https://github.com/euJue07/impact-split/issues)
 
 Contributions and security reports: [CONTRIBUTING.md](CONTRIBUTING.md) · [SECURITY.md](SECURITY.md)
 
@@ -249,7 +249,7 @@ Pass `trace=True` or `verbose=True` to `fit()` to record one pre-order step per 
 
 ## Learn More
 
-- Hosted documentation (MkDocs): [juedimyroeugenio.github.io/impact-split](https://juedimyroeugenio.github.io/impact-split/)
+- Hosted documentation (MkDocs): [eujue07.github.io/impact-split](https://eujue07.github.io/impact-split/)
 - Full mathematical walkthrough and toy example (documented synthetic DGP: planted category-interaction effects plus noise; fit uses observed outcome only):
   - [`notebooks/1.0-jde-impact-split-explainer.ipynb`](notebooks/1.0-jde-impact-split-explainer.ipynb)
 - Kaggle Sample Supermarket data, `kagglehub` download, and step-by-step trace tables:

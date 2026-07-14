@@ -44,10 +44,10 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/juedimyroeugenio/impact-split"
-Documentation = "https://juedimyroeugenio.github.io/impact-split/"
-Repository = "https://github.com/juedimyroeugenio/impact-split"
-Issues = "https://github.com/juedimyroeugenio/impact-split/issues"
+Homepage = "https://github.com/euJue07/impact-split"
+Documentation = "https://eujue07.github.io/impact-split/"
+Repository = "https://github.com/euJue07/impact-split"
+Issues = "https://github.com/euJue07/impact-split/issues"
 
 
 [tool.ruff]
