@@ -30,6 +30,13 @@ class RuleScore:
     n_segments_used: int
     best_jaccard: float
     matched_paths: list[str]
+    # Diagnostic only (never bar-scored): same greedy union with no segment cap.
+    # uncapped_f1 >> f1 means the tree found the rule but fragmented it past the
+    # cap (metric/readability question); uncapped_f1 also low means missed mass.
+    uncapped_f1: float = 0.0
+    uncapped_recall: float = 0.0
+    uncapped_precision: float = 0.0
+    uncapped_n_segments: int = 0
 
 
 @dataclass
@@ -89,6 +96,41 @@ def _f1(p: float, r: float) -> float:
     return 2 * p * r / (p + r) if (p + r) > 0 else 0.0
 
 
+def _greedy_union(
+    contrib: np.ndarray,
+    total_contrib: float,
+    abs_y: np.ndarray,
+    leaves: list[tuple[str, np.ndarray]],
+    ranked: list[int],
+    precision_ideal: float,
+    max_union: int | None,
+) -> tuple[float, float, float, list[int]]:
+    """Greedy accept-if-F1-improves union over ranked segments.
+
+    ``max_union=None`` removes the segment cap (diagnostic mode): every ranked
+    segment is a candidate and unions may grow without limit.
+    """
+    pool = ranked if max_union is None else ranked[: max_union * 2]
+    best = (0.0, 0.0, 0.0, [])  # f1, recall, precision, indices
+    m_union = np.zeros(len(contrib), dtype=bool)
+    chosen: list[int] = []
+    for idx in pool:
+        trial = m_union | leaves[idx][1]
+        captured = abs(float(contrib[trial].sum()))
+        recall = min(1.0, captured / total_contrib)
+        mass = float(abs_y[trial].sum())
+        prec_raw = captured / mass if mass > 0 else 0.0
+        precision = min(1.0, prec_raw / precision_ideal) if precision_ideal > 0 else 0.0
+        f1 = _f1(precision, recall)
+        if f1 > best[0]:
+            m_union = trial
+            chosen = chosen + [idx]
+            best = (f1, recall, precision, list(chosen))
+        if max_union is not None and len(chosen) >= max_union:
+            break
+    return best
+
+
 def score_dataset(
     ds: BenchDataset,
     leaves: list[tuple[str, np.ndarray]],
@@ -140,23 +182,12 @@ def score_dataset(
             key=lambda i: -abs(float(contrib[leaves[i][1]].sum())),
         )
 
-        best = (0.0, 0.0, 0.0, [])  # f1, recall, precision, indices
-        m_union = np.zeros(len(y), dtype=bool)
-        chosen: list[int] = []
-        for idx in ranked[: max_union * 2]:  # small candidate pool
-            trial = m_union | leaves[idx][1]
-            captured = abs(float(contrib[trial].sum()))
-            recall = min(1.0, captured / total_contrib)
-            mass = float(abs_y[trial].sum())
-            prec_raw = captured / mass if mass > 0 else 0.0
-            precision = min(1.0, prec_raw / precision_ideal) if precision_ideal > 0 else 0.0
-            f1 = _f1(precision, recall)
-            if f1 > best[0]:
-                m_union = trial
-                chosen = chosen + [idx]
-                best = (f1, recall, precision, list(chosen))
-            if len(chosen) >= max_union:
-                break
+        best = _greedy_union(
+            contrib, total_contrib, abs_y, leaves, ranked, precision_ideal, max_union
+        )
+        unc = _greedy_union(
+            contrib, total_contrib, abs_y, leaves, ranked, precision_ideal, None
+        )
 
         # Shape diagnostic: best single-segment row-Jaccard.
         best_j = 0.0
@@ -175,6 +206,10 @@ def score_dataset(
                 n_segments_used=len(best[3]),
                 best_jaccard=best_j,
                 matched_paths=[leaves[i][0] for i in best[3]],
+                uncapped_f1=unc[0],
+                uncapped_recall=unc[1],
+                uncapped_precision=unc[2],
+                uncapped_n_segments=len(unc[3]),
             )
         )
 
