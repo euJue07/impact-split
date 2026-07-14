@@ -195,9 +195,10 @@ class ImpactSplitter:
 
     def __init__(
         self,
-        delta_pct: float = 0.05,
+        delta_pct: float = 0.01,
         min_global_impact_pct: float = 0.01,
         max_depth: int = 5,
+        noise_z: float = 3.0,
         numeric_binning_strategy: str = "quantiles",
         numeric_n_bins: int = 10,
     ) -> None:
@@ -207,10 +208,13 @@ class ImpactSplitter:
             raise ValueError("numeric_n_bins must be an integer >= 2.")
         if numeric_n_bins < 2:
             raise ValueError("numeric_n_bins must be an integer >= 2.")
+        if noise_z < 0:
+            raise ValueError("noise_z must be >= 0 (0 disables the noise floor).")
 
         self.delta_pct = delta_pct
         self.min_global_impact_pct = min_global_impact_pct
         self.max_depth = max_depth
+        self.noise_z = noise_z
         self.numeric_binning_strategy = numeric_binning_strategy
         self.numeric_n_bins = numeric_n_bins
         self._X: np.ndarray | None = None
@@ -452,7 +456,15 @@ class ImpactSplitter:
             return True
         return bool(np.all(x_sub == x_sub[0]))
 
-    def _build(self, x_sub: np.ndarray, y_sub: np.ndarray, depth: int, path: str) -> _TreeNode:
+    def _build(
+        self,
+        x_sub: np.ndarray,
+        y_sub: np.ndarray,
+        depth: int,
+        path: str,
+        inter_depth: int = 0,
+        parent_feature: int | None = None,
+    ) -> _TreeNode:
         n_samples = int(y_sub.shape[0])
         total_sum = float(y_sub.sum())
         node_id = self._next_node_id()
@@ -509,7 +521,11 @@ class ImpactSplitter:
                 self.fit_trace_.append(trace_entry)
             return _TreeNode(True, node_id, depth, n_samples, total_sum, path, s_node_p, s_node_n)
 
-        if depth == self.max_depth:
+        # max_depth caps the *interaction order* (distinct-feature transitions along
+        # the path); consecutive refinements of the same feature are free — they
+        # narrow a category pool rather than add an interaction term.
+        at_interaction_cap = inter_depth >= self.max_depth
+        if at_interaction_cap and parent_feature is None:
             trace_entry["action"] = "leaf"
             trace_entry["stop_reason"] = "max_depth"
             if self._trace_enabled:
@@ -535,7 +551,15 @@ class ImpactSplitter:
             best: _SplitDecision | None = None
             best_gain = 0.0
 
-            for feature_index in range(x_sub.shape[1]):
+            # At the interaction cap only same-feature refinements remain legal:
+            # they narrow the parent's category pool without adding a new
+            # interaction term, so they don't consume depth budget.
+            if at_interaction_cap:
+                candidate_features: range | list[int] = [cast(int, parent_feature)]
+            else:
+                candidate_features = range(x_sub.shape[1])
+
+            for feature_index in candidate_features:
                 col_vals = x_sub[:, feature_index]
                 if col_vals.size == 0:
                     continue
@@ -554,9 +578,27 @@ class ImpactSplitter:
 
                 present_signal_sums = cat_signal_sums[present_categories]
                 present_raw_sums = cat_raw_sums[present_categories]
+                present_counts = cat_counts[present_categories]
 
-                pos_mask = present_signal_sums > delta_mode
-                neg_mask = present_signal_sums < -delta_mode
+                # Noise floor: under a within-category-noise null, a category's
+                # excess sum wanders ~ sigma * sqrt(n_cat). Categories must clear
+                # BOTH the volume-relative delta and z * sigma_f * sqrt(n_cat),
+                # where sigma_f is the robust (MAD) scale of this feature's
+                # within-category residuals. Stops noise-driven routing in deep
+                # nodes where 5% of a small excess volume is below the noise band.
+                if self.noise_z > 0:
+                    cat_means = np.zeros(max_cat + 1, dtype=float)
+                    nz = cat_counts > 0
+                    cat_means[nz] = cat_signal_sums[nz] / cat_counts[nz]
+                    resid = signal_values - cat_means[col_vals]
+                    med = float(np.median(resid))
+                    sigma_f = 1.4826 * float(np.median(np.abs(resid - med)))
+                    tau = np.maximum(delta_mode, self.noise_z * sigma_f * np.sqrt(present_counts))
+                else:
+                    tau = np.full(present_categories.shape[0], delta_mode)
+
+                pos_mask = present_signal_sums > tau
+                neg_mask = present_signal_sums < -tau
                 neu_mask = ~(pos_mask | neg_mask)
 
                 s_p = float(present_signal_sums[pos_mask].sum())
@@ -582,19 +624,21 @@ class ImpactSplitter:
                     continue
 
                 cat_rows: list[dict[str, Any]] = []
-                for cat, raw_val, signal_val in zip(
+                for cat, raw_val, signal_val, tau_val in zip(
                     present_categories.tolist(),
                     present_raw_sums.tolist(),
                     present_signal_sums.tolist(),
+                    tau.tolist(),
                     strict=True,
                 ):
                     row: dict[str, Any] = {
                         "category": int(cat),
                         "S_cat": float(raw_val),
+                        "tau": float(tau_val),
                         "branch": (
                             "P"
-                            if signal_val > delta_mode
-                            else ("N" if signal_val < -delta_mode else "neutral")
+                            if signal_val > tau_val
+                            else ("N" if signal_val < -tau_val else "neutral")
                         ),
                     }
                     if include_centered_signal:
@@ -651,7 +695,7 @@ class ImpactSplitter:
 
         if best_decision is None or best_decision.gain == 0.0:
             trace_entry["action"] = "leaf"
-            trace_entry["stop_reason"] = "no_split"
+            trace_entry["stop_reason"] = "max_depth" if at_interaction_cap else "no_split"
             if self._trace_enabled:
                 self.fit_trace_.append(trace_entry)
             return _TreeNode(True, node_id, depth, n_samples, total_sum, path, s_node_p, s_node_n)
@@ -688,6 +732,7 @@ class ImpactSplitter:
         seg_p = self._path_segment_for_branch(best_feature_index, best_pos_categories.tolist())
         seg_n = self._path_segment_for_branch(best_feature_index, best_neg_categories.tolist())
         seg_u = self._path_segment_for_branch(best_feature_index, best_neu_categories.tolist())
+        child_inter_depth = inter_depth + (1 if best_feature_index != parent_feature else 0)
         children: dict[str, _TreeNode] = {}
         if np.any(mask_p):
             children["positive"] = self._build(
@@ -695,6 +740,8 @@ class ImpactSplitter:
                 y_sub[mask_p],
                 depth + 1,
                 f"{path} / {seg_p}",
+                inter_depth=child_inter_depth,
+                parent_feature=best_feature_index,
             )
         if np.any(mask_n):
             children["negative"] = self._build(
@@ -702,6 +749,8 @@ class ImpactSplitter:
                 y_sub[mask_n],
                 depth + 1,
                 f"{path} / {seg_n}",
+                inter_depth=child_inter_depth,
+                parent_feature=best_feature_index,
             )
         if np.any(mask_u):
             children["neutral"] = self._build(
@@ -709,6 +758,8 @@ class ImpactSplitter:
                 y_sub[mask_u],
                 depth + 1,
                 f"{path} / {seg_u}",
+                inter_depth=child_inter_depth,
+                parent_feature=best_feature_index,
             )
 
         return _TreeNode(
@@ -848,6 +899,9 @@ class ImpactSplitter:
         ax.set_axis_off()
         ax.set_title("Impact split tree")
 
+        # Physical depth can exceed max_depth (same-feature refinements are free).
+        plot_depth = max(n.depth for n in _iter_tree_nodes(tree))
+
         positions: dict[str, tuple[float, float]] = {}
         subtree_width: dict[str, float] = {}
 
@@ -912,7 +966,7 @@ class ImpactSplitter:
             width_cache: dict[str, float] = {}
             for _ in range(max(1, layout_max_iterations)):
                 ax.set_xlim(-tw / 2 - 0.5, tw / 2 + 0.5)
-                ax.set_ylim(-self.max_depth * level_gap - 2, 1)
+                ax.set_ylim(-plot_depth * level_gap - 2, 1)
                 fig.canvas.draw()
                 loop_renderer = _canvas_renderer(fig)
                 width_cache.clear()
@@ -965,7 +1019,7 @@ class ImpactSplitter:
         tw, _ = run_horizontal_pass(label_fn_final)
 
         ax.set_xlim(-tw / 2 - 0.5, tw / 2 + 0.5)
-        ax.set_ylim(-self.max_depth * level_gap - 2, 1)
+        ax.set_ylim(-plot_depth * level_gap - 2, 1)
         fig.canvas.draw()
         renderer = _canvas_renderer(fig)
         max_h = 0.0
@@ -1117,7 +1171,7 @@ class ImpactSplitter:
             fig.subplots_adjust(left=0.06, right=0.96, top=0.90, bottom=0.06)
 
         ax.set_xlim(-tw / 2 - 0.5, tw / 2 + 0.5)
-        ax.set_ylim(-self.max_depth * effective_level_gap - 2, 1)
+        ax.set_ylim(-plot_depth * effective_level_gap - 2, 1)
         if show:
             plt.show()
         return fig

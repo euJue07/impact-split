@@ -18,7 +18,7 @@ from .scoring import DatasetScore, encode_with_model_maps, leaf_masks_from_model
 RESULTS_DIR = Path(__file__).parent / "results"
 
 DEFAULT_PARAMS: dict[str, Any] = {
-    "delta_pct": 0.05,
+    "delta_pct": 0.01,
     "min_global_impact_pct": 0.01,
     "max_depth": 5,
 }

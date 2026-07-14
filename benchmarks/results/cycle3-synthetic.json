@@ -1,0 +1,1502 @@
+{
+  "params": {
+    "delta_pct": 0.01,
+    "min_global_impact_pct": 0.01,
+    "max_depth": 5
+  },
+  "mean_impact_f1": 0.9905992051603818,
+  "floor_dataset_f1": 0.9210827965247342,
+  "per_case_mean_f1": {
+    "baseline": 1.0,
+    "one_sided": 1.0,
+    "high_cardinality": 0.9476960774521198,
+    "deep_interactions": 1.0,
+    "noise_2x": 1.0,
+    "skewed_volume": 1.0,
+    "overlapping": 0.9864983586705528
+  },
+  "null_pass_rate": 1.0,
+  "conservation_all_ok": true,
+  "mean_n_segments": 14.285714285714286,
+  "results": [
+    {
+      "case": "baseline",
+      "seed": 42,
+      "impact_f1": 1.0,
+      "floor_rule_f1": 1.0,
+      "rule_scores": [
+        {
+          "rule": "NCR x Direct",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 1,
+          "best_jaccard": 1.0,
+          "matched_paths": [
+            "root / region=Luzon, NCR / channel=Direct / region=NCR"
+          ]
+        },
+        {
+          "rule": "Mindanao x Partner x {A,B}",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 1,
+          "best_jaccard": 1.0,
+          "matched_paths": [
+            "root / region=Mindanao, Visayas / channel=Online, Partner / product=A, B / region=Mindanao / channel=Partner"
+          ]
+        },
+        {
+          "rule": "Luzon x Online x C",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 1,
+          "best_jaccard": 1.0,
+          "matched_paths": [
+            "root / region=Luzon, NCR / channel=Online / region=Luzon / product=A, C / product=C"
+          ]
+        },
+        {
+          "rule": "Luzon x Partner",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 1,
+          "best_jaccard": 1.0,
+          "matched_paths": [
+            "root / region=Luzon, NCR / channel=Partner / region=Luzon"
+          ]
+        },
+        {
+          "rule": "Visayas x Online",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 2,
+          "best_jaccard": 0.7580246913580246,
+          "matched_paths": [
+            "root / region=Mindanao, Visayas / channel=Online, Partner / product=A, B / region=Visayas / channel=Online",
+            "root / region=Mindanao, Visayas / channel=Online, Partner / product=C / channel=Online / region=Visayas"
+          ]
+        },
+        {
+          "rule": "Luzon x Online x A",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 1,
+          "best_jaccard": 1.0,
+          "matched_paths": [
+            "root / region=Luzon, NCR / channel=Online / region=Luzon / product=A, C / product=A"
+          ]
+        }
+      ],
+      "n_terminal_segments": 16,
+      "null_pass": null,
+      "conservation_ok": true,
+      "extras": {}
+    },
+    {
+      "case": "baseline",
+      "seed": 7,
+      "impact_f1": 1.0,
+      "floor_rule_f1": 1.0,
+      "rule_scores": [
+        {
+          "rule": "NCR x Direct",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 1,
+          "best_jaccard": 1.0,
+          "matched_paths": [
+            "root / region=Luzon, NCR / channel=Direct / region=NCR"
+          ]
+        },
+        {
+          "rule": "Mindanao x Partner x {A,B}",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 1,
+          "best_jaccard": 1.0,
+          "matched_paths": [
+            "root / region=Mindanao, Visayas / channel=Online, Partner / product=A, B / region=Mindanao / channel=Partner"
+          ]
+        },
+        {
+          "rule": "Luzon x Online x C",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 1,
+          "best_jaccard": 1.0,
+          "matched_paths": [
+            "root / region=Luzon, NCR / channel=Online, Partner / region=Luzon / channel=Online / product=A, C / product=C"
+          ]
+        },
+        {
+          "rule": "Luzon x Partner",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 1,
+          "best_jaccard": 1.0,
+          "matched_paths": [
+            "root / region=Luzon, NCR / channel=Online, Partner / region=Luzon / channel=Partner"
+          ]
+        },
+        {
+          "rule": "Visayas x Online",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 2,
+          "best_jaccard": 0.75,
+          "matched_paths": [
+            "root / region=Mindanao, Visayas / channel=Online, Partner / product=A, B / region=Visayas / channel=Online",
+            "root / region=Mindanao, Visayas / channel=Online, Partner / product=C / channel=Online / region=Visayas"
+          ]
+        },
+        {
+          "rule": "Luzon x Online x A",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 1,
+          "best_jaccard": 1.0,
+          "matched_paths": [
+            "root / region=Luzon, NCR / channel=Online, Partner / region=Luzon / channel=Online / product=A, C / product=A"
+          ]
+        }
+      ],
+      "n_terminal_segments": 15,
+      "null_pass": null,
+      "conservation_ok": true,
+      "extras": {}
+    },
+    {
+      "case": "baseline",
+      "seed": 2026,
+      "impact_f1": 1.0,
+      "floor_rule_f1": 1.0,
+      "rule_scores": [
+        {
+          "rule": "NCR x Direct",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 1,
+          "best_jaccard": 1.0,
+          "matched_paths": [
+            "root / region=Luzon, NCR / channel=Direct / region=NCR"
+          ]
+        },
+        {
+          "rule": "Mindanao x Partner x {A,B}",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 1,
+          "best_jaccard": 1.0,
+          "matched_paths": [
+            "root / region=Mindanao, Visayas / channel=Online, Partner / product=A, B / region=Mindanao / channel=Partner"
+          ]
+        },
+        {
+          "rule": "Luzon x Online x C",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 1,
+          "best_jaccard": 1.0,
+          "matched_paths": [
+            "root / region=Luzon, NCR / channel=Online / region=Luzon / product=A, C / product=C"
+          ]
+        },
+        {
+          "rule": "Luzon x Partner",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 1,
+          "best_jaccard": 1.0,
+          "matched_paths": [
+            "root / region=Luzon, NCR / channel=Partner / region=Luzon"
+          ]
+        },
+        {
+          "rule": "Visayas x Online",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 2,
+          "best_jaccard": 0.7396907216494846,
+          "matched_paths": [
+            "root / region=Mindanao, Visayas / channel=Online, Partner / product=A, B / region=Visayas / channel=Online",
+            "root / region=Mindanao, Visayas / channel=Online, Partner / product=C / channel=Online / region=Visayas"
+          ]
+        },
+        {
+          "rule": "Luzon x Online x A",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 1,
+          "best_jaccard": 1.0,
+          "matched_paths": [
+            "root / region=Luzon, NCR / channel=Online / region=Luzon / product=A, C / product=A"
+          ]
+        }
+      ],
+      "n_terminal_segments": 16,
+      "null_pass": null,
+      "conservation_ok": true,
+      "extras": {}
+    },
+    {
+      "case": "one_sided",
+      "seed": 42,
+      "impact_f1": 1.0,
+      "floor_rule_f1": 1.0,
+      "rule_scores": [
+        {
+          "rule": "NCR x Direct",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 1,
+          "best_jaccard": 1.0,
+          "matched_paths": [
+            "root / channel=Direct, Partner / region=Mindanao, NCR / channel=Direct / region=NCR"
+          ]
+        },
+        {
+          "rule": "Mindanao x Partner x {A,B}",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 1,
+          "best_jaccard": 1.0,
+          "matched_paths": [
+            "root / channel=Direct, Partner / region=Mindanao, NCR / channel=Partner / region=Mindanao / product=A, B"
+          ]
+        },
+        {
+          "rule": "Luzon x Partner",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 1,
+          "best_jaccard": 1.0,
+          "matched_paths": [
+            "root / channel=Direct, Partner / region=Luzon / channel=Partner"
+          ]
+        },
+        {
+          "rule": "Visayas x Online",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 1,
+          "best_jaccard": 1.0,
+          "matched_paths": [
+            "root / channel=Online / region=Visayas"
+          ]
+        },
+        {
+          "rule": "Luzon x Online x C",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 1,
+          "best_jaccard": 1.0,
+          "matched_paths": [
+            "root / channel=Online / region=Luzon, Mindanao, NCR / product=C / region=Luzon"
+          ]
+        }
+      ],
+      "n_terminal_segments": 12,
+      "null_pass": null,
+      "conservation_ok": true,
+      "extras": {}
+    },
+    {
+      "case": "one_sided",
+      "seed": 7,
+      "impact_f1": 1.0,
+      "floor_rule_f1": 1.0,
+      "rule_scores": [
+        {
+          "rule": "NCR x Direct",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 1,
+          "best_jaccard": 1.0,
+          "matched_paths": [
+            "root / channel=Direct / region=NCR"
+          ]
+        },
+        {
+          "rule": "Mindanao x Partner x {A,B}",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 1,
+          "best_jaccard": 1.0,
+          "matched_paths": [
+            "root / channel=Partner / region=Luzon, Mindanao / product=A, B / region=Mindanao"
+          ]
+        },
+        {
+          "rule": "Luzon x Partner",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 2,
+          "best_jaccard": 0.7612244897959184,
+          "matched_paths": [
+            "root / channel=Partner / region=Luzon, Mindanao / product=A, B / region=Luzon",
+            "root / channel=Partner / region=Luzon, Mindanao / product=C / region=Luzon"
+          ]
+        },
+        {
+          "rule": "Visayas x Online",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 1,
+          "best_jaccard": 1.0,
+          "matched_paths": [
+            "root / channel=Online / region=Visayas"
+          ]
+        },
+        {
+          "rule": "Luzon x Online x C",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 1,
+          "best_jaccard": 1.0,
+          "matched_paths": [
+            "root / channel=Online / region=Luzon / product=C"
+          ]
+        }
+      ],
+      "n_terminal_segments": 11,
+      "null_pass": null,
+      "conservation_ok": true,
+      "extras": {}
+    },
+    {
+      "case": "one_sided",
+      "seed": 2026,
+      "impact_f1": 1.0,
+      "floor_rule_f1": 1.0,
+      "rule_scores": [
+        {
+          "rule": "NCR x Direct",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 1,
+          "best_jaccard": 1.0,
+          "matched_paths": [
+            "root / channel=Direct, Partner / region=Mindanao, NCR / channel=Direct / region=NCR"
+          ]
+        },
+        {
+          "rule": "Mindanao x Partner x {A,B}",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 1,
+          "best_jaccard": 1.0,
+          "matched_paths": [
+            "root / channel=Direct, Partner / region=Mindanao, NCR / channel=Partner / region=Mindanao / product=A, B"
+          ]
+        },
+        {
+          "rule": "Luzon x Partner",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 1,
+          "best_jaccard": 1.0,
+          "matched_paths": [
+            "root / channel=Direct, Partner / region=Luzon / channel=Partner"
+          ]
+        },
+        {
+          "rule": "Visayas x Online",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 1,
+          "best_jaccard": 1.0,
+          "matched_paths": [
+            "root / channel=Online / region=Visayas"
+          ]
+        },
+        {
+          "rule": "Luzon x Online x C",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 1,
+          "best_jaccard": 1.0,
+          "matched_paths": [
+            "root / channel=Online / region=Luzon, Mindanao, NCR / product=C / region=Luzon"
+          ]
+        }
+      ],
+      "n_terminal_segments": 13,
+      "null_pass": null,
+      "conservation_ok": true,
+      "extras": {}
+    },
+    {
+      "case": "high_cardinality",
+      "seed": 42,
+      "impact_f1": 1.0,
+      "floor_rule_f1": 1.0,
+      "rule_scores": [
+        {
+          "rule": "NCR x Direct",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 1,
+          "best_jaccard": 1.0,
+          "matched_paths": [
+            "root / region=Luzon, NCR / channel=Direct / region=NCR"
+          ]
+        },
+        {
+          "rule": "Mindanao x Partner x {A,B}",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 1,
+          "best_jaccard": 1.0,
+          "matched_paths": [
+            "root / region=Mindanao, Visayas / channel=Partner / region=Mindanao / product=A, B"
+          ]
+        },
+        {
+          "rule": "Luzon x Online x C",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 3,
+          "best_jaccard": 0.9705882352941176,
+          "matched_paths": [
+            "root / region=Luzon, NCR / channel=Online / region=Luzon / product=C / store_id=S00, S01, S03, S04, S05, S06, S07, S08 (+38 more)",
+            "root / region=Luzon, NCR / channel=Online / region=Luzon / product=C / store_id=S42",
+            "root / region=Luzon, NCR / channel=Online / region=Luzon / product=C / store_id=S32"
+          ]
+        },
+        {
+          "rule": "Luzon x Partner",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 1,
+          "best_jaccard": 1.0,
+          "matched_paths": [
+            "root / region=Luzon, NCR / channel=Partner / region=Luzon"
+          ]
+        },
+        {
+          "rule": "Visayas x Online",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 1,
+          "best_jaccard": 1.0,
+          "matched_paths": [
+            "root / region=Mindanao, Visayas / channel=Online / region=Visayas"
+          ]
+        },
+        {
+          "rule": "Luzon x Online x A",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 2,
+          "best_jaccard": 0.9870689655172413,
+          "matched_paths": [
+            "root / region=Luzon, NCR / channel=Online / region=Luzon / product=A / store_id=S01, S02, S03, S04, S05, S06, S07, S08 (+40 more)",
+            "root / region=Luzon, NCR / channel=Online / region=Luzon / product=A / store_id=S17"
+          ]
+        }
+      ],
+      "n_terminal_segments": 20,
+      "null_pass": null,
+      "conservation_ok": true,
+      "extras": {}
+    },
+    {
+      "case": "high_cardinality",
+      "seed": 7,
+      "impact_f1": 0.9220054358316249,
+      "floor_rule_f1": 0.7626730113961497,
+      "rule_scores": [
+        {
+          "rule": "NCR x Direct",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 1,
+          "best_jaccard": 1.0,
+          "matched_paths": [
+            "root / channel=Direct / region=NCR"
+          ]
+        },
+        {
+          "rule": "Mindanao x Partner x {A,B}",
+          "f1": 0.7693596035935996,
+          "recall": 1.0,
+          "precision": 0.6251701194274221,
+          "n_segments_used": 2,
+          "best_jaccard": 0.532967032967033,
+          "matched_paths": [
+            "root / channel=Online, Partner / region=Mindanao, NCR, Visayas / region=Mindanao, Visayas / product=A / region=Mindanao / channel=Partner",
+            "root / channel=Online, Partner / region=Mindanao, NCR, Visayas / region=Mindanao, Visayas / product=B"
+          ]
+        },
+        {
+          "rule": "Luzon x Online x C",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 1,
+          "best_jaccard": 1.0,
+          "matched_paths": [
+            "root / channel=Online, Partner / region=Luzon / channel=Online / product=A, C / product=C"
+          ]
+        },
+        {
+          "rule": "Luzon x Partner",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 1,
+          "best_jaccard": 1.0,
+          "matched_paths": [
+            "root / channel=Online, Partner / region=Luzon / channel=Partner"
+          ]
+        },
+        {
+          "rule": "Visayas x Online",
+          "f1": 0.7626730113961497,
+          "recall": 1.0,
+          "precision": 0.6163875987678238,
+          "n_segments_used": 3,
+          "best_jaccard": 0.4056603773584906,
+          "matched_paths": [
+            "root / channel=Online, Partner / region=Mindanao, NCR, Visayas / region=Mindanao, Visayas / product=A / region=Visayas / channel=Online",
+            "root / channel=Online, Partner / region=Mindanao, NCR, Visayas / region=Mindanao, Visayas / product=B",
+            "root / channel=Online, Partner / region=Mindanao, NCR, Visayas / region=Mindanao, Visayas / product=C / region=Visayas / channel=Online"
+          ]
+        },
+        {
+          "rule": "Luzon x Online x A",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 1,
+          "best_jaccard": 1.0,
+          "matched_paths": [
+            "root / channel=Online, Partner / region=Luzon / channel=Online / product=A, C / product=A"
+          ]
+        }
+      ],
+      "n_terminal_segments": 15,
+      "null_pass": null,
+      "conservation_ok": true,
+      "extras": {}
+    },
+    {
+      "case": "high_cardinality",
+      "seed": 2026,
+      "impact_f1": 0.9210827965247342,
+      "floor_rule_f1": 0.7454918942558011,
+      "rule_scores": [
+        {
+          "rule": "NCR x Direct",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 2,
+          "best_jaccard": 0.9882629107981221,
+          "matched_paths": [
+            "root / region=Luzon, NCR / channel=Direct / region=NCR / store_id=S00, S01, S02, S03, S04, S05, S06, S07 (+41 more)",
+            "root / region=Luzon, NCR / channel=Direct / region=NCR / store_id=S28"
+          ]
+        },
+        {
+          "rule": "Mindanao x Partner x {A,B}",
+          "f1": 0.7810048848926044,
+          "recall": 1.0,
+          "precision": 0.6406956641690863,
+          "n_segments_used": 2,
+          "best_jaccard": 0.5235602094240838,
+          "matched_paths": [
+            "root / region=Mindanao, Visayas / channel=Online, Partner / product=A / region=Mindanao / channel=Partner",
+            "root / region=Mindanao, Visayas / channel=Online, Partner / product=B"
+          ]
+        },
+        {
+          "rule": "Luzon x Online x C",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 2,
+          "best_jaccard": 0.9795918367346939,
+          "matched_paths": [
+            "root / region=Luzon, NCR / channel=Online / region=Luzon / product=A, C / product=C / store_id=S00, S01, S02, S03, S04, S05, S06, S07 (+38 more)",
+            "root / region=Luzon, NCR / channel=Online / region=Luzon / product=A, C / product=C / store_id=S19"
+          ]
+        },
+        {
+          "rule": "Luzon x Partner",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 1,
+          "best_jaccard": 1.0,
+          "matched_paths": [
+            "root / region=Luzon, NCR / channel=Partner / region=Luzon"
+          ]
+        },
+        {
+          "rule": "Visayas x Online",
+          "f1": 0.7454918942558011,
+          "recall": 1.0,
+          "precision": 0.5942503606332306,
+          "n_segments_used": 3,
+          "best_jaccard": 0.38402061855670105,
+          "matched_paths": [
+            "root / region=Mindanao, Visayas / channel=Online, Partner / product=A / region=Visayas / channel=Online",
+            "root / region=Mindanao, Visayas / channel=Online, Partner / product=B",
+            "root / region=Mindanao, Visayas / channel=Online, Partner / product=C / channel=Online / region=Visayas"
+          ]
+        },
+        {
+          "rule": "Luzon x Online x A",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 2,
+          "best_jaccard": 0.984375,
+          "matched_paths": [
+            "root / region=Luzon, NCR / channel=Online / region=Luzon / product=A, C / product=A / store_id=S00, S01, S02, S03, S04, S05, S06, S07 (+41 more)",
+            "root / region=Luzon, NCR / channel=Online / region=Luzon / product=A, C / product=A / store_id=S26"
+          ]
+        }
+      ],
+      "n_terminal_segments": 22,
+      "null_pass": null,
+      "conservation_ok": true,
+      "extras": {}
+    },
+    {
+      "case": "deep_interactions",
+      "seed": 42,
+      "impact_f1": 1.0,
+      "floor_rule_f1": 1.0,
+      "rule_scores": [
+        {
+          "rule": "NCR x Direct x Gold",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 1,
+          "best_jaccard": 1.0,
+          "matched_paths": [
+            "root / channel=Direct / tier=Gold / region=NCR"
+          ]
+        },
+        {
+          "rule": "Luzon x Partner x A x Corp",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 1,
+          "best_jaccard": 1.0,
+          "matched_paths": [
+            "root / channel=Partner / acct=Corp / region=Luzon / product=A"
+          ]
+        },
+        {
+          "rule": "Visayas x Online x Silver",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 1,
+          "best_jaccard": 1.0,
+          "matched_paths": [
+            "root / channel=Online / tier=Silver / region=Visayas"
+          ]
+        },
+        {
+          "rule": "Online x C x Gov x Bronze",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 1,
+          "best_jaccard": 1.0,
+          "matched_paths": [
+            "root / channel=Online / tier=Bronze, Gold / acct=Gov / product=C / tier=Bronze"
+          ]
+        }
+      ],
+      "n_terminal_segments": 13,
+      "null_pass": null,
+      "conservation_ok": true,
+      "extras": {}
+    },
+    {
+      "case": "deep_interactions",
+      "seed": 7,
+      "impact_f1": 1.0,
+      "floor_rule_f1": 1.0,
+      "rule_scores": [
+        {
+          "rule": "NCR x Direct x Gold",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 1,
+          "best_jaccard": 1.0,
+          "matched_paths": [
+            "root / channel=Direct / tier=Gold / region=NCR"
+          ]
+        },
+        {
+          "rule": "Luzon x Partner x A x Corp",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 1,
+          "best_jaccard": 1.0,
+          "matched_paths": [
+            "root / channel=Partner / acct=Corp / product=A / region=Luzon"
+          ]
+        },
+        {
+          "rule": "Visayas x Online x Silver",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 1,
+          "best_jaccard": 1.0,
+          "matched_paths": [
+            "root / channel=Online / tier=Silver / region=Visayas"
+          ]
+        },
+        {
+          "rule": "Online x C x Gov x Bronze",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 1,
+          "best_jaccard": 1.0,
+          "matched_paths": [
+            "root / channel=Online / tier=Bronze, Gold / product=C / acct=Gov / tier=Bronze"
+          ]
+        }
+      ],
+      "n_terminal_segments": 13,
+      "null_pass": null,
+      "conservation_ok": true,
+      "extras": {}
+    },
+    {
+      "case": "deep_interactions",
+      "seed": 2026,
+      "impact_f1": 1.0,
+      "floor_rule_f1": 1.0,
+      "rule_scores": [
+        {
+          "rule": "NCR x Direct x Gold",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 1,
+          "best_jaccard": 1.0,
+          "matched_paths": [
+            "root / channel=Direct / tier=Gold / region=NCR"
+          ]
+        },
+        {
+          "rule": "Luzon x Partner x A x Corp",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 1,
+          "best_jaccard": 1.0,
+          "matched_paths": [
+            "root / channel=Partner / acct=Corp / region=Luzon / product=A"
+          ]
+        },
+        {
+          "rule": "Visayas x Online x Silver",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 1,
+          "best_jaccard": 1.0,
+          "matched_paths": [
+            "root / channel=Online / tier=Silver / region=Visayas"
+          ]
+        },
+        {
+          "rule": "Online x C x Gov x Bronze",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 1,
+          "best_jaccard": 1.0,
+          "matched_paths": [
+            "root / channel=Online / tier=Bronze, Gold / product=C / acct=Gov / tier=Bronze"
+          ]
+        }
+      ],
+      "n_terminal_segments": 13,
+      "null_pass": null,
+      "conservation_ok": true,
+      "extras": {}
+    },
+    {
+      "case": "noise_2x",
+      "seed": 42,
+      "impact_f1": 1.0,
+      "floor_rule_f1": 1.0,
+      "rule_scores": [
+        {
+          "rule": "NCR x Direct",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 1,
+          "best_jaccard": 1.0,
+          "matched_paths": [
+            "root / region=Luzon, NCR / channel=Direct / region=NCR"
+          ]
+        },
+        {
+          "rule": "Mindanao x Partner x {A,B}",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 1,
+          "best_jaccard": 1.0,
+          "matched_paths": [
+            "root / region=Mindanao, Visayas / channel=Partner / region=Mindanao / product=A, B"
+          ]
+        },
+        {
+          "rule": "Luzon x Online x C",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 1,
+          "best_jaccard": 1.0,
+          "matched_paths": [
+            "root / region=Luzon, NCR / channel=Online / region=Luzon / product=C"
+          ]
+        },
+        {
+          "rule": "Luzon x Partner",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 1,
+          "best_jaccard": 1.0,
+          "matched_paths": [
+            "root / region=Luzon, NCR / channel=Partner / region=Luzon"
+          ]
+        },
+        {
+          "rule": "Visayas x Online",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 1,
+          "best_jaccard": 1.0,
+          "matched_paths": [
+            "root / region=Mindanao, Visayas / channel=Online / region=Visayas"
+          ]
+        },
+        {
+          "rule": "Luzon x Online x A",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 1,
+          "best_jaccard": 1.0,
+          "matched_paths": [
+            "root / region=Luzon, NCR / channel=Online / region=Luzon / product=A"
+          ]
+        }
+      ],
+      "n_terminal_segments": 14,
+      "null_pass": null,
+      "conservation_ok": true,
+      "extras": {}
+    },
+    {
+      "case": "noise_2x",
+      "seed": 7,
+      "impact_f1": 1.0,
+      "floor_rule_f1": 1.0,
+      "rule_scores": [
+        {
+          "rule": "NCR x Direct",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 1,
+          "best_jaccard": 1.0,
+          "matched_paths": [
+            "root / region=Luzon, NCR / channel=Direct / region=NCR"
+          ]
+        },
+        {
+          "rule": "Mindanao x Partner x {A,B}",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 1,
+          "best_jaccard": 1.0,
+          "matched_paths": [
+            "root / region=Mindanao, Visayas / channel=Partner / region=Mindanao / product=A, B"
+          ]
+        },
+        {
+          "rule": "Luzon x Online x C",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 1,
+          "best_jaccard": 1.0,
+          "matched_paths": [
+            "root / region=Luzon, NCR / channel=Online / region=Luzon / product=C"
+          ]
+        },
+        {
+          "rule": "Luzon x Partner",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 1,
+          "best_jaccard": 1.0,
+          "matched_paths": [
+            "root / region=Luzon, NCR / channel=Partner / region=Luzon"
+          ]
+        },
+        {
+          "rule": "Visayas x Online",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 1,
+          "best_jaccard": 1.0,
+          "matched_paths": [
+            "root / region=Mindanao, Visayas / channel=Online / region=Visayas"
+          ]
+        },
+        {
+          "rule": "Luzon x Online x A",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 1,
+          "best_jaccard": 1.0,
+          "matched_paths": [
+            "root / region=Luzon, NCR / channel=Online / region=Luzon / product=A"
+          ]
+        }
+      ],
+      "n_terminal_segments": 14,
+      "null_pass": null,
+      "conservation_ok": true,
+      "extras": {}
+    },
+    {
+      "case": "noise_2x",
+      "seed": 2026,
+      "impact_f1": 1.0,
+      "floor_rule_f1": 1.0,
+      "rule_scores": [
+        {
+          "rule": "NCR x Direct",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 1,
+          "best_jaccard": 1.0,
+          "matched_paths": [
+            "root / region=Luzon, NCR / channel=Direct / region=NCR"
+          ]
+        },
+        {
+          "rule": "Mindanao x Partner x {A,B}",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 1,
+          "best_jaccard": 1.0,
+          "matched_paths": [
+            "root / region=Mindanao, Visayas / channel=Partner / region=Mindanao / product=A, B"
+          ]
+        },
+        {
+          "rule": "Luzon x Online x C",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 1,
+          "best_jaccard": 1.0,
+          "matched_paths": [
+            "root / region=Luzon, NCR / channel=Online / region=Luzon / product=C"
+          ]
+        },
+        {
+          "rule": "Luzon x Partner",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 1,
+          "best_jaccard": 1.0,
+          "matched_paths": [
+            "root / region=Luzon, NCR / channel=Partner / region=Luzon"
+          ]
+        },
+        {
+          "rule": "Visayas x Online",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 1,
+          "best_jaccard": 1.0,
+          "matched_paths": [
+            "root / region=Mindanao, Visayas / channel=Online / region=Visayas"
+          ]
+        },
+        {
+          "rule": "Luzon x Online x A",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 1,
+          "best_jaccard": 1.0,
+          "matched_paths": [
+            "root / region=Luzon, NCR / channel=Online / region=Luzon / product=A"
+          ]
+        }
+      ],
+      "n_terminal_segments": 14,
+      "null_pass": null,
+      "conservation_ok": true,
+      "extras": {}
+    },
+    {
+      "case": "skewed_volume",
+      "seed": 42,
+      "impact_f1": 1.0,
+      "floor_rule_f1": 1.0,
+      "rule_scores": [
+        {
+          "rule": "NCR x Direct",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 1,
+          "best_jaccard": 1.0,
+          "matched_paths": [
+            "root / channel=Direct / region=NCR"
+          ]
+        },
+        {
+          "rule": "Mindanao x Partner",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 2,
+          "best_jaccard": 0.6790123456790124,
+          "matched_paths": [
+            "root / channel=Online, Partner / product=A, B / region=Mindanao / channel=Partner",
+            "root / channel=Online, Partner / product=C / channel=Partner / region=Mindanao"
+          ]
+        },
+        {
+          "rule": "NCR x Online x C",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 1,
+          "best_jaccard": 1.0,
+          "matched_paths": [
+            "root / channel=Online, Partner / product=C / channel=Online / region=NCR"
+          ]
+        }
+      ],
+      "n_terminal_segments": 11,
+      "null_pass": null,
+      "conservation_ok": true,
+      "extras": {}
+    },
+    {
+      "case": "skewed_volume",
+      "seed": 7,
+      "impact_f1": 1.0,
+      "floor_rule_f1": 1.0,
+      "rule_scores": [
+        {
+          "rule": "NCR x Direct",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 1,
+          "best_jaccard": 1.0,
+          "matched_paths": [
+            "root / channel=Direct / region=NCR"
+          ]
+        },
+        {
+          "rule": "Mindanao x Partner",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 2,
+          "best_jaccard": 0.7530864197530864,
+          "matched_paths": [
+            "root / channel=Online, Partner / product=A, B / region=Mindanao / channel=Partner",
+            "root / channel=Online, Partner / product=C / channel=Partner / region=Mindanao"
+          ]
+        },
+        {
+          "rule": "NCR x Online x C",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 1,
+          "best_jaccard": 1.0,
+          "matched_paths": [
+            "root / channel=Online, Partner / product=C / channel=Online / region=NCR"
+          ]
+        }
+      ],
+      "n_terminal_segments": 11,
+      "null_pass": null,
+      "conservation_ok": true,
+      "extras": {}
+    },
+    {
+      "case": "skewed_volume",
+      "seed": 2026,
+      "impact_f1": 1.0,
+      "floor_rule_f1": 1.0,
+      "rule_scores": [
+        {
+          "rule": "NCR x Direct",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 1,
+          "best_jaccard": 1.0,
+          "matched_paths": [
+            "root / channel=Direct / region=NCR"
+          ]
+        },
+        {
+          "rule": "Mindanao x Partner",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 2,
+          "best_jaccard": 0.8275862068965517,
+          "matched_paths": [
+            "root / channel=Online, Partner / product=A, B / region=Mindanao / channel=Partner",
+            "root / channel=Online, Partner / product=C / channel=Partner / region=Mindanao"
+          ]
+        },
+        {
+          "rule": "NCR x Online x C",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 1,
+          "best_jaccard": 1.0,
+          "matched_paths": [
+            "root / channel=Online, Partner / product=C / channel=Online / region=NCR"
+          ]
+        }
+      ],
+      "n_terminal_segments": 11,
+      "null_pass": null,
+      "conservation_ok": true,
+      "extras": {}
+    },
+    {
+      "case": "overlapping",
+      "seed": 42,
+      "impact_f1": 0.9792993630573248,
+      "floor_rule_f1": 0.9171974522292993,
+      "rule_scores": [
+        {
+          "rule": "NCR x Direct",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 2,
+          "best_jaccard": 0.5957446808510638,
+          "matched_paths": [
+            "root / channel=Direct / region=NCR / product=B, C",
+            "root / channel=Direct / region=NCR / product=A"
+          ]
+        },
+        {
+          "rule": "NCR x A",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 2,
+          "best_jaccard": 0.7400820793433652,
+          "matched_paths": [
+            "root / channel=Online, Partner / region=NCR / product=A",
+            "root / channel=Direct / region=NCR / product=A"
+          ]
+        },
+        {
+          "rule": "Luzon x Partner",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 2,
+          "best_jaccard": 0.6346516007532956,
+          "matched_paths": [
+            "root / channel=Online, Partner / region=Luzon, Visayas / region=Luzon / channel=Partner / product=A, C",
+            "root / channel=Online, Partner / region=Luzon, Visayas / region=Luzon / channel=Partner / product=B"
+          ]
+        },
+        {
+          "rule": "Partner x B",
+          "f1": 0.9171974522292993,
+          "recall": 0.8470588235294118,
+          "precision": 1.0,
+          "n_segments_used": 3,
+          "best_jaccard": 0.3411764705882353,
+          "matched_paths": [
+            "root / channel=Online, Partner / region=NCR / product=B, C / channel=Partner / product=B",
+            "root / channel=Online, Partner / region=Luzon, Visayas / region=Luzon / channel=Partner / product=B",
+            "root / channel=Online, Partner / region=Luzon, Visayas / region=Visayas / product=B / channel=Partner"
+          ]
+        }
+      ],
+      "n_terminal_segments": 17,
+      "null_pass": null,
+      "conservation_ok": true,
+      "extras": {}
+    },
+    {
+      "case": "overlapping",
+      "seed": 7,
+      "impact_f1": 0.9801957129543336,
+      "floor_rule_f1": 0.9207828518173345,
+      "rule_scores": [
+        {
+          "rule": "NCR x Direct",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 2,
+          "best_jaccard": 0.5913978494623656,
+          "matched_paths": [
+            "root / channel=Direct / region=NCR / product=B, C",
+            "root / channel=Direct / region=NCR / product=A"
+          ]
+        },
+        {
+          "rule": "NCR x A",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 2,
+          "best_jaccard": 0.7421981004070556,
+          "matched_paths": [
+            "root / channel=Online, Partner / region=NCR / product=A",
+            "root / channel=Direct / region=NCR / product=A"
+          ]
+        },
+        {
+          "rule": "Luzon x Partner",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 2,
+          "best_jaccard": 0.6122448979591837,
+          "matched_paths": [
+            "root / channel=Online, Partner / region=Luzon, Visayas / region=Luzon / channel=Partner / product=A, C",
+            "root / channel=Online, Partner / region=Luzon, Visayas / region=Luzon / channel=Partner / product=B"
+          ]
+        },
+        {
+          "rule": "Partner x B",
+          "f1": 0.9207828518173345,
+          "recall": 0.853195164075993,
+          "precision": 1.0,
+          "n_segments_used": 3,
+          "best_jaccard": 0.33678756476683935,
+          "matched_paths": [
+            "root / channel=Online, Partner / region=NCR / product=B, C / channel=Partner / product=B",
+            "root / channel=Online, Partner / region=Luzon, Visayas / region=Luzon / channel=Partner / product=B",
+            "root / channel=Online, Partner / region=Luzon, Visayas / region=Visayas / channel=Partner / product=B"
+          ]
+        }
+      ],
+      "n_terminal_segments": 16,
+      "null_pass": null,
+      "conservation_ok": true,
+      "extras": {}
+    },
+    {
+      "case": "overlapping",
+      "seed": 2026,
+      "impact_f1": 1.0,
+      "floor_rule_f1": 1.0,
+      "rule_scores": [
+        {
+          "rule": "NCR x Direct",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 2,
+          "best_jaccard": 0.5985915492957746,
+          "matched_paths": [
+            "root / channel=Direct / region=NCR / product=B, C",
+            "root / channel=Direct / region=NCR / product=A"
+          ]
+        },
+        {
+          "rule": "NCR x A",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 2,
+          "best_jaccard": 0.7536023054755043,
+          "matched_paths": [
+            "root / channel=Online, Partner / region=NCR / product=A",
+            "root / channel=Direct / region=NCR / product=A"
+          ]
+        },
+        {
+          "rule": "Luzon x Partner",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 2,
+          "best_jaccard": 0.6544117647058824,
+          "matched_paths": [
+            "root / channel=Online, Partner / region=Luzon / channel=Partner / product=A, C",
+            "root / channel=Online, Partner / region=Luzon / channel=Partner / product=B"
+          ]
+        },
+        {
+          "rule": "Partner x B",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 3,
+          "best_jaccard": 0.3542009884678748,
+          "matched_paths": [
+            "root / channel=Online, Partner / region=NCR / product=B, C / channel=Partner / product=B",
+            "root / channel=Online, Partner / region=Mindanao, Visayas / channel=Partner / product=B",
+            "root / channel=Online, Partner / region=Luzon / channel=Partner / product=B"
+          ]
+        }
+      ],
+      "n_terminal_segments": 13,
+      "null_pass": null,
+      "conservation_ok": true,
+      "extras": {}
+    },
+    {
+      "case": "null",
+      "seed": 42,
+      "impact_f1": NaN,
+      "floor_rule_f1": NaN,
+      "rule_scores": [],
+      "n_terminal_segments": 1,
+      "null_pass": true,
+      "conservation_ok": true,
+      "extras": {
+        "worst_null_segment_share": 0.0
+      }
+    },
+    {
+      "case": "null",
+      "seed": 7,
+      "impact_f1": NaN,
+      "floor_rule_f1": NaN,
+      "rule_scores": [],
+      "n_terminal_segments": 1,
+      "null_pass": true,
+      "conservation_ok": true,
+      "extras": {
+        "worst_null_segment_share": 0.0
+      }
+    },
+    {
+      "case": "null",
+      "seed": 2026,
+      "impact_f1": NaN,
+      "floor_rule_f1": NaN,
+      "rule_scores": [],
+      "n_terminal_segments": 1,
+      "null_pass": true,
+      "conservation_ok": true,
+      "extras": {
+        "worst_null_segment_share": 0.0
+      }
+    }
+  ],
+  "noise_frontier": [
+    {
+      "sigma": 22.0,
+      "impact_f1": 1.0,
+      "floor_rule_f1": 1.0,
+      "n_segments": 16
+    },
+    {
+      "sigma": 44.0,
+      "impact_f1": 1.0,
+      "floor_rule_f1": 1.0,
+      "n_segments": 14
+    },
+    {
+      "sigma": 88.0,
+      "impact_f1": 1.0,
+      "floor_rule_f1": 1.0,
+      "n_segments": 12
+    },
+    {
+      "sigma": 176.0,
+      "impact_f1": 0.7338271333214422,
+      "floor_rule_f1": 0.16575631800529023,
+      "n_segments": 8
+    },
+    {
+      "sigma": 352.0,
+      "impact_f1": 0.12224046906174707,
+      "floor_rule_f1": 0.05641148985942507,
+      "n_segments": 1
+    }
+  ]
+}

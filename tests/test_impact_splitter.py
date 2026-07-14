@@ -215,13 +215,17 @@ def test_constant_feature_skipped_child_prefers_other_column() -> None:
     x = np.array(
         [
             [0, 0],
-            [0, 1],
+            [0, 0],
             [1, 0],
+            [1, 0],
+            [0, 1],
+            [0, 1],
+            [1, 1],
             [1, 1],
         ],
         dtype=np.int64,
     )
-    y = np.array([100.0, -50.0, -20.0, 10.0], dtype=float)
+    y = np.array([100.0, 102.0, 60.0, 62.0, -50.0, -52.0, -10.0, -12.0], dtype=float)
     model = ImpactSplitter(delta_pct=0.05, min_global_impact_pct=0.001, max_depth=3)
 
     model.fit(x, y, trace=True)
