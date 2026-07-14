@@ -203,3 +203,54 @@ split sieve: only merge pairs the sieve would refuse to split).
 
 **Verdict: material (+0.035 floor, bar not yet met — 0.815 < 0.85). Remaining
 sub-0.85: ibm_hr/7 0.815, black_friday/2026 0.835, insurance/42 0.836.**
+
+
+## Cycle 2 — REFUTED: relaxed merge compatibility (two variants)
+
+**Hypothesis.** Cycle-1's z-test merge criterion under-merges: (v1) merge also when
+the pair's distinction mass n1*n2/(n1+n2)*|m1-m2| is below min_global_impact_pct of
+global excess volume (with same-P/Neu/N-class guard); (v2) merge also when
+|m1-m2| <= merge_eps*sigma (equivalence margin, fixing the z-test's large-n
+inconsistency).
+
+**Evidence against (v1).** Guard battery FAILED: synthetic baseline 1.000->0.883
+(case-1 guard), high_cardinality 0.951->0.913, adult_census 0.924->0.853, airbnb
+0.996->0.938, kaggle floor 0.718 (`cycle5-*.json`). Autopsy: the baseline wrong
+merge (Luzon x Online product A+C, two distinct planted rules, diff 0.68 sigma,
+distinction ~1310 vs floor 1250) and the desired ibm_hr lattice merges
+(distinction ~22 vs floor ~25) both sit within 5% of their floors — there is no
+margin separating good from bad merges with this statistic at any threshold.
+
+**Evidence against (v2).** Inert: floor cases identical to cycle 1 to 4 decimals.
+Cross-feature fragments differ by overlap composition (0.3-3 sigma, above any safe
+band); sub-band contrasts are never split apart in the first place (the split sieve
+needs ~4 sigma/sqrt(n)). The dead zone the margin would rescue is empirically empty.
+
+**Action: reverted to cycle-1 consolidation. No formula change shipped.**
+
+---
+
+## Loop 2 close — explained-and-accepted exit (floor 0.8154 vs 0.85 bar)
+
+Shipped state = cycle 1 (consolidation, z-test compatibility). Full suite
+**mean 0.9617 / floor 0.8154** under the frozen primary metric; bar floor 0.85 NOT
+met; remaining sub-0.85 residue is 3 dataset-seeds with fully-diagnosed mechanisms
+at honest statistical limits:
+
+- **ibm_hr/7 (0.815)** — overlapping planted rules tile the data into lattice cells
+  with real 2-3 sigma pairwise differences; the truthful partition needs 5-7
+  segments and the frozen <=3-union under-credits it (uncapped-union F1 0.88-1.00,
+  dataset mean ~0.93). Merging those cells would be factually wrong (cycle-2 v1
+  showed the collateral damage). Metric-boundary case, not a formula defect.
+- **insurance/42 (0.836)** — the planted smoker-sex contrast (0.7 sigma between
+  overlapping rules) is at the detectability edge even with oracle noise knowledge
+  (tau 37.8 vs D 46.7 at true sigma); n=1.3k. Genuinely ambiguous data.
+- **black_friday/2026 (0.835)** — Gender x Age x Occupation (support 1.9%) is
+  root-shattered by two 10%-support rules; uncapped 0.736 (real dilution); the
+  27-config sweep showed no setting recovers it.
+
+Cycles 3-4 unused: both cycle-2 variants were refuted on evidence and the residual
+mechanisms bound any locally-computable improvement. Per the pre-registered exits
+(KB #101), these three cases close as **explained and accepted**; everything else
+meets the bar (48/51 dataset-seeds >= 0.85, mean +0.003 over cycle 3, segments
+-26%, CART beaten on both suites).
