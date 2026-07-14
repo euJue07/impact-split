@@ -941,19 +941,25 @@ class ImpactSplitter:
         if self._tree is None:
             raise RuntimeError("Call fit() before get_impact_segments().")
 
-        rows = [
-            {
-                "path": s["path"],
-                "total_sum": s["total_sum"],
-                "n_samples": s["n_samples"],
-                "node_id": (
-                    s["node_ids"][0]
-                    if len(s["node_ids"]) == 1
-                    else "merged(" + "+".join(s["node_ids"]) + ")"
-                ),
-            }
-            for s in self.segments_
-        ]
+        rows = []
+        for s in self.segments_:
+            total = float(s["total_sum"])
+            n = int(s["n_samples"])
+            pool = self._v_global_p if total >= 0 else self._v_global_n
+            rows.append(
+                {
+                    "path": s["path"],
+                    "total_sum": s["total_sum"],
+                    "n_samples": s["n_samples"],
+                    "node_id": (
+                        s["node_ids"][0]
+                        if len(s["node_ids"]) == 1
+                        else "merged(" + "+".join(s["node_ids"]) + ")"
+                    ),
+                    "mean": total / n if n else float("nan"),
+                    "pool_share": abs(total) / pool if pool > 0 else float("nan"),
+                }
+            )
         df = pd.DataFrame(rows)
         if df.empty:
             return df
@@ -962,6 +968,15 @@ class ImpactSplitter:
             ascending=False,
         )
         return df.drop(columns=["abs_impact"]).reset_index(drop=True)
+
+    def to_dict(self) -> dict[str, Any]:
+        """JSON-safe payload (``meta`` / ``tree`` / ``segments``) feeding every renderer.
+
+        Stable shape for third-party renderers; see ``impact_split.viz.data``.
+        """
+        from impact_split.viz.data import build_payload
+
+        return build_payload(self)
 
     def plot_tree(
         self,
