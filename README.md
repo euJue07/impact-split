@@ -7,7 +7,7 @@
     <img src="https://img.shields.io/badge/CCDS-Project%20template-328F97?logo=cookiecutter" alt="Cookiecutter Data Science project template" />
 </a>
 
-**Documentation:** [eujue07.github.io/impact-split](https://eujue07.github.io/impact-split/) · **Repository:** [github.com/euJue07/impact-split](https://github.com/euJue07/impact-split) · **Issues:** [github.com/euJue07/impact-split/issues](https://github.com/euJue07/impact-split/issues)
+**Documentation:** [docs/getting-started](https://github.com/euJue07/impact-split/blob/main/docs/docs/getting-started.md) · **Repository:** [github.com/euJue07/impact-split](https://github.com/euJue07/impact-split) · **Issues:** [github.com/euJue07/impact-split/issues](https://github.com/euJue07/impact-split/issues)
 
 Contributions and security reports: [CONTRIBUTING.md](CONTRIBUTING.md) · [SECURITY.md](SECURITY.md)
 
@@ -249,7 +249,7 @@ Pass `trace=True` or `verbose=True` to `fit()` to record one pre-order step per 
 
 ## Learn More
 
-- Hosted documentation (MkDocs): [eujue07.github.io/impact-split](https://eujue07.github.io/impact-split/)
+- Documentation is MkDocs source under [`docs/`](docs/) (not yet hosted) — build locally per [`docs/README.md`](docs/README.md)
 - Full mathematical walkthrough and toy example (documented synthetic DGP: planted category-interaction effects plus noise; fit uses observed outcome only):
   - [`notebooks/1.0-jde-impact-split-explainer.ipynb`](notebooks/1.0-jde-impact-split-explainer.ipynb)
 - Kaggle Sample Supermarket data, `kagglehub` download, and step-by-step trace tables:

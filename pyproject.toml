@@ -45,7 +45,7 @@ dev = [
 
 [project.urls]
 Homepage = "https://github.com/euJue07/impact-split"
-Documentation = "https://eujue07.github.io/impact-split/"
+Documentation = "https://github.com/euJue07/impact-split/blob/main/docs/docs/getting-started.md"
 Repository = "https://github.com/euJue07/impact-split"
 Issues = "https://github.com/euJue07/impact-split/issues"
 
