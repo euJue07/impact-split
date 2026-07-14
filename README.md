@@ -37,10 +37,11 @@ Unlike standard decision trees that optimize for variance reduction (often favor
 
 The algorithm builds a ternary tree (Positive / Neutral / Negative) over categorical or pre-binned features and uses:
 
-- a local threshold (`delta_pct`) to separate strong positive and negative category impacts from neutral ones,
-- a centered-excess fallback for one-sided nodes (`D_cat = S_cat - n_cat * mean(y_node)`) when raw routing cannot partition rows,
+- centered-excess routing (`D_cat = S_cat - n_cat * mean(y_node)`) so categories are judged by how far they deviate from the node's expected share, never by raw volume,
+- a two-part local sieve: a volume-relative threshold (`delta_pct`) **and** a per-category noise floor (`noise_z`) so neither sub-material nor statistically insignificant categories get routed,
 - a gain metric that emphasizes outer-branch impact while penalizing high-cardinality noise,
 - a global stopping threshold (`min_global_impact_pct`) to stop splitting low-materiality nodes,
+- an interaction-order depth cap (`max_depth` counts distinct-feature transitions; same-feature refinements are free),
 - guardrails that skip candidate splits which do not partition rows (a feature is constant on the current slice, or Act I routes every category to the same branch), avoiding redundant depth without new information.
 
 ## Story Behind the Math
@@ -53,35 +54,27 @@ Example: a tiny segment with 2 churn events at -$5,000 each can look "purer" tha
 
 Notation (used across all acts): $y_i$ is the row-level target value for row $i$; $V_{node}=\sum_{i \in node}|y_i|$ is node absolute volume; $S_{cat}=\sum_{i \in cat} y_i$ is the raw sum for a category inside the current node; $n_{cat}$ is that category's row count; $S_P, S_N$ are the current node's positive/negative outer-branch sums; and $k_P, k_N$ are the number of categories routed to each outer branch.
 
-### Act I: The Local Sieve (`delta`)
+### Act I: The Local Sieve (centered excess + noise floor)
 
-**Problem:** forcing every category into binary good/bad branches hides the baseline. For additive KPIs, we need Positive, Negative, and Neutral branches.
+**Problem:** forcing every category into binary good/bad branches hides the baseline. For additive KPIs, we need Positive, Negative, and Neutral branches — and the routing signal must not confound *effect* with *volume*: on one-sided KPIs (revenue-like targets with a positive base), every large category has a large raw sum regardless of whether anything interesting happens inside it.
 
-**Formula:**
-
-```math
-\delta = V_{node} \times \mathrm{delta\_pct}
-```
-
-Where $V_{node}$ is the absolute sum of target values inside the current node.
-
-**Why it works:** Neutral boundaries scale with local volume, so sensitivity adapts by depth. High-volume nodes ignore small noise; lower-volume nodes detect finer impacts.
-
-**Fallback Problem:** raw category sums can route all rows to one branch (noop routing), which blocks meaningful partitioning.
-
-**Fallback Formula:** the splitter computes centered category excess
+**Routing signal — centered category excess:**
 
 ```math
 D_{cat} = S_{cat} - n_{cat}\cdot \bar{y}_{node}
 ```
 
-where $S_{cat}$ is the category-level sum within the node and $n_{cat}$ is the category row count, then applies its own threshold
+where $S_{cat}$ is the category-level sum within the node and $n_{cat}$ is the category row count. On zero-centered targets (profit/loss) $\bar{y}_{node}\approx 0$, so $D_{cat}\approx S_{cat}$; on one-sided targets the centering removes the volume artifact.
+
+**Threshold — a category routes to P (or N) only if it clears BOTH bars:**
 
 ```math
-\delta_{centered} = \left(\sum |y_i-\bar{y}_{node}|\right)\times \mathrm{delta\_pct}
+\tau_{cat} = \max\Big(\underbrace{V^{c}_{node} \times \mathrm{delta\_pct}}_{\text{materiality}},\ \underbrace{z \cdot \hat{\sigma}_f \cdot \sqrt{n_{cat}}}_{\text{significance}}\Big)
 ```
 
-**Why it works:** routing with $D_{cat}$ enables meaningful splits even when all raw category sums are positive (or all negative).
+where $V^{c}_{node}=\sum|y_i-\bar{y}_{node}|$ is the node's excess volume, $z$ is `noise_z` (default 3.0), and $\hat{\sigma}_f = 1.4826\cdot\mathrm{MAD}$ of the candidate feature's within-category residuals. Route P if $D_{cat} > \tau_{cat}$, N if $D_{cat} < -\tau_{cat}$, else Neutral.
+
+**Why it works:** the materiality bar scales with local volume, so sensitivity adapts by depth — and because it is only 1% of node excess volume, effects trapped inside a large neutral catch-all remain detectable. The significance bar is the category's null band: under pure within-category noise, $D_{cat}$ wanders like $\sigma\sqrt{n_{cat}}$, so noise alone cannot clear it — deep nodes stop fragmenting when only noise is left.
 
 ### Act II: The Gain Metric (Category-Averaged Impact Divergence)
 
@@ -125,9 +118,11 @@ V_{global\_P} = \sum_{y_i > 0} y_i \quad \text{and} \quad V_{global\_N} = \sum_{
 
 **Why it works:** positive and negative impacts are graded against their own global pools, avoiding net-sum distortions and preserving business materiality.
 
-### Implementation note
+### Implementation notes
 
-Current implementation first tries raw routing with $\delta = V_{node} \times \mathrm{delta\_pct}$ and automatically falls back to centered-excess routing when raw routing cannot produce a valid split at a node.
+- Centered-excess routing is the *only* routing mode (since the 2026-07 robustness loop; raw-sum routing was removed because it split on volume rather than effect for one-sided KPIs).
+- `max_depth` caps **interaction order** — the number of distinct-feature transitions along a path. Consecutive splits that refine the same feature's category pool are free and remain legal even at the cap; they narrow a segment rather than add an interaction term.
+- Defaults (`delta_pct=0.01`, `min_global_impact_pct=0.01`, `max_depth=5`, `noise_z=3.0`) were fixed by a benchmark loop over an 8-case synthetic battery and 10 semi-synthetic Kaggle datasets (see `reports/validation-report-v2.md`); the same configuration is used for every dataset — no per-dataset tuning.
 
 ## Quick Start
 
@@ -167,9 +162,10 @@ This creates both wheel and sdist artifacts under `dist/` and validates long-des
 from impact_split import ImpactSplitter
 
 model = ImpactSplitter(
-    delta_pct=0.05,
+    delta_pct=0.01,          # materiality: share of node excess volume a category must move
     min_global_impact_pct=0.01,
-    max_depth=5,
+    max_depth=5,             # interaction-order cap (same-feature refinements are free)
+    noise_z=3.0,             # significance: per-category noise floor in sigma units
     numeric_binning_strategy="quantiles",  # "quantiles" or "interval"
     numeric_n_bins=10,                     # number of bins for float columns
 )
@@ -224,7 +220,7 @@ If you want the motivation behind each formula (not just usage), read the Story 
 
 ### Fit trace (optional)
 
-Pass `trace=True` or `verbose=True` to `fit()` to record one pre-order step per visited node in `model.fit_trace_` (`verbose` is an alias for `trace`; there is no extra logging). Each step includes raw and centered diagnostics (`delta_raw`, `delta_centered_excess`, `V_node`, `V_node_centered`), selected `routing_mode` (`raw` or `centered_excess`), `delta_pct`, `s_node_p`, `s_node_n`, `total_sum`, global materiality ratios, per-feature candidate gains, category tables, `chosen_feature_index` when splitting, and `stop_reason` when a leaf is created (`materiality`, `max_depth`, `identical_rows`, or `no_split`). When `X` is a DataFrame, trace rows also include `chosen_feature_name`, `routing_labels`, and per-row `category_label` in category tables where applicable.
+Pass `trace=True` or `verbose=True` to `fit()` to record one pre-order step per visited node in `model.fit_trace_` (`verbose` is an alias for `trace`; there is no extra logging). Each step includes raw and centered diagnostics (`delta_raw`, `delta_centered_excess`, `V_node`, `V_node_centered`), `routing_mode` (always `centered_excess`), per-category thresholds (`tau`, the max of the materiality and noise-floor bars), `delta_pct`, `s_node_p`, `s_node_n`, `total_sum`, global materiality ratios, per-feature candidate gains, category tables, `chosen_feature_index` when splitting, and `stop_reason` when a leaf is created (`materiality`, `max_depth`, `identical_rows`, or `no_split`). When `X` is a DataFrame, trace rows also include `chosen_feature_name`, `routing_labels`, and per-row `category_label` in category tables where applicable.
 
 ## Output
 

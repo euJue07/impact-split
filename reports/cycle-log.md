@@ -92,3 +92,63 @@ floor 0.60 < 0.7). New dominant failure shape: fragmentation — recall 0.5–0.
 precision ≈ 1.0 with the 3-segment union cap exhausted; over-splitting deep in the tree
 (ibm_hr: 74 leaves on n=1,470) because 5% of a small node's excess volume is below the
 noise band. Next: noise-aware sieve floor.**
+
+---
+
+## Cycle 2 — per-category noise floor in the sieve
+
+**Hypothesis.** Deep-node over-splitting happens because the relative δ has no
+statistical meaning: 5% of a small node's excess volume sits below the noise band, so
+noise categories keep routing. Under a within-category-noise null, D_cat wanders
+~σ√n_cat; requiring |D_cat| > max(δ_rel, z·σ̂_f·√n_cat) (σ̂_f = 1.4826·MAD of the
+feature's within-category residuals, z = 3.0 fixed) should stop noise routing without
+touching real effects.
+
+**Change.** `noise_z=3.0` parameter + per-category τ in the sieve.
+`test_constant_feature_skipped_child_prefers_other_column` re-fixtured (its 4-row toy
+had no statistically real split; intent preserved with clean signal).
+
+**Scores.** synthetic 0.9935→0.9925 / floor 0.9367→0.9211 (noise-level churn), kaggle
+mean 0.8583→**0.8991**, floor 0.6036 (unchanged, olist). Segments: kaggle 36.6→26.1,
+ibm_hr 74→31 leaves. Guards all green (case-1 = 1.000, null 3/3, conservation, pytest).
+
+**Verdict: material (+0.041 kaggle mean). Remaining failure: catastrophic dilution of
+1–2 rules per floor dataset — rules trapped in giant neutral catch-alls.**
+
+---
+
+## Cycle 3 — sieve rebalance (δ 0.05→0.01) + interaction-order depth cap
+
+**Hypothesis.** Trace autopsy on olist seed 7: failing rules sit 88–91% inside ONE
+leaf with n=90,225 (80% of rows), stop=no_split — a 1%-support rule carries ~4.3% of
+that node's excess volume, permanently below a 5% relative bar. With the noise floor
+now carrying significance duty, δ_rel can drop to 1% (materiality only). Second
+finding: with the finer sieve, the tree pools categories coarsely then re-splits the
+same feature deeper (region→channel→region→channel→product), exhausting max_depth=5
+before separating 3-way rules — so max_depth should cap *interaction order* (distinct-
+feature transitions), with same-feature refinements free and still legal at the cap.
+
+**Change.** `delta_pct` default 0.05→0.01; `_build` tracks `inter_depth`/
+`parent_feature`; at the cap only same-feature refinements are evaluated. Plot y-limits
+switched to measured physical depth.
+
+**Scores.**
+
+| suite | cycle 2 | cycle 3 | Δ |
+|---|---|---|---|
+| synthetic mean / floor | 0.9925 / 0.9211 | 0.9906 / 0.9211 | −0.002 / = |
+| kaggle mean / floor | 0.8991 / 0.6036 | **0.9361 / 0.7806** | +0.037 / +0.177 |
+
+olist 0.80→0.90 (floor rule 0.01→0.91), black_friday 0.82→0.87, vgsales 0.91→0.99.
+Guards: pytest 26/26 · case-1 = **1.000** · null 3/3 · conservation exact · segments
+kaggle 29.8 (1.02× cycle-0's 29.1), synthetic 14.3 (0.69×) · CART 0.854 now beaten.
+
+---
+
+## Loop end — bar met at cycle 3
+
+Full suite (51 scored datasets): **mean impact-F1 0.959 ≥ 0.9; floor 0.781 ≥ 0.7;
+null control 3/3; one fixed default configuration** (`delta_pct=0.01,
+min_global_impact_pct=0.01, max_depth=5, noise_z=3.0`). Loop closed per spec —
+no auto-tuning heuristic needed (defaults did not plateau below the bar), sacred set
+untouched. Residual weaknesses recorded in `validation-report-v2.md` §5.
