@@ -4,7 +4,7 @@ build-backend = "flit_core.buildapi"
 
 [project]
 name = "impact_split"
-version = "0.0.1"
+version = "0.1.0"
 description = "A tree based approach to determine the driver of a KPI"
 authors = [
   { name = "Juedi Myro Eugenio" },
@@ -18,17 +18,16 @@ classifiers = [
     "Intended Audience :: Science/Research",
     "Topic :: Scientific/Engineering :: Information Analysis",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
 ]
-requires-python = "~=3.13.0"
+requires-python = ">=3.10"
 dependencies = [
-    "loguru",
-    "matplotlib",
-    "numpy",
-    "pandas",
-    "python-dotenv",
-    "tqdm",
-    "typer",
+    "matplotlib>=3.8",
+    "numpy>=1.26",
+    "pandas>=2.1",
 ]
 
 [project.optional-dependencies]
@@ -64,7 +63,7 @@ known-first-party = ["impact_split"]
 force-sort-within-sections = true
 
 [tool.mypy]
-python_version = "3.13"
+python_version = "3.10"
 packages = ["impact_split"]
 warn_unused_ignores = true
 show_error_codes = true
@@ -73,9 +72,6 @@ strict = false
 [[tool.mypy.overrides]]
 module = [
     "matplotlib.*",
-    "loguru",
-    "tqdm",
-    "typer",
     "ipykernel.*",
     "IPython.*",
     "ipywidgets.*",
