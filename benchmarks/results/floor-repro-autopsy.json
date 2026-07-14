@@ -3,42 +3,42 @@
     {
       "case": "kaggle_black_friday",
       "seed": 2026,
-      "impact_f1": 0.7806131521347275,
-      "floor_rule_f1": 0.6139913237954167,
+      "impact_f1": 0.8347338716835268,
+      "floor_rule_f1": 0.6847233904668105,
       "rule_scores": [
         {
           "rule": "Gender=M & Age=18-25 & Occupation=0|20",
-          "f1": 0.656448943048816,
-          "recall": 0.5648016661933163,
-          "precision": 0.7835993180232332,
+          "f1": 0.700195150288046,
+          "recall": 0.6354255419861782,
+          "precision": 0.7796674959556422,
           "n_segments_used": 3,
-          "best_jaccard": 0.21566713981547198,
+          "best_jaccard": 0.27657351788978846,
           "matched_paths": [
-            "root / Stay_In_Current_City_Years=0, 1, 4+ / Product_Category_1=1, 5, 8 / Stay_In_Current_City_Years=0, 4+ / Age=18-25 / Occupation=0, 20",
+            "Age=18-25 & Occupation=0, 20 & Stay_In_Current_City_Years=0, 4+ & Product_Category_1=1, 10, 11, 12, 13, 14, 15, 16 (+11 more)",
             "root / Stay_In_Current_City_Years=0, 1, 4+ / Product_Category_1=1, 5, 8 / Stay_In_Current_City_Years=1 / Occupation=0, 17 / Age=18-25",
             "root / Stay_In_Current_City_Years=2 / Occupation=0, 17 / Age=18-25"
           ],
           "uncapped_f1": 0.7358419584506306,
           "uncapped_recall": 0.7135283536873993,
           "uncapped_precision": 0.7595962065401354,
-          "uncapped_n_segments": 6
+          "uncapped_n_segments": 5
         },
         {
           "rule": "Stay_In_Current_City_Years=1|2 & Occupation=0|17",
-          "f1": 0.8395637366034674,
-          "recall": 0.7333391669583478,
-          "precision": 0.9817742623868554,
+          "f1": 0.9307634730538922,
+          "recall": 0.8704935246762338,
+          "precision": 1.0,
           "n_segments_used": 3,
-          "best_jaccard": 0.3918270913545677,
+          "best_jaccard": 0.5325516275813791,
           "matched_paths": [
-            "root / Stay_In_Current_City_Years=0, 1, 4+ / Product_Category_1=1, 5, 8 / Stay_In_Current_City_Years=1 / Occupation=0, 17 / Age=26-35, 36-45, 46-50, 51-55",
-            "root / Stay_In_Current_City_Years=2 / Occupation=0, 17 / Age=26-35, 36-45, 46-50, 51-55 / Product_Category_1=1, 11, 5, 8",
-            "root / Stay_In_Current_City_Years=0, 1, 4+ / Product_Category_1=10, 11, 12, 13, 14, 15, 16, 17 (+8 more) / Stay_In_Current_City_Years=1 / Occupation=0, 17 / Age=26-35, 36-45, 46-50"
+            "Age=0-17, 26-35, 36-45, 46-50, 51-55, 55+ & Occupation=0, 17 & Stay_In_Current_City_Years=1 & Product_Category_1=1, 10, 11, 12, 13, 14, 15, 16 (+11 more)",
+            "Age=26-35, 36-45, 46-50, 51-55 & Occupation=0, 17 & Stay_In_Current_City_Years=2 & Product_Category_1=1, 10, 11, 12, 13, 14, 15, 16 (+11 more)",
+            "root / Stay_In_Current_City_Years=0, 1, 4+ / Product_Category_1=1, 5, 8 / Stay_In_Current_City_Years=1 / Occupation=0, 17 / Age=18-25"
           ],
           "uncapped_f1": 0.9924264466015993,
           "uncapped_recall": 0.9849667483374168,
           "uncapped_precision": 1.0,
-          "uncapped_n_segments": 14
+          "uncapped_n_segments": 10
         },
         {
           "rule": "City_Category=A & Stay_In_Current_City_Years=3",
@@ -59,40 +59,40 @@
         },
         {
           "rule": "Product_Category_1=2 & Age=26-35|18-25",
-          "f1": 0.6139913237954167,
-          "recall": 0.45649895178197064,
-          "precision": 0.9373920665318317,
+          "f1": 0.6847233904668105,
+          "recall": 0.5393081761006291,
+          "precision": 0.9375057660843692,
           "n_segments_used": 3,
           "best_jaccard": 0.18538484576220426,
           "matched_paths": [
             "root / Stay_In_Current_City_Years=0, 1, 4+ / Product_Category_1=2 / Age=18-25, 26-35 / Age=26-35 / Stay_In_Current_City_Years=0, 4+",
-            "root / Stay_In_Current_City_Years=0, 1, 4+ / Product_Category_1=2 / Age=18-25, 26-35 / Age=26-35 / Stay_In_Current_City_Years=1 / Occupation=1, 12, 14, 15, 16, 2, 20, 3 (+4 more)",
-            "root / Stay_In_Current_City_Years=0, 1, 4+ / Product_Category_1=2 / Age=18-25, 26-35 / Age=18-25 / Occupation=17, 4 / Occupation=4"
+            "Age=18-25 & Occupation=1, 10, 11, 12, 14, 15, 16, 18 (+8 more) & Stay_In_Current_City_Years=0, 1, 4+ & Product_Category_1=2",
+            "Age=26-35 & Occupation=1, 11, 12, 14, 15, 16, 18, 19 (+9 more) & Stay_In_Current_City_Years=1 & Product_Category_1=2"
           ],
           "uncapped_f1": 0.9691198171924461,
           "uncapped_recall": 0.9911650194669065,
           "uncapped_precision": 0.9480339241173869,
-          "uncapped_n_segments": 17
+          "uncapped_n_segments": 14
         },
         {
           "rule": "Stay_In_Current_City_Years=3 & City_Category=A|C",
-          "f1": 0.8338254202910796,
-          "recall": 0.7299691980073773,
-          "precision": 0.9721358555531188,
+          "f1": 0.8987510076740266,
+          "recall": 0.8161197094725634,
+          "precision": 1.0,
           "n_segments_used": 3,
-          "best_jaccard": 0.3209111305472107,
+          "best_jaccard": 0.41223333460090505,
           "matched_paths": [
-            "root / Stay_In_Current_City_Years=3 / City_Category=C / Product_Category_1=1, 5, 8 / Age=0-17, 26-35, 36-45, 46-50, 51-55, 55+",
+            "Age=0-17, 26-35, 36-45, 46-50, 51-55, 55+ & City_Category=C & Stay_In_Current_City_Years=3 & Product_Category_1=1, 10, 11, 12, 13, 14, 15, 16 (+11 more)",
             "root / Stay_In_Current_City_Years=3 / City_Category=A, B / City_Category=A / Product_Category_1=1, 5, 8 / Occupation=1, 10, 11, 12, 13, 14, 15, 16 (+9 more)",
-            "root / Stay_In_Current_City_Years=3 / City_Category=C / Product_Category_1=10, 11, 12, 13, 14, 15, 16, 17 (+8 more) / Age=0-17, 26-35, 36-45, 46-50, 51-55, 55+"
+            "root / Stay_In_Current_City_Years=3 / City_Category=A, B / City_Category=A / Product_Category_1=10, 11, 12, 13, 14, 15, 16, 17 (+8 more) / Age=0-17, 26-35, 36-45, 46-50, 51-55, 55+"
           ],
           "uncapped_f1": 1.0,
           "uncapped_recall": 1.0,
           "uncapped_precision": 1.0,
-          "uncapped_n_segments": 13
+          "uncapped_n_segments": 11
         }
       ],
-      "n_terminal_segments": 70,
+      "n_terminal_segments": 44,
       "null_pass": null,
       "conservation_ok": true,
       "extras": {},
@@ -101,8 +101,8 @@
     {
       "case": "kaggle_insurance",
       "seed": 42,
-      "impact_f1": 0.7942004431668499,
-      "floor_rule_f1": 0.5505601058528523,
+      "impact_f1": 0.8363856290332361,
+      "floor_rule_f1": 0.65090861204291,
       "rule_scores": [
         {
           "rule": "children=2 & smoker=yes|no & sex=male",
@@ -123,20 +123,20 @@
         },
         {
           "rule": "smoker=yes & sex=female",
-          "f1": 0.5505601058528523,
-          "recall": 0.7043478260869565,
-          "precision": 0.45189342796735277,
+          "f1": 0.65090861204291,
+          "recall": 0.9217391304347825,
+          "precision": 0.5030883845209705,
           "n_segments_used": 3,
-          "best_jaccard": 0.19708029197080293,
+          "best_jaccard": 0.28125,
           "matched_paths": [
-            "root / smoker=yes / children=1, 3, 4, 5 / region=northeast, southeast",
-            "root / smoker=yes / children=0 / region=northwest, southwest",
-            "root / smoker=yes / children=0 / region=northeast, southeast"
+            "smoker=yes & region=northeast, southeast & children=0, 1, 3, 4, 5",
+            "smoker=yes & region=northwest, southwest & children=0, 1, 3, 4, 5",
+            "root / smoker=yes / children=2 / region=northeast, southwest / sex=female"
           ],
           "uncapped_f1": 0.6818577749349586,
           "uncapped_recall": 1.0,
           "uncapped_precision": 0.5172869527803143,
-          "uncapped_n_segments": 7
+          "uncapped_n_segments": 5
         },
         {
           "rule": "children=2 & region=southeast|southwest",
@@ -157,40 +157,40 @@
         },
         {
           "rule": "smoker=yes & region=southeast|northeast",
-          "f1": 0.9536423841059603,
-          "recall": 0.9113924050632911,
-          "precision": 1.0,
+          "f1": 0.9639300140767766,
+          "recall": 0.9493670886075949,
+          "precision": 0.9789466790704142,
           "n_segments_used": 3,
-          "best_jaccard": 0.4177215189873418,
+          "best_jaccard": 0.8291139240506329,
           "matched_paths": [
-            "root / smoker=yes / children=0 / region=northeast, southeast",
-            "root / smoker=yes / children=1, 3, 4, 5 / region=northeast, southeast",
-            "root / smoker=yes / children=2 / region=southeast / sex=male"
+            "smoker=yes & region=northeast, southeast & children=0, 1, 3, 4, 5",
+            "root / smoker=yes / children=2 / region=southeast / sex=male",
+            "root / smoker=yes / children=2 / region=northeast, southwest / sex=female"
           ],
           "uncapped_f1": 0.9740724962444578,
           "uncapped_recall": 0.981012658227848,
           "uncapped_precision": 0.9672298406345914,
-          "uncapped_n_segments": 5
+          "uncapped_n_segments": 4
         },
         {
           "rule": "smoker=yes & sex=male",
-          "f1": 0.6551041016798129,
-          "recall": 0.6540880503144655,
-          "precision": 0.6561233145966544,
+          "f1": 0.7553938948508694,
+          "recall": 0.8742138364779876,
+          "precision": 0.665008390882482,
           "n_segments_used": 3,
-          "best_jaccard": 0.21621621621621623,
+          "best_jaccard": 0.3615023474178404,
           "matched_paths": [
-            "root / smoker=yes / children=0 / region=northeast, southeast",
-            "root / smoker=yes / children=1, 3, 4, 5 / region=northeast, southeast",
-            "root / smoker=yes / children=1, 3, 4, 5 / region=northwest, southwest"
+            "smoker=yes & region=northeast, southeast & children=0, 1, 3, 4, 5",
+            "smoker=yes & region=northwest, southwest & children=0, 1, 3, 4, 5",
+            "root / smoker=yes / children=2 / region=southeast / sex=male"
           ],
           "uncapped_f1": 0.801586260003405,
           "uncapped_recall": 1.0,
           "uncapped_precision": 0.6688727217076821,
-          "uncapped_n_segments": 7
+          "uncapped_n_segments": 5
         }
       ],
-      "n_terminal_segments": 17,
+      "n_terminal_segments": 13,
       "null_pass": null,
       "conservation_ok": true,
       "extras": {},
@@ -199,96 +199,96 @@
     {
       "case": "kaggle_ibm_hr",
       "seed": 7,
-      "impact_f1": 0.8095873513409888,
-      "floor_rule_f1": 0.7391304347826088,
+      "impact_f1": 0.8154369436626178,
+      "floor_rule_f1": 0.7626459143968872,
       "rule_scores": [
         {
           "rule": "EducationField=Marketing",
-          "f1": 0.762645914396887,
-          "recall": 0.6163522012578615,
+          "f1": 0.7626459143968872,
+          "recall": 0.6163522012578616,
           "precision": 1.0,
           "n_segments_used": 3,
           "best_jaccard": 0.3081761006289308,
           "matched_paths": [
             "root / Department=Human Resources, Sales / OverTime=No / EducationField=Marketing / MaritalStatus=Married / JobRole=Sales Executive, Sales Representative",
             "root / Department=Human Resources, Sales / OverTime=No / EducationField=Marketing / MaritalStatus=Single / JobRole=Manager, Sales Executive",
-            "root / Department=Human Resources, Sales / OverTime=No / EducationField=Marketing / MaritalStatus=Divorced"
+            "Department=Human Resources, Sales & EducationField=Human Resources, Life Sciences, Marketing, Other, Technical Degree & MaritalStatus=Divorced & OverTime=No"
           ],
-          "uncapped_f1": 0.9561929984779274,
-          "uncapped_recall": 0.9999999999999997,
-          "uncapped_precision": 0.9160630241832189,
-          "uncapped_n_segments": 8
+          "uncapped_f1": 0.9087309568327752,
+          "uncapped_recall": 0.8867924528301886,
+          "uncapped_precision": 0.9317824764110528,
+          "uncapped_n_segments": 7
         },
         {
           "rule": "Department=Human Resources|Sales & OverTime=Yes",
-          "f1": 0.7391304347826088,
-          "recall": 0.5862068965517242,
+          "f1": 0.7659574468085107,
+          "recall": 0.6206896551724138,
           "precision": 1.0,
           "n_segments_used": 3,
-          "best_jaccard": 0.20689655172413793,
+          "best_jaccard": 0.2413793103448276,
           "matched_paths": [
+            "Department=Human Resources, Sales & EducationField=Human Resources, Life Sciences, Medical, Other, Technical Degree & MaritalStatus=Married & OverTime=Yes",
             "root / Department=Human Resources, Sales / OverTime=Yes / MaritalStatus=Divorced / EducationField=Human Resources, Life Sciences, Marketing, Other, Technical Degree",
-            "root / Department=Human Resources, Sales / OverTime=Yes / MaritalStatus=Married / EducationField=Life Sciences, Medical, Technical Degree",
             "root / Department=Human Resources, Sales / OverTime=Yes / MaritalStatus=Single / EducationField=Life Sciences, Technical Degree"
           ],
           "uncapped_f1": 1.0,
           "uncapped_recall": 1.0,
           "uncapped_precision": 1.0,
-          "uncapped_n_segments": 10
+          "uncapped_n_segments": 7
         },
         {
           "rule": "Department=Sales|Human Resources & MaritalStatus=Single",
-          "f1": 0.8391608391608393,
-          "recall": 0.7228915662650603,
+          "f1": 0.8970099667774087,
+          "recall": 0.8132530120481928,
           "precision": 1.0,
           "n_segments_used": 3,
-          "best_jaccard": 0.41566265060240964,
+          "best_jaccard": 0.5060240963855421,
           "matched_paths": [
-            "root / Department=Human Resources, Sales / OverTime=No / EducationField=Life Sciences, Medical / MaritalStatus=Single",
+            "Department=Human Resources, Sales & EducationField=Human Resources, Life Sciences, Medical, Other, Technical Degree & MaritalStatus=Single & OverTime=No",
             "root / Department=Human Resources, Sales / OverTime=No / EducationField=Marketing / MaritalStatus=Single / JobRole=Manager, Sales Executive",
             "root / Department=Human Resources, Sales / OverTime=Yes / MaritalStatus=Single / EducationField=Life Sciences, Technical Degree"
           ],
           "uncapped_f1": 1.0,
           "uncapped_recall": 1.0,
           "uncapped_precision": 1.0,
-          "uncapped_n_segments": 9
+          "uncapped_n_segments": 6
         },
         {
           "rule": "JobRole=Sales Executive|Research Scientist & EducationField=Marketing",
-          "f1": 0.8269230769230769,
+          "f1": 0.8149346250649518,
           "recall": 0.704918032786885,
-          "precision": 1.0,
+          "precision": 0.9656424974519594,
           "n_segments_used": 3,
           "best_jaccard": 0.3464566929133858,
           "matched_paths": [
             "root / Department=Human Resources, Sales / OverTime=No / EducationField=Marketing / MaritalStatus=Married / JobRole=Sales Executive, Sales Representative",
             "root / Department=Human Resources, Sales / OverTime=No / EducationField=Marketing / MaritalStatus=Single / JobRole=Manager, Sales Executive",
-            "root / Department=Human Resources, Sales / OverTime=No / EducationField=Marketing / MaritalStatus=Divorced"
+            "Department=Human Resources, Sales & EducationField=Human Resources, Life Sciences, Marketing, Other, Technical Degree & MaritalStatus=Divorced & OverTime=No"
           ],
-          "uncapped_f1": 0.8798829169391513,
-          "uncapped_recall": 0.8114754098360653,
-          "uncapped_precision": 0.9608857387122625,
+          "uncapped_f1": 0.8172255371648536,
+          "uncapped_recall": 0.7950819672131146,
+          "uncapped_precision": 0.8406378697811075,
           "uncapped_n_segments": 4
         },
         {
           "rule": "MaritalStatus=Divorced & EducationField=Marketing|Medical",
-          "f1": 0.8800764914415322,
-          "recall": 0.8581560283687941,
-          "precision": 0.9031461682556237,
+          "f1": 0.8366367652653308,
+          "recall": 0.8581560283687942,
+          "precision": 0.8161703422018352,
           "n_segments_used": 3,
           "best_jaccard": 0.5957446808510638,
           "matched_paths": [
             "root / Department=Research & Development / MaritalStatus=Divorced / EducationField=Medical",
-            "root / Department=Human Resources, Sales / OverTime=No / EducationField=Marketing / MaritalStatus=Divorced",
+            "Department=Human Resources, Sales & EducationField=Human Resources, Life Sciences, Marketing, Other, Technical Degree & MaritalStatus=Divorced & OverTime=No",
             "root / Department=Human Resources, Sales / OverTime=No / EducationField=Life Sciences, Medical / MaritalStatus=Divorced / EducationField=Medical"
           ],
-          "uncapped_f1": 0.9712066197450471,
+          "uncapped_f1": 0.9256896828324543,
           "uncapped_recall": 0.9999999999999998,
-          "uncapped_precision": 0.9440249503786322,
+          "uncapped_precision": 0.8616594926436766,
           "uncapped_n_segments": 5
         }
       ],
-      "n_terminal_segments": 25,
+      "n_terminal_segments": 18,
       "null_pass": null,
       "conservation_ok": true,
       "extras": {},
@@ -297,96 +297,96 @@
     {
       "case": "kaggle_olist",
       "seed": 42,
-      "impact_f1": 0.8146571281241084,
-      "floor_rule_f1": 0.7124756335282654,
+      "impact_f1": 0.9148611996880961,
+      "floor_rule_f1": 0.8180058519018683,
       "rule_scores": [
         {
           "rule": "month=8|3 & seller_state=MG",
-          "f1": 0.8403802032120616,
-          "recall": 0.7247032221594121,
+          "f1": 0.9806972054163065,
+          "recall": 0.9621254946297343,
           "precision": 1.0,
           "n_segments_used": 3,
-          "best_jaccard": 0.3369135104578858,
+          "best_jaccard": 0.4686263425664217,
           "matched_paths": [
-            "root / customer_state=RJ, SP / seller_state=MG, RJ / month=3, 5, 8 / month=3, 8 / seller_state=MG / product_category_name=alimentos, alimentos_bebidas, artes, automotivo, bebes, bebidas, brinquedos, casa_conforto (+29 more) / product_category_name=alimentos, alimentos_bebidas, artes, automotivo, bebes, bebidas, brinquedos, casa_conforto (+28 more)",
-            "root / customer_state=AC, AL, AM, AP, BA, CE, DF, ES (+16 more) / seller_state=MG, RJ / month=3, 5, 8 / month=3, 8 / seller_state=MG / product_category_name=agro_industria_e_comercio, alimentos_bebidas, artigos_de_natal, automotivo, bebes, bebidas, brinquedos, cama_mesa_banho (+28 more)",
+            "product_category_name=alimentos, alimentos_bebidas, artes, automotivo, bebes, bebidas, beleza_saude, brinquedos (+31 more) & seller_state=MG & customer_state=RJ, SP & month=3, 8",
+            "product_category_name=agro_industria_e_comercio, alimentos_bebidas, artigos_de_natal, automotivo, bebes, bebidas, beleza_saude, brinquedos (+31 more) & seller_state=MG & customer_state=AC, AL, AM, AP, BA, CE, DF, ES (+16 more) & month=3, 8",
             "root / customer_state=MG / seller_state=MG, RJ / month=3, 5, 8 / seller_state=MG / month=3, 8"
           ],
           "uncapped_f1": 1.0,
           "uncapped_recall": 1.0,
           "uncapped_precision": 1.0,
-          "uncapped_n_segments": 8
+          "uncapped_n_segments": 4
         },
         {
           "rule": "customer_state=MG",
-          "f1": 0.720619762229585,
-          "recall": 0.5632569121791455,
+          "f1": 0.8180058519018683,
+          "recall": 0.6920557544367433,
           "precision": 1.0,
           "n_segments_used": 3,
-          "best_jaccard": 0.26224388757711936,
+          "best_jaccard": 0.4819864422271308,
           "matched_paths": [
-            "root / customer_state=MG / seller_state=SP / month=10, 11, 2, 3, 4, 5, 6, 7 (+1 more) / product_category_name=beleza_saude, cama_mesa_banho, esporte_lazer, ferramentas_jardim, moveis_decoracao, relogios_presentes, utilidades_domesticas",
-            "root / customer_state=MG / seller_state=SP / month=10, 11, 2, 3, 4, 5, 6, 7 (+1 more) / product_category_name=agro_industria_e_comercio, alimentos, alimentos_bebidas, artes, artes_e_artesanato, artigos_de_natal, audio, automotivo (+50 more)",
-            "root / customer_state=MG / seller_state=MG, RJ / month=1, 10, 11, 12, 2, 4, 6, 7 (+1 more) / product_category_name=agro_industria_e_comercio, alimentos, alimentos_bebidas, artes, artigos_de_festas, artigos_de_natal, automotivo, bebes (+32 more)"
+            "product_category_name=agro_industria_e_comercio, alimentos, alimentos_bebidas, artes, artes_e_artesanato, artigos_de_natal, audio, automotivo (+57 more) & seller_state=SP & customer_state=MG & month=10, 11, 2, 3, 4, 5, 6, 7 (+1 more)",
+            "product_category_name=agro_industria_e_comercio, alimentos, alimentos_bebidas, artes, artigos_de_festas, artigos_de_natal, automotivo, bebes (+36 more) & seller_state=MG, RJ & customer_state=MG & month=1, 10, 11, 12, 2, 4, 6, 7 (+1 more)",
+            "product_category_name=artigos_de_natal, audio, automotivo, bebes, bebidas, beleza_saude, brinquedos, cama_mesa_banho (+36 more) & seller_state=SP & customer_state=MG & month=1, 12"
           ],
           "uncapped_f1": 1.0,
           "uncapped_recall": 1.0,
           "uncapped_precision": 1.0,
-          "uncapped_n_segments": 19
+          "uncapped_n_segments": 15
         },
         {
           "rule": "month=5 & seller_state=RJ|MG",
-          "f1": 0.8954781319495921,
-          "recall": 0.8107382550335568,
+          "f1": 0.9402560455192032,
+          "recall": 0.8872483221476507,
           "precision": 1.0,
           "n_segments_used": 3,
-          "best_jaccard": 0.4463087248322148,
+          "best_jaccard": 0.5228187919463088,
           "matched_paths": [
-            "root / customer_state=RJ, SP / seller_state=MG, RJ / month=3, 5, 8 / month=5 / product_category_name=alimentos, alimentos_bebidas, artes, automotivo, bebes, beleza_saude, brinquedos, cama_mesa_banho (+25 more)",
+            "product_category_name=alimentos, alimentos_bebidas, artes, automotivo, bebes, beleza_saude, brinquedos, cama_mesa_banho (+27 more) & seller_state=MG, RJ & customer_state=RJ, SP & month=5",
             "root / customer_state=AC, AL, AM, AP, BA, CE, DF, ES (+16 more) / seller_state=MG, RJ / month=3, 5, 8 / month=5 / product_category_name=alimentos_bebidas, artes, artigos_de_festas, audio, automotivo, bebes, beleza_saude, brinquedos (+27 more)",
             "root / customer_state=MG / seller_state=MG, RJ / month=3, 5, 8 / seller_state=MG / month=5"
           ],
           "uncapped_f1": 0.9710280565605874,
           "uncapped_recall": 0.9630872483221474,
           "uncapped_precision": 0.9791008999149707,
-          "uncapped_n_segments": 8
+          "uncapped_n_segments": 6
         },
         {
           "rule": "seller_state=RS|SP & month=8",
-          "f1": 0.9043319097010372,
-          "recall": 0.8253703084976054,
+          "f1": 0.965493403997926,
+          "recall": 0.9332887849426438,
           "precision": 1.0,
           "n_segments_used": 3,
-          "best_jaccard": 0.32731930059026615,
+          "best_jaccard": 0.5755652077068716,
           "matched_paths": [
-            "root / customer_state=RJ, SP / seller_state=SP / month=8 / product_category_name=agro_industria_e_comercio, alimentos, alimentos_bebidas, artes, artes_e_artesanato, artigos_de_festas, artigos_de_natal, audio (+52 more)",
-            "root / customer_state=AC, AL, AM, AP, BA, CE, DF, ES (+16 more) / seller_state=SP / month=8 / product_category_name=agro_industria_e_comercio, alimentos, alimentos_bebidas, artes, artigos_de_festas, artigos_de_natal, audio, bebes (+51 more)",
-            "root / customer_state=RJ, SP / seller_state=SP / month=8 / product_category_name=beleza_saude, cama_mesa_banho, esporte_lazer, relogios_presentes, utilidades_domesticas"
+            "product_category_name=agro_industria_e_comercio, alimentos, alimentos_bebidas, artes, artes_e_artesanato, artigos_de_festas, artigos_de_natal, audio (+57 more) & seller_state=SP & customer_state=RJ, SP & month=8",
+            "product_category_name=agro_industria_e_comercio, alimentos, alimentos_bebidas, artes, artigos_de_festas, artigos_de_natal, audio, automotivo (+53 more) & seller_state=SP & customer_state=AC, AL, AM, AP, BA, CE, DF, ES (+16 more) & month=8",
+            "root / customer_state=MG / seller_state=SP / month=8 / product_category_name=agro_industria_e_comercio, alimentos, alimentos_bebidas, artes, artigos_de_festas, artigos_de_natal, audio, automotivo (+39 more)"
           ],
           "uncapped_f1": 0.9849649559122766,
           "uncapped_recall": 0.9703753201915579,
           "uncapped_precision": 1.0,
-          "uncapped_n_segments": 9
+          "uncapped_n_segments": 6
         },
         {
           "rule": "product_category_name=papelaria|eletronicos",
-          "f1": 0.7124756335282654,
-          "recall": 0.5533686601059805,
+          "f1": 0.8698534916051761,
+          "recall": 0.7696820590461775,
           "precision": 1.0,
           "n_segments_used": 3,
-          "best_jaccard": 0.28160484481453446,
+          "best_jaccard": 0.6139288417865254,
           "matched_paths": [
-            "root / customer_state=RJ, SP / seller_state=SP / month=10, 11, 2, 3, 4, 5, 6, 7 (+1 more) / product_category_name=eletronicos, papelaria",
-            "root / customer_state=AC, AL, AM, AP, BA, CE, DF, ES (+16 more) / seller_state=SP / month=10, 11, 2, 3, 4, 5, 6, 7 (+1 more) / product_category_name=eletronicos, papelaria",
-            "root / customer_state=RJ, SP / seller_state=SP / month=1, 12 / product_category_name=eletronicos, papelaria"
+            "product_category_name=eletronicos, papelaria & seller_state=SP & customer_state=AC, AL, AM, AP, BA, CE, DF, ES (+18 more) & month=1, 10, 11, 12, 2, 3, 4, 5 (+3 more)",
+            "root / customer_state=RJ, SP / seller_state=AC, BA, CE, DF, ES, GO, MA, MS (+11 more) / product_category_name=eletronicos, papelaria / seller_state=DF, ES, PB, PR, SC",
+            "root / customer_state=AC, AL, AM, AP, BA, CE, DF, ES (+16 more) / seller_state=AM, BA, CE, DF, ES, GO, MA, MS (+11 more) / product_category_name=eletronicos, papelaria"
           ],
           "uncapped_f1": 0.994866092129945,
           "uncapped_recall": 0.9911052233156701,
           "uncapped_precision": 0.99865561180787,
-          "uncapped_n_segments": 21
+          "uncapped_n_segments": 12
         }
       ],
-      "n_terminal_segments": 72,
+      "n_terminal_segments": 46,
       "null_pass": null,
       "conservation_ok": true,
       "extras": {},
@@ -395,8 +395,8 @@
     {
       "case": "kaggle_telco_churn",
       "seed": 2026,
-      "impact_f1": 0.8374928675467223,
-      "floor_rule_f1": 0.7395058611327444,
+      "impact_f1": 0.8609878253149625,
+      "floor_rule_f1": 0.7708333333333333,
       "rule_scores": [
         {
           "rule": "Contract=Month-to-month|One year & InternetService=Fiber optic|DSL & PaymentMethod=Bank transfer (automatic)",
@@ -417,20 +417,20 @@
         },
         {
           "rule": "InternetService=DSL & Dependents=No & gender=Male",
-          "f1": 0.8310762651461153,
-          "recall": 0.7109756097560974,
+          "f1": 0.8866259334691106,
+          "recall": 0.796341463414634,
           "precision": 1.0,
           "n_segments_used": 3,
           "best_jaccard": 0.48292682926829267,
           "matched_paths": [
             "root / Contract=Month-to-month, Two year / Contract=Month-to-month / InternetService=DSL / gender=Male / Dependents=No / PaymentMethod=Credit card (automatic), Electronic check, Mailed check",
-            "root / Contract=Month-to-month, Two year / Contract=Two year / Partner=Yes / Dependents=No / gender=Male / InternetService=DSL",
+            "gender=Male & Partner=Yes & Dependents=No & InternetService=DSL & Contract=One year, Two year",
             "root / Contract=Month-to-month, Two year / Contract=Month-to-month / InternetService=DSL / gender=Male / Dependents=No / PaymentMethod=Bank transfer (automatic)"
           ],
           "uncapped_f1": 0.9371354504212572,
           "uncapped_recall": 0.8817073170731705,
           "uncapped_precision": 1.0,
-          "uncapped_n_segments": 5
+          "uncapped_n_segments": 4
         },
         {
           "rule": "gender=Female|Male & Partner=No & Contract=Two year",
@@ -447,7 +447,7 @@
           "uncapped_f1": 1.0,
           "uncapped_recall": 1.0,
           "uncapped_precision": 1.0,
-          "uncapped_n_segments": 5
+          "uncapped_n_segments": 4
         },
         {
           "rule": "InternetService=No & Partner=No|Yes & Contract=One year",
@@ -468,23 +468,23 @@
         },
         {
           "rule": "Contract=One year & Partner=No",
-          "f1": 0.7395058611327444,
-          "recall": 0.6251944012441679,
-          "precision": 0.904972326616869,
+          "f1": 0.8014309816509512,
+          "recall": 0.6982892690513219,
+          "precision": 0.940322527254719,
           "n_segments_used": 3,
           "best_jaccard": 0.28304821150855364,
           "matched_paths": [
             "root / Contract=One year / Partner=No / gender=Male / InternetService=DSL, No / Dependents=No",
-            "root / Contract=One year / Partner=No / gender=Female / InternetService=DSL, Fiber optic / PaymentMethod=Credit card (automatic), Electronic check",
+            "gender=Female & Partner=No & InternetService=DSL, Fiber optic & Contract=One year & PaymentMethod=Credit card (automatic), Electronic check, Mailed check",
             "root / Contract=One year / Partner=No / gender=Female / InternetService=No"
           ],
           "uncapped_f1": 0.9999999999999999,
           "uncapped_recall": 0.9999999999999998,
           "uncapped_precision": 1.0,
-          "uncapped_n_segments": 9
+          "uncapped_n_segments": 7
         }
       ],
-      "n_terminal_segments": 37,
+      "n_terminal_segments": 30,
       "null_pass": null,
       "conservation_ok": true,
       "extras": {},
@@ -494,28 +494,28 @@
   "repro": {
     "kaggle_black_friday/2026": {
       "expected": 0.7806131521347275,
-      "got": 0.7806131521347275,
-      "ok": true
+      "got": 0.8347338716835268,
+      "ok": false
     },
     "kaggle_insurance/42": {
       "expected": 0.7942004431668499,
-      "got": 0.7942004431668499,
-      "ok": true
+      "got": 0.8363856290332361,
+      "ok": false
     },
     "kaggle_ibm_hr/7": {
       "expected": 0.8095873513409888,
-      "got": 0.8095873513409888,
-      "ok": true
+      "got": 0.8154369436626178,
+      "ok": false
     },
     "kaggle_olist/42": {
       "expected": 0.8146571281241084,
-      "got": 0.8146571281241084,
-      "ok": true
+      "got": 0.9148611996880961,
+      "ok": false
     },
     "kaggle_telco_churn/2026": {
       "expected": 0.8374928675467223,
-      "got": 0.8374928675467223,
-      "ok": true
+      "got": 0.8609878253149625,
+      "ok": false
     }
   }
 }

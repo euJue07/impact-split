@@ -53,11 +53,24 @@ class DatasetScore:
 
 
 def leaf_masks_from_model(model: Any, X_codes: np.ndarray) -> list[tuple[str, np.ndarray]]:
-    """Recompute terminal-segment row masks by walking the fitted tree.
+    """Recompute terminal-segment row masks from the fitted model.
 
-    Avoids parsing ``path`` strings (which truncate at 8 labels for
-    high-cardinality features). Returns ``(path, bool_mask)`` per leaf.
+    Prefers the model's ``segments_`` (post-fit consolidated segments, exact
+    conjunction conditions); falls back to walking the tree for models without
+    them. Avoids parsing ``path`` strings (which truncate at 8 labels for
+    high-cardinality features). Returns ``(path, bool_mask)`` per segment.
     """
+    segments = getattr(model, "segments_", None)
+    if segments:
+        n = X_codes.shape[0]
+        out: list[tuple[str, np.ndarray]] = []
+        for seg in segments:
+            mask = np.ones(n, dtype=bool)
+            for f, codes in seg["conditions"].items():
+                mask &= np.isin(X_codes[:, f], np.fromiter(codes, dtype=np.int64, count=len(codes)))
+            out.append((seg["path"], mask))
+        return out
+
     tree = model._tree
     if tree is None:
         raise RuntimeError("model must be fitted")
