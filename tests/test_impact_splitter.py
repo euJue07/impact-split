@@ -137,9 +137,10 @@ def test_one_sided_gain_can_split() -> None:
 
     assert root["action"] == "split"
     assert root["chosen_feature_index"] == 0
-    assert root["routing_mode"] == "raw"
+    assert root["routing_mode"] == "centered_excess"
+    # Centered signal: cat 0 is above the node mean (P), cat 1 below it (N).
     assert root["candidate_gains"][0]["gain_P"] > 0.0
-    assert root["candidate_gains"][0]["gain_N"] == pytest.approx(0.0)
+    assert root["candidate_gains"][0]["gain_N"] > 0.0
 
 
 def test_centered_excess_fallback_splits_one_sided_target() -> None:

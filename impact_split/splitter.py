@@ -630,29 +630,22 @@ class ImpactSplitter:
             mode_candidates.sort(key=lambda item: -item["gain"])
             return mode_candidates, mode_tables, best
 
-        raw_candidates, raw_tables, best_decision = evaluate_split_mode(
-            mode="raw",
-            signal_values=y_sub,
-            delta_mode=delta_raw,
-            include_centered_signal=False,
+        # Routing signal is always the centered excess D_cat = S_cat - n_cat * mean(node):
+        # a category is P/N by how far it deviates from the node's expected share, not by
+        # its raw total. On zero-centered targets this equals the raw signal; on one-sided
+        # targets (revenue-like, constant base) it stops volume-driven splits where every
+        # large category cleared the raw sieve regardless of effect.
+        centered_candidates, centered_tables, best_decision = evaluate_split_mode(
+            mode="centered_excess",
+            signal_values=y_centered,
+            delta_mode=delta_centered,
+            include_centered_signal=True,
         )
-        trace_entry["candidate_gains_by_mode"]["raw"] = raw_candidates
-        trace_entry["category_tables_by_mode"]["raw"] = raw_tables
-        trace_entry["candidate_gains"].extend(raw_candidates)
-
-        if best_decision is None:
-            centered_candidates, centered_tables, best_decision = evaluate_split_mode(
-                mode="centered_excess",
-                signal_values=y_centered,
-                delta_mode=delta_centered,
-                include_centered_signal=True,
-            )
-            trace_entry["candidate_gains_by_mode"]["centered_excess"] = centered_candidates
-            trace_entry["category_tables_by_mode"]["centered_excess"] = centered_tables
-            trace_entry["candidate_gains"].extend(centered_candidates)
-        else:
-            trace_entry["candidate_gains_by_mode"]["centered_excess"] = []
-            trace_entry["category_tables_by_mode"]["centered_excess"] = {}
+        trace_entry["candidate_gains_by_mode"]["raw"] = []
+        trace_entry["category_tables_by_mode"]["raw"] = {}
+        trace_entry["candidate_gains_by_mode"]["centered_excess"] = centered_candidates
+        trace_entry["category_tables_by_mode"]["centered_excess"] = centered_tables
+        trace_entry["candidate_gains"].extend(centered_candidates)
 
         trace_entry["candidate_gains"].sort(key=lambda item: -item["gain"])
 

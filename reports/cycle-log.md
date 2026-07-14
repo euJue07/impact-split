@@ -43,3 +43,52 @@ violated (this is the anchor cycle).
 **Verdict.** Synthetic leg already clears the bar (0.97 / 0.82). The bar is over the
 *full* suite — Kaggle semi-synthetic leg pending; improvement cycles target whatever
 the combined suite exposes, starting from the dilution failure shape.
+
+**Kaggle leg (cycle 0)** — 10 datasets × seeds {42, 7, 2026}, semi-synthetic (real
+covariates, injected rules; half the datasets get a +3σ constant base to mimic
+revenue-like one-sided KPIs). `benchmarks/results/cycle0-kaggle.json`:
+
+| metric | value |
+|---|---|
+| mean impact-F1 | **0.6802** |
+| floor dataset | **0.1208** (adult_census seed 42) |
+| CART reference mean | 0.854 (beats us) |
+
+Failure autopsy: 58 failing rules — mean recall 0.74, mean precision **0.30**; 74% have
+precision < 0.5. Base=3σ datasets score 0.56 vs 0.80 for zero-base. **Mechanism:** with
+an all-positive base, the *raw* δ sieve always finds categories over the 5%-of-volume
+threshold — the big ones — so the tree splits on volume, not effect, and the
+centered-excess fallback (which would see through the base) never fires.
+
+---
+
+## Cycle 1 — centered excess as the only routing signal
+
+**Hypothesis.** Routing categories by raw sums confounds effect with volume whenever the
+target has a one-sided base; making the centered excess D_cat = S_cat − n_cat·ȳ_node the
+*only* routing signal (threshold δ = delta_pct × Σ|y−ȳ|) removes the volume artifact
+while leaving zero-centered behavior unchanged (mean≈0 ⇒ centered ≡ raw).
+
+**Change.** `splitter.py::_build`: dropped the raw-mode phase; the former fallback is now
+the single sieve. Test `test_one_sided_gain_can_split` updated (same intent — one-sided
+targets still split — new mode label and both-sided gains).
+
+**Scores.**
+
+| suite | cycle 0 | cycle 1 | Δ |
+|---|---|---|---|
+| synthetic mean / floor | 0.9735 / 0.8174 | **0.9935 / 0.9367** | +0.020 / +0.119 |
+| kaggle mean / floor | 0.6802 / 0.1208 | **0.8583 / 0.6039** | +0.178 / +0.483 |
+
+Guards: pytest 26/26 green · conservation exact everywhere · case-1 baseline 1.000 (no
+regression) · null 3/3 · segments: synthetic 20.8→17.6, kaggle 29.1→36.6 (1.26×, within
+1.5×) · CART now matched (0.858 vs 0.854). Base=3σ vs zero-base gap closed
+(0.848 vs 0.868). Noise frontier note: recovery now perfect through σ=88 (was 0.886) but
+the tree abstains entirely (1 segment) at σ≥176 where it previously emitted partial
+recoveries — a defensible trade (diagnostic only, not scored).
+
+**Verdict: material improvement (+0.178 kaggle mean). Bar not yet met (0.86 < 0.9,
+floor 0.60 < 0.7). New dominant failure shape: fragmentation — recall 0.5–0.7 at
+precision ≈ 1.0 with the 3-segment union cap exhausted; over-splitting deep in the tree
+(ibm_hr: 74 leaves on n=1,470) because 5% of a small node's excess volume is below the
+noise band. Next: noise-aware sieve floor.**

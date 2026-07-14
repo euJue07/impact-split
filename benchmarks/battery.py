@@ -92,6 +92,53 @@ def run_battery(
     return summary
 
 
+def run_kaggle_suite(
+    params: dict[str, Any] | None = None,
+    *,
+    seeds: list[int] | None = None,
+    with_cart: bool = False,
+    face_validity: bool = False,
+) -> dict[str, Any]:
+    """Run the semi-synthetic Kaggle suite; same scoring as the synthetic battery."""
+    from .kaggle_suite import KAGGLE_SPECS, build_semi_synth
+
+    seeds = seeds or SEEDS
+    results: list[dict[str, Any]] = []
+    for i in range(len(KAGGLE_SPECS)):
+        for j, seed in enumerate(seeds):
+            ds = build_semi_synth(i, seed, face_validity=face_validity and j == 0)
+            score = fit_and_score(ds, params)
+            row = asdict(score)
+            row["meta"] = {
+                k: v for k, v in ds.meta.items() if k != "face_validity_real_target_top_sums"
+            }
+            if face_validity and j == 0 and "face_validity_real_target_top_sums" in ds.meta:
+                row["face_validity"] = ds.meta["face_validity_real_target_top_sums"]
+            row["n_rules"] = len(ds.rules)
+            if with_cart and ds.rules:
+                cart = cart_reference(ds)
+                row["cart_impact_f1"] = cart.impact_f1
+                row["cart_n_segments"] = cart.n_terminal_segments
+            results.append(row)
+
+    per_ds: dict[str, float] = {}
+    for r in results:
+        per_ds.setdefault(r["case"], [])
+    for r in results:
+        per_ds[r["case"]].append(r["impact_f1"])
+    per_ds_mean = {k: float(np.mean(v)) for k, v in per_ds.items()}
+
+    return {
+        "params": {**DEFAULT_PARAMS, **(params or {})},
+        "mean_impact_f1": float(np.mean([r["impact_f1"] for r in results])),
+        "floor_dataset_f1": float(np.min([r["impact_f1"] for r in results])),
+        "per_dataset_mean_f1": per_ds_mean,
+        "conservation_all_ok": bool(all(r["conservation_ok"] for r in results)),
+        "mean_n_segments": float(np.mean([r["n_terminal_segments"] for r in results])),
+        "results": results,
+    }
+
+
 def noise_frontier(params: dict[str, Any] | None = None, seed: int = 42) -> list[dict[str, Any]]:
     """Diagnostic: baseline rules under escalating noise; where does recovery break?"""
     rows = []

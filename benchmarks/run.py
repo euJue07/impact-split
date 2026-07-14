@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import argparse
 
-from .battery import noise_frontier, run_battery, save_results
+from .battery import noise_frontier, run_battery, run_kaggle_suite, save_results
 
 
 def main() -> None:
@@ -15,7 +15,22 @@ def main() -> None:
     ap.add_argument("--tag", required=True, help="results file tag, e.g. cycle0-synthetic")
     ap.add_argument("--cart", action="store_true", help="include CART reference scores")
     ap.add_argument("--frontier", action="store_true", help="include noise-frontier diagnostic")
+    ap.add_argument("--kaggle", action="store_true", help="run the semi-synthetic Kaggle suite")
+    ap.add_argument("--face-validity", action="store_true", help="record real-target groupbys")
     args = ap.parse_args()
+
+    if args.kaggle:
+        summary = run_kaggle_suite(with_cart=args.cart, face_validity=args.face_validity)
+        path = save_results(args.tag, summary)
+        print(f"mean impact-F1 : {summary['mean_impact_f1']:.4f}")
+        print(f"floor dataset  : {summary['floor_dataset_f1']:.4f}")
+        print(f"conservation   : {summary['conservation_all_ok']}")
+        print(f"mean #segments : {summary['mean_n_segments']:.1f}")
+        print("per-dataset mean F1:")
+        for case, f1 in summary["per_dataset_mean_f1"].items():
+            print(f"  {case:24s} {f1:.4f}")
+        print(f"saved -> {path}")
+        return
 
     summary = run_battery(with_cart=args.cart)
     if args.frontier:
