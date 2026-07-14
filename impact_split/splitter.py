@@ -978,6 +978,22 @@ class ImpactSplitter:
 
         return build_payload(self)
 
+    def summary(self, *, top: int = 10) -> str:
+        """Designed text report: ledger header + top segments table (returns, never prints)."""
+        from impact_split.viz.text import render_summary
+
+        return render_summary(self.to_dict(), top=top)
+
+    def __repr__(self) -> str:
+        if self._tree is None:
+            return (
+                f"ImpactSplitter(delta_pct={self.delta_pct}, "
+                f"min_global_impact_pct={self.min_global_impact_pct}, "
+                f"max_depth={self.max_depth}, noise_z={self.noise_z}, "
+                f"consolidate={self.consolidate})"
+            )
+        return self.summary()
+
     def plot_tree(
         self,
         figsize: tuple[float, float] = (16.0, 10.0),
