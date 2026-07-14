@@ -152,3 +152,105 @@ null control 3/3; one fixed default configuration** (`delta_pct=0.01,
 min_global_impact_pct=0.01, max_depth=5, noise_z=3.0`). Loop closed per spec —
 no auto-tuning heuristic needed (defaults did not plateau below the bar), sacred set
 untouched. Residual weaknesses recorded in `validation-report-v2.md` §5.
+
+
+---
+
+# Loop 2 — floor loop (ai-os KB #101, 2026-07-14)
+
+Bar: floor >= 0.85 (stretch 0.90), mean >= 0.955, defaults-or-auto-tuner only.
+Phase 0 (`reports/floor-diagnosis.md`): repro deterministic; 27-config HPO sweep
+ruled out config-fixability (best floor-case min 0.806 < 0.85); uncapped-union
+diagnostic showed 21/25 floor rules found at F1 0.87-1.00 / precision ~1.0 but
+fragmented past the 3-segment cap. Verdict: missing consolidation operator.
+
+## Cycle 1 — post-fit segment consolidation (merge pass)
+
+**Hypothesis.** The splitter can only cut, never regroup; when planted structure is
+a single conjunction whose mask the tree partitions along other rules' features,
+nothing reassembles it. A post-fit merge pass — merge terminal segments whose
+conditions differ on exactly one feature's category set (union stays one readable
+conjunction; vacuous full-universe conditions dropped) and whose means pass a
+two-sample z-test at `noise_z` against the pooled robust within-segment residual
+scale, iterated to fixpoint — should consolidate fragmentation without inventing
+structure (null-safe by construction: merging cannot create splits).
+
+**Change.** `splitter.py`: `consolidate=True` constructor default; `segments_`
+(post-fit consolidated segments with exact conjunction conditions);
+`get_impact_segments()` serves consolidated segments; tree untouched (plots,
+trace unchanged). `benchmarks/scoring.py::leaf_masks_from_model` prefers
+`segments_`. No existing test needed edits; 8 new tests (consolidation + scoring).
+
+**Scores.**
+
+| suite | cycle 3 | cycle 1 (=cycle4 tags) | delta |
+|---|---|---|---|
+| synthetic mean / floor | 0.9906 / 0.9211 | 0.9767 / 0.8846 | -0.014 / -0.037 |
+| kaggle mean / floor | 0.9361 / 0.7806 | 0.9513 / 0.8154 | +0.015 / +0.035 |
+| full suite mean / floor | 0.959 / 0.781 | **0.9617 / 0.8154** | +0.003 / +0.035 |
+
+Floor cases: black_friday/2026 0.781->0.835, insurance/42 0.794->0.836, ibm_hr/7
+0.810->0.815, olist/42 0.815->0.915, telco/2026 0.837->0.861. Guards: pytest 34/34,
+conservation exact, null 3/3, no passing dataset-seed below 0.85, segments 0.74x
+cycle-3 (22.1 kaggle / 11.4 synthetic), CART beaten both suites (0.854/0.943),
+case-1 = 1.000.
+
+**Cost (recorded).** noise_2x 1.000->0.885 all seeds (still >= 0.85): under 2x noise
+the pooled sigma-hat inflates the merge threshold and consolidation occasionally
+joins a small genuinely-different segment. Noise frontier (diagnostic) degraded at
+sigma 44-88. Cycle-2 candidate: tighten merge compatibility under noise (mirror the
+split sieve: only merge pairs the sieve would refuse to split).
+
+**Verdict: material (+0.035 floor, bar not yet met — 0.815 < 0.85). Remaining
+sub-0.85: ibm_hr/7 0.815, black_friday/2026 0.835, insurance/42 0.836.**
+
+
+## Cycle 2 — REFUTED: relaxed merge compatibility (two variants)
+
+**Hypothesis.** Cycle-1's z-test merge criterion under-merges: (v1) merge also when
+the pair's distinction mass n1*n2/(n1+n2)*|m1-m2| is below min_global_impact_pct of
+global excess volume (with same-P/Neu/N-class guard); (v2) merge also when
+|m1-m2| <= merge_eps*sigma (equivalence margin, fixing the z-test's large-n
+inconsistency).
+
+**Evidence against (v1).** Guard battery FAILED: synthetic baseline 1.000->0.883
+(case-1 guard), high_cardinality 0.951->0.913, adult_census 0.924->0.853, airbnb
+0.996->0.938, kaggle floor 0.718 (`cycle5-*.json`). Autopsy: the baseline wrong
+merge (Luzon x Online product A+C, two distinct planted rules, diff 0.68 sigma,
+distinction ~1310 vs floor 1250) and the desired ibm_hr lattice merges
+(distinction ~22 vs floor ~25) both sit within 5% of their floors — there is no
+margin separating good from bad merges with this statistic at any threshold.
+
+**Evidence against (v2).** Inert: floor cases identical to cycle 1 to 4 decimals.
+Cross-feature fragments differ by overlap composition (0.3-3 sigma, above any safe
+band); sub-band contrasts are never split apart in the first place (the split sieve
+needs ~4 sigma/sqrt(n)). The dead zone the margin would rescue is empirically empty.
+
+**Action: reverted to cycle-1 consolidation. No formula change shipped.**
+
+---
+
+## Loop 2 close — explained-and-accepted exit (floor 0.8154 vs 0.85 bar)
+
+Shipped state = cycle 1 (consolidation, z-test compatibility). Full suite
+**mean 0.9617 / floor 0.8154** under the frozen primary metric; bar floor 0.85 NOT
+met; remaining sub-0.85 residue is 3 dataset-seeds with fully-diagnosed mechanisms
+at honest statistical limits:
+
+- **ibm_hr/7 (0.815)** — overlapping planted rules tile the data into lattice cells
+  with real 2-3 sigma pairwise differences; the truthful partition needs 5-7
+  segments and the frozen <=3-union under-credits it (uncapped-union F1 0.88-1.00,
+  dataset mean ~0.93). Merging those cells would be factually wrong (cycle-2 v1
+  showed the collateral damage). Metric-boundary case, not a formula defect.
+- **insurance/42 (0.836)** — the planted smoker-sex contrast (0.7 sigma between
+  overlapping rules) is at the detectability edge even with oracle noise knowledge
+  (tau 37.8 vs D 46.7 at true sigma); n=1.3k. Genuinely ambiguous data.
+- **black_friday/2026 (0.835)** — Gender x Age x Occupation (support 1.9%) is
+  root-shattered by two 10%-support rules; uncapped 0.736 (real dilution); the
+  27-config sweep showed no setting recovers it.
+
+Cycles 3-4 unused: both cycle-2 variants were refuted on evidence and the residual
+mechanisms bound any locally-computable improvement. Per the pre-registered exits
+(KB #101), these three cases close as **explained and accepted**; everything else
+meets the bar (48/51 dataset-seeds >= 0.85, mean +0.003 over cycle 3, segments
+-26%, CART beaten on both suites).

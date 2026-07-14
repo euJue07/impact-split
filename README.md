@@ -118,11 +118,33 @@ V_{global\_P} = \sum_{y_i > 0} y_i \quad \text{and} \quad V_{global\_N} = \sum_{
 
 **Why it works:** positive and negative impacts are graded against their own global pools, avoiding net-sum distortions and preserving business materiality.
 
+### Act IV: Post-fit Segment Consolidation
+
+**Problem:** the tree can only cut, never regroup. When it splits on one
+segment's features, any *other* coherent segment gets tiled across the branches
+— dozens of fragments that all behave identically.
+
+After fitting, terminal segments are merged iteratively when (a) their
+conditions are identical except on **one** feature's category set — so the
+union is still a single readable `feature=cat1,cat2` conjunction (conditions
+that grow to cover a feature's full universe are dropped) — and (b) their means
+are statistically compatible:
+
+```math
+|\bar{y}_1 - \bar{y}_2| \le z \cdot \hat{\sigma} \cdot \sqrt{1/n_1 + 1/n_2}
+```
+
+where $\hat{\sigma}$ is the pooled robust (MAD) scale of within-segment
+residuals and $z$ is the same `noise_z`. The tree itself is untouched (plots
+and traces show the full structure); merging disjoint row sets preserves exact
+sum conservation, and consolidation is null-safe — it can only reduce the
+segment count (Kaggle suite: −26%). Disable with `consolidate=False`.
+
 ### Implementation notes
 
 - Centered-excess routing is the *only* routing mode (since the 2026-07 robustness loop; raw-sum routing was removed because it split on volume rather than effect for one-sided KPIs).
 - `max_depth` caps **interaction order** — the number of distinct-feature transitions along a path. Consecutive splits that refine the same feature's category pool are free and remain legal even at the cap; they narrow a segment rather than add an interaction term.
-- Defaults (`delta_pct=0.01`, `min_global_impact_pct=0.01`, `max_depth=5`, `noise_z=3.0`) were fixed by a benchmark loop over an 8-case synthetic battery and 10 semi-synthetic Kaggle datasets (see `reports/validation-report-v2.md`); the same configuration is used for every dataset — no per-dataset tuning.
+- Defaults (`delta_pct=0.01`, `min_global_impact_pct=0.01`, `max_depth=5`, `noise_z=3.0`, `consolidate=True`) were fixed by benchmark loops over an 8-case synthetic battery and 10 semi-synthetic Kaggle datasets (see `reports/validation-report-v3.md`); the same configuration is used for every dataset — no per-dataset tuning.
 
 ## Quick Start
 
@@ -166,6 +188,7 @@ model = ImpactSplitter(
     min_global_impact_pct=0.01,
     max_depth=5,             # interaction-order cap (same-feature refinements are free)
     noise_z=3.0,             # significance: per-category noise floor in sigma units
+    consolidate=True,        # post-fit merge of statistically-equal sibling segments
     numeric_binning_strategy="quantiles",  # "quantiles" or "interval"
     numeric_n_bins=10,                     # number of bins for float columns
 )

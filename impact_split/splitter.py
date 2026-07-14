@@ -199,6 +199,7 @@ class ImpactSplitter:
         min_global_impact_pct: float = 0.01,
         max_depth: int = 5,
         noise_z: float = 3.0,
+        consolidate: bool = True,
         numeric_binning_strategy: str = "quantiles",
         numeric_n_bins: int = 10,
     ) -> None:
@@ -210,11 +211,14 @@ class ImpactSplitter:
             raise ValueError("numeric_n_bins must be an integer >= 2.")
         if noise_z < 0:
             raise ValueError("noise_z must be >= 0 (0 disables the noise floor).")
+        if not isinstance(consolidate, bool):
+            raise ValueError("consolidate must be a bool.")
 
         self.delta_pct = delta_pct
         self.min_global_impact_pct = min_global_impact_pct
         self.max_depth = max_depth
         self.noise_z = noise_z
+        self.consolidate = consolidate
         self.numeric_binning_strategy = numeric_binning_strategy
         self.numeric_n_bins = numeric_n_bins
         self._X: np.ndarray | None = None
@@ -228,6 +232,7 @@ class ImpactSplitter:
         self.feature_names_in_: list[str] | None = None
         self.category_maps_: tuple[np.ndarray, ...] | None = None
         self.numeric_bin_edges_: dict[int, np.ndarray] = {}
+        self.segments_: list[dict[str, Any]] = []
 
     def fit(
         self,
@@ -269,6 +274,7 @@ class ImpactSplitter:
         self._node_counter = 0
 
         self._tree = self._build(x_arr, y_arr, depth=0, path="root")
+        self.segments_ = self._consolidate_segments()
         return self
 
     def _feature_path_key(self, feature_index: int) -> str:
@@ -780,29 +786,173 @@ class ImpactSplitter:
             children=children,
         )
 
-    def get_impact_segments(self) -> pd.DataFrame:
-        """Return terminal segments sorted by absolute total impact."""
-        if self._tree is None:
-            raise RuntimeError("Call fit() before get_impact_segments().")
+    def _render_conditions_path(self, conditions: dict[int, frozenset[int]]) -> str:
+        """Conjunction path (``f=a, b & g=c``) for a consolidated segment."""
+        parts = [
+            self._path_segment_for_branch(f, sorted(conditions[f])) for f in sorted(conditions)
+        ]
+        return " & ".join(parts) if parts else "all data"
 
-        rows: list[dict[str, Any]] = []
+    def _leaf_segments(self) -> list[dict[str, Any]]:
+        """Terminal leaves as segment dicts with exact accumulated conditions + row masks.
 
-        def walk(n: _TreeNode) -> None:
-            if n.is_leaf:
-                rows.append(
+        A leaf's row set equals the conjunction of the branch category sets
+        accumulated along its path (each routing decision is category
+        membership), so ``conditions`` reconstructs the mask exactly.
+        """
+        assert self._tree is not None and self._X is not None
+        X = self._X
+        n = X.shape[0]
+        out: list[dict[str, Any]] = []
+
+        def rec(node: _TreeNode, cond: dict[int, frozenset[int]], mask: np.ndarray) -> None:
+            if node.is_leaf or not node.children:
+                out.append(
                     {
-                        "path": n.path,
-                        "total_sum": n.total_sum,
-                        "n_samples": n.n_samples,
-                        "node_id": n.node_id,
+                        "path": node.path,
+                        "conditions": dict(cond),
+                        "node_ids": [node.node_id],
+                        "mask": mask,
+                        "n_samples": node.n_samples,
+                        "total_sum": node.total_sum,
                     }
                 )
                 return
-            if n.children:
-                for ch in n.children.values():
-                    walk(ch)
+            f = cast(int, node.feature_index)
+            routing = cast(dict[str, list[int]], node.routing)
+            col = X[:, f]
+            for key, ch in node.children.items():
+                codes = frozenset(int(c) for c in routing[key])
+                prev = cond.get(f)
+                new_cond = dict(cond)
+                new_cond[f] = codes if prev is None else (prev & codes)
+                child_mask = mask & np.isin(col, list(codes))
+                rec(ch, new_cond, child_mask)
 
-        walk(self._tree)
+        rec(self._tree, {}, np.ones(n, dtype=bool))
+        return out
+
+    def _consolidate_segments(self) -> list[dict[str, Any]]:
+        """Merge terminal segments that fragmentation split without statistical cause.
+
+        Two segments merge when (a) their conditions are identical except on one
+        feature — so the union stays a single readable conjunction — and (b) their
+        per-row means are compatible under a two-sample z-test at ``noise_z``
+        against the pooled robust within-segment residual scale. Iterated to
+        fixpoint (a merged segment may merge again along another feature, which
+        collapses cross-product fragmentation). Exact sum conservation holds by
+        construction: merges are unions of disjoint row sets.
+        """
+        assert self._y is not None and self._X is not None
+        segs = self._leaf_segments()
+        if not self.consolidate or len(segs) <= 1:
+            for s in segs:
+                s.pop("mask", None)
+            return segs
+
+        y = self._y
+        # Pooled robust residual scale (within-segment).
+        resid = np.empty_like(y)
+        for s in segs:
+            m = s["mask"]
+            resid[m] = y[m] - float(y[m].mean())
+        med = float(np.median(resid))
+        sigma = 1.4826 * float(np.median(np.abs(resid - med)))
+
+        # Universe per feature: categories present anywhere in the training data.
+        universes: dict[int, frozenset[int]] = {}
+
+        def drop_vacuous(cond: dict[int, frozenset[int]]) -> dict[int, frozenset[int]]:
+            out = {}
+            for f, codes in cond.items():
+                if f not in universes:
+                    universes[f] = frozenset(int(c) for c in np.unique(self._X[:, f]))
+                if codes < universes[f]:
+                    out[f] = codes
+            return out
+
+        for s in segs:
+            s["conditions"] = drop_vacuous(s["conditions"])
+            s["mean"] = s["total_sum"] / s["n_samples"] if s["n_samples"] else 0.0
+
+        def find_merge() -> tuple[int, int, int] | None:
+            """Best (i, j, feature) pair passing the compatibility test, or None."""
+            best: tuple[int, int, int] | None = None
+            best_diff = np.inf
+            features = sorted({f for s in segs for f in s["conditions"]})
+            for f in features:
+                groups: dict[tuple[tuple[int, tuple[int, ...]], ...], list[int]] = {}
+                for i, s in enumerate(segs):
+                    if f not in s["conditions"]:
+                        continue
+                    sig = tuple(
+                        sorted((g, tuple(sorted(c))) for g, c in s["conditions"].items() if g != f)
+                    )
+                    groups.setdefault(sig, []).append(i)
+                for members in groups.values():
+                    for a in range(len(members)):
+                        for b in range(a + 1, len(members)):
+                            i, j = members[a], members[b]
+                            si, sj = segs[i], segs[j]
+                            diff = abs(si["mean"] - sj["mean"])
+                            thr = (
+                                self.noise_z
+                                * sigma
+                                * float(np.sqrt(1.0 / si["n_samples"] + 1.0 / sj["n_samples"]))
+                            )
+                            if diff <= thr and diff < best_diff:
+                                best = (i, j, f)
+                                best_diff = diff
+            return best
+
+        while True:
+            hit = find_merge()
+            if hit is None:
+                break
+            i, j, f = hit
+            si, sj = segs[i], segs[j]
+            cond = dict(si["conditions"])
+            cond[f] = si["conditions"][f] | sj["conditions"][f]
+            merged: dict[str, Any] = {
+                "conditions": drop_vacuous(cond),
+                "node_ids": si["node_ids"] + sj["node_ids"],
+                "mask": si["mask"] | sj["mask"],
+                "n_samples": si["n_samples"] + sj["n_samples"],
+                "total_sum": si["total_sum"] + sj["total_sum"],
+            }
+            merged["mean"] = merged["total_sum"] / merged["n_samples"]
+            merged["path"] = self._render_conditions_path(merged["conditions"])
+            segs = [s for k, s in enumerate(segs) if k not in (i, j)]
+            segs.append(merged)
+
+        for s in segs:
+            s.pop("mask", None)
+            s.pop("mean", None)
+        return segs
+
+    def get_impact_segments(self) -> pd.DataFrame:
+        """Return terminal segments sorted by absolute total impact.
+
+        With ``consolidate=True`` (default) these are the post-fit consolidated
+        segments; single-leaf segments keep their tree path, merged segments get
+        a conjunction path rendered from their combined conditions.
+        """
+        if self._tree is None:
+            raise RuntimeError("Call fit() before get_impact_segments().")
+
+        rows = [
+            {
+                "path": s["path"],
+                "total_sum": s["total_sum"],
+                "n_samples": s["n_samples"],
+                "node_id": (
+                    s["node_ids"][0]
+                    if len(s["node_ids"]) == 1
+                    else "merged(" + "+".join(s["node_ids"]) + ")"
+                ),
+            }
+            for s in self.segments_
+        ]
         df = pd.DataFrame(rows)
         if df.empty:
             return df

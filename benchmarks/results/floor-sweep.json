@@ -1,0 +1,623 @@
+[
+  {
+    "params": {
+      "delta_pct": 0.005,
+      "noise_z": 4.0,
+      "max_depth": 7
+    },
+    "f1": {
+      "kaggle_black_friday": 0.8656592825481141,
+      "kaggle_insurance": 0.8309111314186539,
+      "kaggle_ibm_hr": 0.8063127965979753,
+      "kaggle_olist": 0.8474239687482289,
+      "kaggle_telco_churn": 0.8546546385449316
+    },
+    "segments": {
+      "kaggle_black_friday": 57,
+      "kaggle_insurance": 18,
+      "kaggle_ibm_hr": 23,
+      "kaggle_olist": 71,
+      "kaggle_telco_churn": 40
+    },
+    "min_f1": 0.8063127965979753,
+    "mean_f1": 0.8409923635715806
+  },
+  {
+    "params": {
+      "delta_pct": 0.005,
+      "noise_z": 4.0,
+      "max_depth": 6
+    },
+    "f1": {
+      "kaggle_black_friday": 0.8639606861879765,
+      "kaggle_insurance": 0.8309111314186539,
+      "kaggle_ibm_hr": 0.8063127965979753,
+      "kaggle_olist": 0.8474239687482289,
+      "kaggle_telco_churn": 0.8535012774726441
+    },
+    "segments": {
+      "kaggle_black_friday": 56,
+      "kaggle_insurance": 18,
+      "kaggle_ibm_hr": 23,
+      "kaggle_olist": 71,
+      "kaggle_telco_churn": 38
+    },
+    "min_f1": 0.8063127965979753,
+    "mean_f1": 0.8404219720850957
+  },
+  {
+    "params": {
+      "delta_pct": 0.005,
+      "noise_z": 4.0,
+      "max_depth": 5
+    },
+    "f1": {
+      "kaggle_black_friday": 0.8487185455779693,
+      "kaggle_insurance": 0.8309111314186539,
+      "kaggle_ibm_hr": 0.8063127965979753,
+      "kaggle_olist": 0.8474239687482289,
+      "kaggle_telco_churn": 0.8512023016123754
+    },
+    "segments": {
+      "kaggle_black_friday": 52,
+      "kaggle_insurance": 18,
+      "kaggle_ibm_hr": 22,
+      "kaggle_olist": 70,
+      "kaggle_telco_churn": 35
+    },
+    "min_f1": 0.8063127965979753,
+    "mean_f1": 0.8369137487910405
+  },
+  {
+    "params": {
+      "delta_pct": 0.005,
+      "noise_z": 3.0,
+      "max_depth": 7
+    },
+    "f1": {
+      "kaggle_black_friday": 0.8449730178149337,
+      "kaggle_insurance": 0.7942004431668499,
+      "kaggle_ibm_hr": 0.8095873513409888,
+      "kaggle_olist": 0.8307856486393416,
+      "kaggle_telco_churn": 0.8405146740168405
+    },
+    "segments": {
+      "kaggle_black_friday": 60,
+      "kaggle_insurance": 17,
+      "kaggle_ibm_hr": 30,
+      "kaggle_olist": 82,
+      "kaggle_telco_churn": 44
+    },
+    "min_f1": 0.7942004431668499,
+    "mean_f1": 0.824012226995791
+  },
+  {
+    "params": {
+      "delta_pct": 0.005,
+      "noise_z": 3.0,
+      "max_depth": 6
+    },
+    "f1": {
+      "kaggle_black_friday": 0.8432744214547961,
+      "kaggle_insurance": 0.7942004431668499,
+      "kaggle_ibm_hr": 0.8095873513409888,
+      "kaggle_olist": 0.8307856486393416,
+      "kaggle_telco_churn": 0.8379192222614218
+    },
+    "segments": {
+      "kaggle_black_friday": 59,
+      "kaggle_insurance": 17,
+      "kaggle_ibm_hr": 29,
+      "kaggle_olist": 82,
+      "kaggle_telco_churn": 41
+    },
+    "min_f1": 0.7942004431668499,
+    "mean_f1": 0.8231534173726797
+  },
+  {
+    "params": {
+      "delta_pct": 0.005,
+      "noise_z": 3.0,
+      "max_depth": 5
+    },
+    "f1": {
+      "kaggle_black_friday": 0.828032280844789,
+      "kaggle_insurance": 0.7942004431668499,
+      "kaggle_ibm_hr": 0.8095873513409888,
+      "kaggle_olist": 0.831483867067746,
+      "kaggle_telco_churn": 0.8374928675467223
+    },
+    "segments": {
+      "kaggle_black_friday": 55,
+      "kaggle_insurance": 17,
+      "kaggle_ibm_hr": 25,
+      "kaggle_olist": 79,
+      "kaggle_telco_churn": 37
+    },
+    "min_f1": 0.7942004431668499,
+    "mean_f1": 0.8201593619934192
+  },
+  {
+    "params": {
+      "delta_pct": 0.005,
+      "noise_z": 2.0,
+      "max_depth": 5
+    },
+    "f1": {
+      "kaggle_black_friday": 0.8014489330871675,
+      "kaggle_insurance": 0.9102828894003944,
+      "kaggle_ibm_hr": 0.7919114909995615,
+      "kaggle_olist": 0.7909637451460255,
+      "kaggle_telco_churn": 0.8498778916503635
+    },
+    "segments": {
+      "kaggle_black_friday": 61,
+      "kaggle_insurance": 17,
+      "kaggle_ibm_hr": 29,
+      "kaggle_olist": 105,
+      "kaggle_telco_churn": 33
+    },
+    "min_f1": 0.7909637451460255,
+    "mean_f1": 0.8288969900567025
+  },
+  {
+    "params": {
+      "delta_pct": 0.01,
+      "noise_z": 4.0,
+      "max_depth": 7
+    },
+    "f1": {
+      "kaggle_black_friday": 0.7852764215081182,
+      "kaggle_insurance": 0.8309111314186539,
+      "kaggle_ibm_hr": 0.8063127965979753,
+      "kaggle_olist": 0.8610110301284681,
+      "kaggle_telco_churn": 0.8546546385449316
+    },
+    "segments": {
+      "kaggle_black_friday": 75,
+      "kaggle_insurance": 18,
+      "kaggle_ibm_hr": 23,
+      "kaggle_olist": 63,
+      "kaggle_telco_churn": 40
+    },
+    "min_f1": 0.7852764215081182,
+    "mean_f1": 0.8276332036396294
+  },
+  {
+    "params": {
+      "delta_pct": 0.01,
+      "noise_z": 4.0,
+      "max_depth": 6
+    },
+    "f1": {
+      "kaggle_black_friday": 0.7852764215081182,
+      "kaggle_insurance": 0.8309111314186539,
+      "kaggle_ibm_hr": 0.8063127965979753,
+      "kaggle_olist": 0.8610110301284681,
+      "kaggle_telco_churn": 0.8535012774726441
+    },
+    "segments": {
+      "kaggle_black_friday": 74,
+      "kaggle_insurance": 18,
+      "kaggle_ibm_hr": 23,
+      "kaggle_olist": 63,
+      "kaggle_telco_churn": 38
+    },
+    "min_f1": 0.7852764215081182,
+    "mean_f1": 0.827402531425172
+  },
+  {
+    "params": {
+      "delta_pct": 0.005,
+      "noise_z": 2.0,
+      "max_depth": 7
+    },
+    "f1": {
+      "kaggle_black_friday": 0.8076041563192728,
+      "kaggle_insurance": 0.9102828894003944,
+      "kaggle_ibm_hr": 0.7843657678161677,
+      "kaggle_olist": 0.7844066797017755,
+      "kaggle_telco_churn": 0.85333022858292
+    },
+    "segments": {
+      "kaggle_black_friday": 67,
+      "kaggle_insurance": 17,
+      "kaggle_ibm_hr": 34,
+      "kaggle_olist": 119,
+      "kaggle_telco_churn": 42
+    },
+    "min_f1": 0.7843657678161677,
+    "mean_f1": 0.8279979443641061
+  },
+  {
+    "params": {
+      "delta_pct": 0.005,
+      "noise_z": 2.0,
+      "max_depth": 6
+    },
+    "f1": {
+      "kaggle_black_friday": 0.8059055599591352,
+      "kaggle_insurance": 0.9102828894003944,
+      "kaggle_ibm_hr": 0.7843657678161677,
+      "kaggle_olist": 0.7844066797017755,
+      "kaggle_telco_churn": 0.8521768675106323
+    },
+    "segments": {
+      "kaggle_black_friday": 66,
+      "kaggle_insurance": 17,
+      "kaggle_ibm_hr": 32,
+      "kaggle_olist": 117,
+      "kaggle_telco_churn": 37
+    },
+    "min_f1": 0.7843657678161677,
+    "mean_f1": 0.8274275528776209
+  },
+  {
+    "params": {
+      "delta_pct": 0.01,
+      "noise_z": 4.0,
+      "max_depth": 5
+    },
+    "f1": {
+      "kaggle_black_friday": 0.7833118593095156,
+      "kaggle_insurance": 0.8309111314186539,
+      "kaggle_ibm_hr": 0.8063127965979753,
+      "kaggle_olist": 0.8613885662718527,
+      "kaggle_telco_churn": 0.8512023016123754
+    },
+    "segments": {
+      "kaggle_black_friday": 68,
+      "kaggle_insurance": 18,
+      "kaggle_ibm_hr": 22,
+      "kaggle_olist": 62,
+      "kaggle_telco_churn": 35
+    },
+    "min_f1": 0.7833118593095156,
+    "mean_f1": 0.8266253310420746
+  },
+  {
+    "params": {
+      "delta_pct": 0.01,
+      "noise_z": 3.0,
+      "max_depth": 7
+    },
+    "f1": {
+      "kaggle_black_friday": 0.7825777143333301,
+      "kaggle_insurance": 0.7942004431668499,
+      "kaggle_ibm_hr": 0.8095873513409888,
+      "kaggle_olist": 0.8142469826105359,
+      "kaggle_telco_churn": 0.8405146740168405
+    },
+    "segments": {
+      "kaggle_black_friday": 75,
+      "kaggle_insurance": 17,
+      "kaggle_ibm_hr": 30,
+      "kaggle_olist": 73,
+      "kaggle_telco_churn": 44
+    },
+    "min_f1": 0.7825777143333301,
+    "mean_f1": 0.808225433093709
+  },
+  {
+    "params": {
+      "delta_pct": 0.01,
+      "noise_z": 3.0,
+      "max_depth": 6
+    },
+    "f1": {
+      "kaggle_black_friday": 0.7825777143333301,
+      "kaggle_insurance": 0.7942004431668499,
+      "kaggle_ibm_hr": 0.8095873513409888,
+      "kaggle_olist": 0.8142469826105359,
+      "kaggle_telco_churn": 0.8379192222614218
+    },
+    "segments": {
+      "kaggle_black_friday": 74,
+      "kaggle_insurance": 17,
+      "kaggle_ibm_hr": 29,
+      "kaggle_olist": 73,
+      "kaggle_telco_churn": 41
+    },
+    "min_f1": 0.7825777143333301,
+    "mean_f1": 0.8077063427426253
+  },
+  {
+    "params": {
+      "delta_pct": 0.01,
+      "noise_z": 3.0,
+      "max_depth": 5
+    },
+    "f1": {
+      "kaggle_black_friday": 0.7806131521347275,
+      "kaggle_insurance": 0.7942004431668499,
+      "kaggle_ibm_hr": 0.8095873513409888,
+      "kaggle_olist": 0.8146571281241084,
+      "kaggle_telco_churn": 0.8374928675467223
+    },
+    "segments": {
+      "kaggle_black_friday": 70,
+      "kaggle_insurance": 17,
+      "kaggle_ibm_hr": 25,
+      "kaggle_olist": 72,
+      "kaggle_telco_churn": 37
+    },
+    "min_f1": 0.7806131521347275,
+    "mean_f1": 0.8073101884626794
+  },
+  {
+    "params": {
+      "delta_pct": 0.02,
+      "noise_z": 4.0,
+      "max_depth": 7
+    },
+    "f1": {
+      "kaggle_black_friday": 0.762502864560365,
+      "kaggle_insurance": 0.8309111314186539,
+      "kaggle_ibm_hr": 0.8063127965979753,
+      "kaggle_olist": 0.8452575934576594,
+      "kaggle_telco_churn": 0.8546546385449316
+    },
+    "segments": {
+      "kaggle_black_friday": 74,
+      "kaggle_insurance": 18,
+      "kaggle_ibm_hr": 23,
+      "kaggle_olist": 61,
+      "kaggle_telco_churn": 40
+    },
+    "min_f1": 0.762502864560365,
+    "mean_f1": 0.8199278049159171
+  },
+  {
+    "params": {
+      "delta_pct": 0.02,
+      "noise_z": 4.0,
+      "max_depth": 6
+    },
+    "f1": {
+      "kaggle_black_friday": 0.762502864560365,
+      "kaggle_insurance": 0.8309111314186539,
+      "kaggle_ibm_hr": 0.8063127965979753,
+      "kaggle_olist": 0.8452575934576594,
+      "kaggle_telco_churn": 0.8535012774726441
+    },
+    "segments": {
+      "kaggle_black_friday": 73,
+      "kaggle_insurance": 18,
+      "kaggle_ibm_hr": 23,
+      "kaggle_olist": 61,
+      "kaggle_telco_churn": 38
+    },
+    "min_f1": 0.762502864560365,
+    "mean_f1": 0.8196971327014596
+  },
+  {
+    "params": {
+      "delta_pct": 0.02,
+      "noise_z": 3.0,
+      "max_depth": 7
+    },
+    "f1": {
+      "kaggle_black_friday": 0.762502864560365,
+      "kaggle_insurance": 0.7942004431668499,
+      "kaggle_ibm_hr": 0.8095873513409888,
+      "kaggle_olist": 0.8175727964885787,
+      "kaggle_telco_churn": 0.8405146740168405
+    },
+    "segments": {
+      "kaggle_black_friday": 75,
+      "kaggle_insurance": 17,
+      "kaggle_ibm_hr": 30,
+      "kaggle_olist": 67,
+      "kaggle_telco_churn": 44
+    },
+    "min_f1": 0.762502864560365,
+    "mean_f1": 0.8048756259147247
+  },
+  {
+    "params": {
+      "delta_pct": 0.02,
+      "noise_z": 3.0,
+      "max_depth": 6
+    },
+    "f1": {
+      "kaggle_black_friday": 0.762502864560365,
+      "kaggle_insurance": 0.7942004431668499,
+      "kaggle_ibm_hr": 0.8095873513409888,
+      "kaggle_olist": 0.8175727964885787,
+      "kaggle_telco_churn": 0.8379192222614218
+    },
+    "segments": {
+      "kaggle_black_friday": 74,
+      "kaggle_insurance": 17,
+      "kaggle_ibm_hr": 29,
+      "kaggle_olist": 67,
+      "kaggle_telco_churn": 41
+    },
+    "min_f1": 0.762502864560365,
+    "mean_f1": 0.8043565355636408
+  },
+  {
+    "params": {
+      "delta_pct": 0.02,
+      "noise_z": 4.0,
+      "max_depth": 5
+    },
+    "f1": {
+      "kaggle_black_friday": 0.7605383023617625,
+      "kaggle_insurance": 0.8309111314186539,
+      "kaggle_ibm_hr": 0.8063127965979753,
+      "kaggle_olist": 0.8462096373423551,
+      "kaggle_telco_churn": 0.8512023016123754
+    },
+    "segments": {
+      "kaggle_black_friday": 69,
+      "kaggle_insurance": 18,
+      "kaggle_ibm_hr": 22,
+      "kaggle_olist": 59,
+      "kaggle_telco_churn": 35
+    },
+    "min_f1": 0.7605383023617625,
+    "mean_f1": 0.8190348338666246
+  },
+  {
+    "params": {
+      "delta_pct": 0.02,
+      "noise_z": 3.0,
+      "max_depth": 5
+    },
+    "f1": {
+      "kaggle_black_friday": 0.7605383023617625,
+      "kaggle_insurance": 0.7942004431668499,
+      "kaggle_ibm_hr": 0.8095873513409888,
+      "kaggle_olist": 0.818634074575616,
+      "kaggle_telco_churn": 0.8374928675467223
+    },
+    "segments": {
+      "kaggle_black_friday": 70,
+      "kaggle_insurance": 17,
+      "kaggle_ibm_hr": 25,
+      "kaggle_olist": 65,
+      "kaggle_telco_churn": 37
+    },
+    "min_f1": 0.7605383023617625,
+    "mean_f1": 0.804090607798388
+  },
+  {
+    "params": {
+      "delta_pct": 0.02,
+      "noise_z": 2.0,
+      "max_depth": 5
+    },
+    "f1": {
+      "kaggle_black_friday": 0.7532195499380884,
+      "kaggle_insurance": 0.8524058217447872,
+      "kaggle_ibm_hr": 0.7919114909995615,
+      "kaggle_olist": 0.7958105731354792,
+      "kaggle_telco_churn": 0.8498778916503635
+    },
+    "segments": {
+      "kaggle_black_friday": 73,
+      "kaggle_insurance": 21,
+      "kaggle_ibm_hr": 29,
+      "kaggle_olist": 76,
+      "kaggle_telco_churn": 33
+    },
+    "min_f1": 0.7532195499380884,
+    "mean_f1": 0.8086450654936559
+  },
+  {
+    "params": {
+      "delta_pct": 0.02,
+      "noise_z": 2.0,
+      "max_depth": 7
+    },
+    "f1": {
+      "kaggle_black_friday": 0.7425224497090632,
+      "kaggle_insurance": 0.8524058217447872,
+      "kaggle_ibm_hr": 0.7843657678161677,
+      "kaggle_olist": 0.7762336570019257,
+      "kaggle_telco_churn": 0.85333022858292
+    },
+    "segments": {
+      "kaggle_black_friday": 82,
+      "kaggle_insurance": 21,
+      "kaggle_ibm_hr": 34,
+      "kaggle_olist": 88,
+      "kaggle_telco_churn": 42
+    },
+    "min_f1": 0.7425224497090632,
+    "mean_f1": 0.8017715849709728
+  },
+  {
+    "params": {
+      "delta_pct": 0.02,
+      "noise_z": 2.0,
+      "max_depth": 6
+    },
+    "f1": {
+      "kaggle_black_friday": 0.7425224497090632,
+      "kaggle_insurance": 0.8524058217447872,
+      "kaggle_ibm_hr": 0.7843657678161677,
+      "kaggle_olist": 0.7762336570019257,
+      "kaggle_telco_churn": 0.8521768675106323
+    },
+    "segments": {
+      "kaggle_black_friday": 80,
+      "kaggle_insurance": 21,
+      "kaggle_ibm_hr": 32,
+      "kaggle_olist": 87,
+      "kaggle_telco_churn": 37
+    },
+    "min_f1": 0.7425224497090632,
+    "mean_f1": 0.8015409127565153
+  },
+  {
+    "params": {
+      "delta_pct": 0.01,
+      "noise_z": 2.0,
+      "max_depth": 5
+    },
+    "f1": {
+      "kaggle_black_friday": 0.7135623197787421,
+      "kaggle_insurance": 0.9102828894003944,
+      "kaggle_ibm_hr": 0.7919114909995615,
+      "kaggle_olist": 0.7766556527651796,
+      "kaggle_telco_churn": 0.8498778916503635
+    },
+    "segments": {
+      "kaggle_black_friday": 78,
+      "kaggle_insurance": 20,
+      "kaggle_ibm_hr": 29,
+      "kaggle_olist": 101,
+      "kaggle_telco_churn": 33
+    },
+    "min_f1": 0.7135623197787421,
+    "mean_f1": 0.8084580489188482
+  },
+  {
+    "params": {
+      "delta_pct": 0.01,
+      "noise_z": 2.0,
+      "max_depth": 7
+    },
+    "f1": {
+      "kaggle_black_friday": 0.6936643944400913,
+      "kaggle_insurance": 0.9102828894003944,
+      "kaggle_ibm_hr": 0.7843657678161677,
+      "kaggle_olist": 0.7703367226377681,
+      "kaggle_telco_churn": 0.85333022858292
+    },
+    "segments": {
+      "kaggle_black_friday": 88,
+      "kaggle_insurance": 20,
+      "kaggle_ibm_hr": 34,
+      "kaggle_olist": 111,
+      "kaggle_telco_churn": 42
+    },
+    "min_f1": 0.6936643944400913,
+    "mean_f1": 0.8023960005754682
+  },
+  {
+    "params": {
+      "delta_pct": 0.01,
+      "noise_z": 2.0,
+      "max_depth": 6
+    },
+    "f1": {
+      "kaggle_black_friday": 0.6936643944400913,
+      "kaggle_insurance": 0.9102828894003944,
+      "kaggle_ibm_hr": 0.7843657678161677,
+      "kaggle_olist": 0.7703367226377681,
+      "kaggle_telco_churn": 0.8521768675106323
+    },
+    "segments": {
+      "kaggle_black_friday": 86,
+      "kaggle_insurance": 20,
+      "kaggle_ibm_hr": 32,
+      "kaggle_olist": 111,
+      "kaggle_telco_churn": 37
+    },
+    "min_f1": 0.6936643944400913,
+    "mean_f1": 0.8021653283610106
+  }
+]
