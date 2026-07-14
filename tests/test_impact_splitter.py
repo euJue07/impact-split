@@ -137,9 +137,10 @@ def test_one_sided_gain_can_split() -> None:
 
     assert root["action"] == "split"
     assert root["chosen_feature_index"] == 0
-    assert root["routing_mode"] == "raw"
+    assert root["routing_mode"] == "centered_excess"
+    # Centered signal: cat 0 is above the node mean (P), cat 1 below it (N).
     assert root["candidate_gains"][0]["gain_P"] > 0.0
-    assert root["candidate_gains"][0]["gain_N"] == pytest.approx(0.0)
+    assert root["candidate_gains"][0]["gain_N"] > 0.0
 
 
 def test_centered_excess_fallback_splits_one_sided_target() -> None:
@@ -214,13 +215,17 @@ def test_constant_feature_skipped_child_prefers_other_column() -> None:
     x = np.array(
         [
             [0, 0],
-            [0, 1],
+            [0, 0],
             [1, 0],
+            [1, 0],
+            [0, 1],
+            [0, 1],
+            [1, 1],
             [1, 1],
         ],
         dtype=np.int64,
     )
-    y = np.array([100.0, -50.0, -20.0, 10.0], dtype=float)
+    y = np.array([100.0, 102.0, 60.0, 62.0, -50.0, -52.0, -10.0, -12.0], dtype=float)
     model = ImpactSplitter(delta_pct=0.05, min_global_impact_pct=0.001, max_depth=3)
 
     model.fit(x, y, trace=True)
