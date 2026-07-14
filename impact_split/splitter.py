@@ -202,9 +202,7 @@ class ImpactSplitter:
         numeric_n_bins: int = 10,
     ) -> None:
         if numeric_binning_strategy not in {"quantiles", "interval"}:
-            raise ValueError(
-                "numeric_binning_strategy must be one of {'quantiles', 'interval'}."
-            )
+            raise ValueError("numeric_binning_strategy must be one of {'quantiles', 'interval'}.")
         if isinstance(numeric_n_bins, bool) or not isinstance(numeric_n_bins, int):
             raise ValueError("numeric_n_bins must be an integer >= 2.")
         if numeric_n_bins < 2:
