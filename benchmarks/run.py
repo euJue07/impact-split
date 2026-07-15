@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import argparse
 
-from .battery import noise_frontier, run_battery, run_kaggle_suite, save_results
+from .battery import noise_frontier, run_battery, run_kaggle_suite, run_lookahead_cases, save_results
 
 
 def main() -> None:
@@ -17,7 +17,21 @@ def main() -> None:
     ap.add_argument("--frontier", action="store_true", help="include noise-frontier diagnostic")
     ap.add_argument("--kaggle", action="store_true", help="run the semi-synthetic Kaggle suite")
     ap.add_argument("--face-validity", action="store_true", help="record real-target groupbys")
+    ap.add_argument(
+        "--lookahead", action="store_true", help="run the v0.2.0 lookahead/churn cases"
+    )
     args = ap.parse_args()
+
+    if args.lookahead:
+        summary = run_lookahead_cases()
+        path = save_results(args.tag, summary)
+        print("per-case mean F1:")
+        for case, f1 in summary["per_case_mean_f1"].items():
+            print(f"  {case:20s} {f1:.4f}")
+        print(f"churn null-pass  : {summary['churn_null_pass_rate']}")
+        print(f"conservation     : {summary['conservation_all_ok']}")
+        print(f"saved -> {path}")
+        return
 
     if args.kaggle:
         summary = run_kaggle_suite(with_cart=args.cart, face_validity=args.face_validity)

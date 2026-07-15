@@ -12,7 +12,14 @@ import pandas as pd
 
 from impact_split.splitter import ImpactSplitter
 
-from .dgp import CASE_FACTORIES, NOISE_FRONTIER_SIGMAS, SEEDS, BenchDataset, case_baseline
+from .dgp import (
+    CASE_FACTORIES,
+    LOOKAHEAD_CASE_FACTORIES,
+    NOISE_FRONTIER_SIGMAS,
+    SEEDS,
+    BenchDataset,
+    case_baseline,
+)
 from .scoring import DatasetScore, encode_with_model_maps, leaf_masks_from_model, score_dataset
 
 RESULTS_DIR = Path(__file__).parent / "results"
@@ -90,6 +97,38 @@ def run_battery(
         "results": results,
     }
     return summary
+
+
+def run_lookahead_cases(
+    params: dict[str, Any] | None = None,
+    *,
+    seeds: list[int] | None = None,
+) -> dict[str, Any]:
+    """Score the v0.2.0 lookahead/churn cases (separate from headline aggregates)."""
+    seeds = seeds or SEEDS
+    results: list[dict[str, Any]] = []
+    for case, factory in LOOKAHEAD_CASE_FACTORIES.items():
+        for seed in seeds:
+            ds = factory(seed)
+            score = fit_and_score(ds, params)
+            results.append(asdict(score))
+
+    scored = [r for r in results if r["case"] != "churn_irreducible"]
+    churn = [r for r in results if r["case"] == "churn_irreducible"]
+    per_case: dict[str, float] = {}
+    for case in LOOKAHEAD_CASE_FACTORIES:
+        vals = [r["impact_f1"] for r in scored if r["case"] == case]
+        if vals:
+            per_case[case] = float(np.mean(vals))
+    return {
+        "params": {**DEFAULT_PARAMS, **(params or {})},
+        "per_case_mean_f1": per_case,
+        "churn_null_pass_rate": (
+            float(np.mean([r["null_pass"] for r in churn])) if churn else None
+        ),
+        "conservation_all_ok": bool(all(r["conservation_ok"] for r in results)),
+        "results": results,
+    }
 
 
 def run_kaggle_suite(
