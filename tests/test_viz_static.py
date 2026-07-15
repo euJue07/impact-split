@@ -30,6 +30,34 @@ def test_plot_segments_rolls_up_remainder() -> None:
     assert any("more segments" in label for label in labels)
 
 
+def test_plot_segments_annotation_text_stays_within_xlim() -> None:
+    """Regression for the xlim-fit helper (_fit_xlim_to_annotations).
+
+    The `fitted()` fixture naturally produces small-magnitude segments (e.g.
+    total_sum ~ -10.5 and ~ -3.6, dwarfed by the ~896 max bar) whose "n=...
+    x% of Sy" note text is wide relative to the bar's own data-unit span —
+    the long-note-vs-small-bar scenario the xlim-fit loop must converge on.
+    Mirrors the implementation: draw the canvas, grab the renderer via
+    fig.canvas.get_renderer(), and transform each annotation Text's window
+    extent into data coordinates.
+    """
+    model = fitted()
+    fig = model.plot_segments(top=15, show=False)
+    ax = fig.axes[0]
+
+    fig.canvas.draw()
+    renderer = fig.canvas.get_renderer()
+    inv = ax.transData.inverted()
+    lo, hi = ax.get_xlim()
+    tol = 1e-6 * (hi - lo)
+
+    assert ax.texts, "expected annotation texts on the tornado chart"
+    for text in ax.texts:
+        data_bbox = text.get_window_extent(renderer=renderer).transformed(inv)
+        assert data_bbox.x0 >= lo - tol
+        assert data_bbox.x1 <= hi + tol
+
+
 def test_plot_segments_root_only_model() -> None:
     # all-zero target -> materiality leaf at the root; must not raise
     X = pd.DataFrame({"a": ["x", "y"] * 10})

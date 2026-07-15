@@ -45,13 +45,17 @@ def _fit_xlim_to_annotations(fig: Figure, ax: Any, texts: list[Any]) -> None:
     value range; the "n=... x% of Sy" note text can still overflow it when
     it's long relative to the value range (e.g. a small bar with a wide
     note). Measure the actual rendered text extents and grow xlim to
-    contain them, converging in at most a few passes since a wider xlim
-    only ever shrinks each text's footprint in data units.
+    contain them. Widening xlim actually makes a fixed-pixel-width text span
+    *more* data units, not fewer — but the loop still converges: each pass's
+    overshoot (the amount a text's data-unit footprint exceeds the current
+    range) shrinks geometrically, because the text's pixel width is a small,
+    fixed fraction of the axes' pixel width and each new xlim is only grown
+    just enough to cover the previous overshoot, not open-endedly.
     """
     if not texts:
         return
     try:
-        for _ in range(3):
+        for _ in range(5):
             fig.canvas.draw()
             renderer = cast(Any, fig.canvas).get_renderer()
             inv = ax.transData.inverted()
