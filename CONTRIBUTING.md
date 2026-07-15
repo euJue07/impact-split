@@ -4,7 +4,7 @@ Thank you for helping improve impact-split.
 
 ## Environment
 
-- Python **3.13.x** (see `requires-python` in `pyproject.toml`, currently `~=3.13.0`).
+- Python **3.10+** (see `requires-python` in `pyproject.toml`, currently `>=3.10`; CI tests 3.10–3.13).
 - A virtual environment is recommended.
 
 ## Install for development

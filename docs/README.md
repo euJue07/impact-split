@@ -1,14 +1,15 @@
 # Documentation (MkDocs)
 
-This directory contains the **MkDocs** project for the published site:
-
-[https://eujue07.github.io/impact-split/](https://eujue07.github.io/impact-split/)
+This directory contains the **MkDocs** project for the documentation site. The
+site is **not yet hosted** — build and preview it locally with the steps below.
+Once deployed it will live at
+[https://eujue07.github.io/impact-split/](https://eujue07.github.io/impact-split/).
 
 Sources live in [`docs/docs/`](docs/docs/) with configuration in [`mkdocs.yml`](mkdocs.yml).
 
 ## Prerequisites
 
-- Python 3.13+ (same as the main package).
+- Python 3.10+ (same as the main package).
 - [MkDocs](https://www.mkdocs.org/) installed in the environment you use for docs work:
 
 ```bash

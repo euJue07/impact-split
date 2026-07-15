@@ -1,17 +1,6 @@
-ipython
-jupyterlab
-kagglehub
-loguru
-matplotlib
-mkdocs
-notebook
-numpy
-pandas
-pip
-pytest
-python-dotenv
-ruff
-scikit-learn
-tqdm
-typer
--e .
+# Reproduction environment for development, benchmarks, and notebooks.
+# Runtime dependencies are declared in pyproject.toml; this file installs the
+# package (editable) together with its optional extras so that
+# `pip install -r requirements.txt` reproduces a full dev + benchmark + notebook
+# setup. Do not hand-list runtime deps here — edit pyproject.toml instead.
+-e .[dev,bench,notebooks]

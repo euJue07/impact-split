@@ -1,4 +1,4 @@
-"""Phase-0 floor-case diagnostics for the floor loop (KB #101).
+"""Phase-0 floor-case diagnostics for the floor loop.
 
 The five sub-0.85 dataset-seed cases from cycle 3, re-run individually:
 reproduction check against the committed cycle-3 scores, per-rule autopsy with

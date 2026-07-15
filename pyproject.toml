@@ -41,6 +41,19 @@ dev = [
     "ruff",
     "twine",
 ]
+bench = [
+    "scikit-learn",
+]
+notebooks = [
+    "ipykernel",
+    "ipywidgets",
+    "jupyterlab",
+    "kagglehub",
+    "scikit-learn",
+]
+docs = [
+    "mkdocs",
+]
 
 [project.urls]
 Homepage = "https://github.com/euJue07/impact-split"

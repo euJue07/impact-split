@@ -1,6 +1,6 @@
 # Floor diagnosis — Phase 0 of the floor loop
 
-> Spec: ai-os KB #101 (`impact-split-floor-loop`, 2026-07-14). Diagnoses the five
+> Spec: floor loop, Phase 0 (2026-07-14). Diagnoses the five
 > sub-0.85 dataset-seed cases from cycle 3 before any formula change. Raw data:
 > `benchmarks/results/floor-repro-autopsy.json`, `benchmarks/results/floor-sweep.json`.
 > Tooling: `benchmarks/floor_cases.py`; the uncapped-union diagnostic column was
@@ -97,7 +97,7 @@ black_friday/2026 → ~0.94, insurance/42 → ~0.88, ibm_hr/7 → ~0.96, olist/4
 two genuine-miss mechanisms (root-split shattering, marginal contrasts), which
 remain fallback targets for cycles 2+ only if consolidation alone falls short.
 
-Guards unchanged (KB #101 §Constraints): pytest green, conservation exact,
+Guards unchanged (floor-loop constraints): pytest green, conservation exact,
 null 3/3 (merging cannot create splits — null-safe by construction), no passing
 dataset below 0.85, mean ≥ 0.955, segments ≤ 1.5× cycle-3 (merging reduces
 them), CART beaten.

@@ -1,5 +1,7 @@
 # Impact-Split Validation & Benchmark Report — v2 (robustness loop)
 
+> **SUPERSEDED — see `validation-report-v3.md`** (floor loop). Kept for history.
+
 > Generated at the end of the 2026-07-14 formula-robustness loop
 > (`reports/cycle-log.md` has the full cycle-by-cycle record; raw scores live in
 > `benchmarks/results/*.json`). Supersedes `validation-report.md` (v1), whose

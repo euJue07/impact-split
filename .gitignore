@@ -4,6 +4,11 @@
 # Cursor IDE (workspace skills and local agent config)
 .cursor/
 
+# Local agent / internal tooling — never ship to the public package
+.claude/
+.superpowers/
+docs/superpowers/
+
 # Mac OS-specific storage files
 .DS_Store
 

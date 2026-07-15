@@ -1,5 +1,8 @@
 # Impact-Split Validation & Benchmark Report
 
+> **SUPERSEDED — see `validation-report-v3.md`.** This v1 report uses the retired
+> Jaccard rule-recovery metric and pre-robustness-loop results; kept for history only.
+
 > Generated from `notebooks/3.0-validation-benchmark.ipynb` on 2026-04-21 07:45
 
 ---

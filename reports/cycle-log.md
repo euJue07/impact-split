@@ -1,6 +1,6 @@
 # Robustness-loop cycle log
 
-Spec: ai-os KB `impact-split-robustness-loop` (2026-07-14). Bar: mean impact-F1 ≥ 0.9
+Spec: robustness loop (2026-07-14). Bar: mean impact-F1 ≥ 0.9
 across the full suite AND no dataset below 0.7, with one fixed default configuration
 (`delta_pct=0.05, min_global_impact_pct=0.01, max_depth=5`). Primary metric:
 impact-weighted F1 (union of ≤3 segments per rule; precision normalized by the true
@@ -156,7 +156,7 @@ untouched. Residual weaknesses recorded in `validation-report-v2.md` §5.
 
 ---
 
-# Loop 2 — floor loop (ai-os KB #101, 2026-07-14)
+# Loop 2 — floor loop (2026-07-14)
 
 Bar: floor >= 0.85 (stretch 0.90), mean >= 0.955, defaults-or-auto-tuner only.
 Phase 0 (`reports/floor-diagnosis.md`): repro deterministic; 27-config HPO sweep
@@ -250,7 +250,7 @@ at honest statistical limits:
   27-config sweep showed no setting recovers it.
 
 Cycles 3-4 unused: both cycle-2 variants were refuted on evidence and the residual
-mechanisms bound any locally-computable improvement. Per the pre-registered exits
-(KB #101), these three cases close as **explained and accepted**; everything else
+mechanisms bound any locally-computable improvement. Per the pre-registered exits,
+these three cases close as **explained and accepted**; everything else
 meets the bar (48/51 dataset-seeds >= 0.85, mean +0.003 over cycle 3, segments
 -26%, CART beaten on both suites).

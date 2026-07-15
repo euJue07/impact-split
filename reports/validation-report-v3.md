@@ -1,6 +1,6 @@
 # Impact-Split Validation & Benchmark Report — v3 (floor loop)
 
-> Generated at the end of the 2026-07-15 floor loop (ai-os KB #101;
+> Generated at the end of the 2026-07-15 floor loop (
 > `reports/cycle-log.md` §Loop 2 has the cycle record, `reports/floor-diagnosis.md`
 > the Phase-0 diagnosis; raw scores in `benchmarks/results/cycle4-*.json` — the
 > cycle-5 tags are the record of a refuted variant, not shipped). Supersedes
