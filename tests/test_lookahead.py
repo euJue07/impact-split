@@ -98,6 +98,54 @@ def test_rescue_skips_pairs_over_cardinality_bound() -> None:
     assert len(model.segments_) == 1
 
 
+def test_rescue_multiplicity_floor_suppresses_chance_cells() -> None:
+    # High-cardinality cross (10x10 = 100 present cells) with NO real
+    # cross-feature structure: y is pure standard-normal noise, plus a
+    # planted bump of +1.0 on the ~18-20 rows of exactly one (f, g) cell.
+    # That single cell's excess clears the per-cell 3-sigma floor by chance
+    # multiplicity (K~100 simultaneous comparisons), which is exactly the
+    # Kaggle Genre x Publisher regression mechanism (task-8-report.md). The
+    # multiplicity-corrected z_eff = noise_z + sqrt(2*ln(K)) must not be
+    # fooled: the node must leaf out at the root with no rescue firing.
+    rng = np.random.default_rng(2)
+    n = 2000
+    ncat = 10
+    f0 = rng.integers(0, ncat, size=n).astype(np.int64)
+    f1 = rng.integers(0, ncat, size=n).astype(np.int64)
+    y = rng.normal(0, 1.0, n)
+    bump_mask = (f0 == 0) & (f1 == 0)
+    y = y.copy()
+    y[bump_mask] += 1.0
+    X = np.column_stack([f0, f1])
+    model = ImpactSplitter().fit(X, y, trace=True)
+    root = model.fit_trace_[0]
+    assert root["routing_mode"] is None
+    assert root["stop_reason"] == "no_split"
+    assert len(model.segments_) == 1
+
+
+def test_rescue_ignores_singleton_cells() -> None:
+    # Small-n mechanism (kaggle_ibm_hr seed 7, node_40 in task-8-report.md):
+    # a tiny material node whose cross-cells are all singletons. One row per
+    # (f0, f1) cell, huge |y| so both materiality triggers fire, marginals
+    # net exactly 0 (XOR layout) -> the rescue is consulted. Every cell is a
+    # single observation with no within-cell noise estimate, so none may
+    # count as sieve-clearing evidence: the node must leaf out. (Verified to
+    # falsely fire under the multiplicity-corrected floor alone, because at
+    # K=4 present cells z_eff is barely above noise_z and the MAD sigma of
+    # singleton cells is 0.)
+    rng = np.random.default_rng(0)
+    f0 = np.array([0, 0, 1, 1], dtype=np.int64)
+    f1 = np.array([0, 1, 0, 1], dtype=np.int64)
+    y = np.where((f0 ^ f1) == 1, 100.0, -100.0) + rng.normal(0, 0.5, 4)
+    X = np.column_stack([f0, f1])
+    model = ImpactSplitter().fit(X, y, trace=True)
+    root = model.fit_trace_[0]
+    assert root["routing_mode"] is None
+    assert root["stop_reason"] == "no_split"
+    assert len(model.segments_) == 1
+
+
 def test_lookahead_partition_xor_correctness_and_degenerate_guards() -> None:
     # White-box: the profile partition on a crafted 2x2 XOR cross-table, plus
     # the two degenerate exits (same-sign rows; fewer than 2 signal rows).

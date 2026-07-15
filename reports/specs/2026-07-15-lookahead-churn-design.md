@@ -164,3 +164,42 @@ sums, conservation exactness with rescue splits present.
   rule. API is additive; output ordering change is documented in CHANGELOG.
 - README's "three acts" gains the rescue as an explicit extension of the
   sieve act; churn flag documented alongside the output suite.
+
+## Amendment (2026-07-15): multiplicity-corrected rescue floor
+
+Verification (Task 8 full-suite regression, `.superpowers/sdd/task-8-report.md`)
+found a real Kaggle regression caused by the rescue: mean 0.9513 → 0.9485,
+floor 0.8154 → 0.8101. Two mechanisms, both traced:
+
+1. **High-cardinality multiplicity.** A pair like `Genre × Publisher`
+   (kaggle_vgsales) has 500+ present cross-cells — that many simultaneous
+   comparisons against a per-cell floor calibrated at `noise_z` (3σ) lets
+   chance/outlier cells clear it, producing junk splits at nodes that
+   previously leafed out.
+2. **Singleton cherry-picking at small n.** At tiny nodes (kaggle_ibm_hr
+   seed 7, a 5-row node) nearly every present cross-cell is a singleton; a
+   single observation has no within-cell noise estimate (its MAD residual is
+   0), so it can clear any z-based floor, and the multiplicity term is
+   naturally small when K is small.
+
+Approved change — the rescue's noise floor only; the **marginal sieve is
+untouched**. §2's "unchanged sieve" is superseded on this one point:
+
+- The per-cell z is multiplicity-corrected:
+  `z_eff = noise_z + sqrt(2 * ln(K))`, K = number of present cross-cells.
+  Rationale: under a null with K cells the max |cell excess| wanders like
+  `sigma * sqrt(n) * sqrt(2 ln K)` (extreme-value bound), so the per-cell z
+  must carry the `sqrt(2 ln K)` term with the configured `noise_z` as buffer.
+  K=4 XOR crosses are barely affected (`z_eff ≈ 4.67`, planted XOR signal has
+  huge headroom); 500-cell crosses get an honest bar. `noise_z=0` still
+  disables the floor entirely.
+- A cross-cell may only count as sieve-clearing if it has **at least 2 rows**
+  (`present_counts >= 2`): singleton cells carry no verifiable signal and
+  cannot count as evidence.
+
+Verified after the change: Kaggle suite is per-seed identical to the
+pre-lookahead baseline (mean 0.9513, floor 0.8154); synthetic improves to
+0.9836 mean / 0.8846 floor (the `high_cardinality` case's recovery is kept);
+lookahead cases hold `xor_pure` 1.0, `xor_embedded` 1.0, churn null-pass 1.0.
+Regression tests: `test_rescue_multiplicity_floor_suppresses_chance_cells`
+and `test_rescue_ignores_singleton_cells` in `tests/test_lookahead.py`.

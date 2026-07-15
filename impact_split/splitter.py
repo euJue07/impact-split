@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import math
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
@@ -688,14 +689,27 @@ class ImpactSplitter:
                     resid = y_centered - cross_means[h]
                     med = float(np.median(resid))
                     sigma = 1.4826 * float(np.median(np.abs(resid - med)))
-                    tau = np.maximum(
-                        delta_centered, self.noise_z * sigma * np.sqrt(present_counts)
-                    )
+                    # Multiplicity correction: the rescue searches K = present.size
+                    # crossed cells simultaneously (unlike the marginal sieve's F
+                    # single-feature categories), and K can run into the hundreds
+                    # or thousands on real high-cardinality features (e.g. Kaggle
+                    # Genre x Publisher, task-8-report.md). Under a null with K
+                    # cells, the max |cell excess| wanders like sigma*sqrt(n) *
+                    # sqrt(2*ln(K)) (extreme-value bound), so the per-cell z must
+                    # carry that sqrt(2*ln(K)) term on top of the configured
+                    # noise_z buffer. K=4 XOR crosses barely move (sqrt(2*ln4)
+                    # ~1.7); K~500-cell crosses get an honest, much higher bar.
+                    z_eff = self.noise_z + math.sqrt(2.0 * math.log(present.size))
+                    tau = np.maximum(delta_centered, z_eff * sigma * np.sqrt(present_counts))
                 else:
                     tau = np.full(present.shape[0], delta_centered)
 
-                pos_mask = present_signal > tau
-                neg_mask = present_signal < -tau
+                # Singleton cells carry no verifiable signal (one observation,
+                # no within-cell noise estimate); requiring n_cell >= 2 stops
+                # near-singleton cherry-picking that the multiplicity
+                # correction can't reach at small K.
+                pos_mask = (present_signal > tau) & (present_counts >= 2)
+                neg_mask = (present_signal < -tau) & (present_counts >= 2)
                 k_p = int(pos_mask.sum())
                 k_n = int(neg_mask.sum())
                 s_p = float(present_signal[pos_mask].sum())
