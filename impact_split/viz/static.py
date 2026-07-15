@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import textwrap
-from typing import Any
+from typing import Any, cast
 
 from matplotlib.colors import LinearSegmentedColormap, Normalize
 from matplotlib.figure import Figure
@@ -38,6 +38,37 @@ def _text_color_for(rgb: tuple[float, float, float]) -> str:
     return "white" if luminance < 0.45 else _INK
 
 
+def _fit_xlim_to_annotations(fig: Figure, ax: Any, texts: list[Any]) -> None:
+    """Expand xlim so every annotation Text sits fully inside the axes.
+
+    The caller's initial ``set_xlim`` is a heuristic guess based on the bar
+    value range; the "n=... x% of Sy" note text can still overflow it when
+    it's long relative to the value range (e.g. a small bar with a wide
+    note). Measure the actual rendered text extents and grow xlim to
+    contain them, converging in at most a few passes since a wider xlim
+    only ever shrinks each text's footprint in data units.
+    """
+    if not texts:
+        return
+    try:
+        for _ in range(3):
+            fig.canvas.draw()
+            renderer = cast(Any, fig.canvas).get_renderer()
+            inv = ax.transData.inverted()
+            lo, hi = ax.get_xlim()
+            new_lo, new_hi = lo, hi
+            for text in texts:
+                data_bbox = text.get_window_extent(renderer=renderer).transformed(inv)
+                new_lo = min(new_lo, data_bbox.x0)
+                new_hi = max(new_hi, data_bbox.x1)
+            if new_lo >= lo and new_hi <= hi:
+                return
+            margin = 0.02 * (new_hi - new_lo)
+            ax.set_xlim(new_lo - margin, new_hi + margin)
+    except AttributeError:
+        return
+
+
 def plot_segments(
     payload: dict[str, Any],
     *,
@@ -69,6 +100,7 @@ def plot_segments(
     max_abs = max((abs(v) for v in values), default=1.0) or 1.0
     pad = 0.015 * max_abs
     labels: list[str] = []
+    annotation_texts = []
     for i, (b, value) in enumerate(zip(bars, values, strict=True)):
         y = len(bars) - 1 - i
         if b["_rolled"]:
@@ -82,23 +114,30 @@ def plot_segments(
             note += f" · {fmt_pct(b['pool_share'])} of {'Σy⁺' if value >= 0 else 'Σy⁻'}"
         offset = pad if value >= 0 else -pad
         ha = "left" if value >= 0 else "right"
-        ax.text(
-            value + offset,
-            y + 0.16,
-            fmt_num(value, sign=True),
-            va="center",
-            ha=ha,
-            fontsize=9,
-            fontweight="bold",
-            color=_INK,
+        annotation_texts.append(
+            ax.text(
+                value + offset,
+                y + 0.16,
+                fmt_num(value, sign=True),
+                va="center",
+                ha=ha,
+                fontsize=9,
+                fontweight="bold",
+                color=_INK,
+            )
         )
-        ax.text(value + offset, y - 0.2, note, va="center", ha=ha, fontsize=7.5, color=_MUTED_TEXT)
+        annotation_texts.append(
+            ax.text(
+                value + offset, y - 0.2, note, va="center", ha=ha, fontsize=7.5, color=_MUTED_TEXT
+            )
+        )
 
     ax.set_yticks([len(bars) - 1 - i for i in range(len(bars))], labels=labels, fontsize=8)
     ax.set_xlim(
         min(0.0, min(values, default=0.0)) - 0.24 * max_abs,
         max(0.0, max(values, default=0.0)) + 0.24 * max_abs,
     )
+    _fit_xlim_to_annotations(fig, ax, annotation_texts)
     ax.axvline(0.0, color=NEUTRAL_STROKE, linewidth=1.0, zorder=0)
     ax.grid(axis="x", color=_GRID, linewidth=0.8)
     ax.set_axisbelow(True)
