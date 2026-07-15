@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
 import numpy as np
@@ -847,3 +848,23 @@ class ImpactSplitter:
         from impact_split.viz.static import plot_icicle
 
         return plot_icicle(self.to_dict(), figsize=figsize, show=show)
+
+    def to_html(
+        self,
+        path: str | Path | None = None,
+        *,
+        title: str = "impact-split report",
+    ) -> str | Path:
+        """Self-contained interactive HTML report (no CDN; safe to open offline or email).
+
+        Returns the HTML string when ``path`` is None (usable with
+        ``IPython.display.HTML``); otherwise writes UTF-8 and returns the ``Path``.
+        """
+        from impact_split.viz.html import render_html
+
+        html_text = render_html(self.to_dict(), title=title)
+        if path is None:
+            return html_text
+        out = Path(path)
+        out.write_text(html_text, encoding="utf-8")
+        return out
