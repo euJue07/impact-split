@@ -1,0 +1,3243 @@
+{
+  "params": {
+    "delta_pct": 0.01,
+    "min_global_impact_pct": 0.01,
+    "max_depth": 5
+  },
+  "mean_impact_f1": 0.9513047857403227,
+  "floor_dataset_f1": 0.8154369436626178,
+  "per_dataset_mean_f1": {
+    "kaggle_superstore": 0.954315184564198,
+    "kaggle_insurance": 0.9430452054025009,
+    "kaggle_adult_census": 0.9242996415659482,
+    "kaggle_vgsales": 0.9938769773017323,
+    "kaggle_airbnb_nyc": 0.9956292007580055,
+    "kaggle_telco_churn": 0.9499071498663364,
+    "kaggle_ibm_hr": 0.8981787506771126,
+    "kaggle_black_friday": 0.910572802408354,
+    "kaggle_olist": 0.9491053456231581,
+    "kaggle_wine": 0.9941175992358807
+  },
+  "conservation_all_ok": true,
+  "mean_n_segments": 22.1,
+  "results": [
+    {
+      "case": "kaggle_superstore",
+      "seed": 42,
+      "impact_f1": 0.9330882023795883,
+      "floor_rule_f1": 0.8,
+      "rule_scores": [
+        {
+          "rule": "State=Colorado & Region=West",
+          "f1": 0.8829848715470642,
+          "recall": 0.8406593406593407,
+          "precision": 0.9297983761194802,
+          "n_segments_used": 2,
+          "best_jaccard": 0.6593406593406593,
+          "matched_paths": [
+            "root / Region=East, West / Sub-Category=Accessories, Appliances, Art, Binders, Chairs, Furnishings, Paper / Region=West / State=Colorado",
+            "root / Region=East, West / Sub-Category=Bookcases, Copiers, Envelopes, Fasteners, Labels, Machines, Supplies, Tables / State=Colorado"
+          ],
+          "uncapped_f1": 0.8829848715470642,
+          "uncapped_recall": 0.8406593406593407,
+          "uncapped_precision": 0.9297983761194802,
+          "uncapped_n_segments": 2
+        },
+        {
+          "rule": "Sub-Category=Storage & Ship Mode=First Class|Second Class",
+          "f1": 0.9824561403508771,
+          "recall": 0.9655172413793102,
+          "precision": 1.0,
+          "n_segments_used": 3,
+          "best_jaccard": 0.6379310344827587,
+          "matched_paths": [
+            "Ship Mode=First Class, Second Class & Region=East, West & Category=Office Supplies & Sub-Category=Phones, Storage",
+            "root / Region=Central / Category=Office Supplies / Ship Mode=First Class, Second Class / Sub-Category=Storage",
+            "root / Region=South / State=Alabama, Arkansas, Georgia, Kentucky, Louisiana, Mississippi, North Carolina, South Carolina (+2 more) / Sub-Category=Storage / Ship Mode=First Class, Second Class"
+          ],
+          "uncapped_f1": 0.9824561403508771,
+          "uncapped_recall": 0.9655172413793102,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 3
+        },
+        {
+          "rule": "State=Florida",
+          "f1": 0.9999999999999999,
+          "recall": 0.9999999999999998,
+          "precision": 1.0,
+          "n_segments_used": 2,
+          "best_jaccard": 0.9347258485639687,
+          "matched_paths": [
+            "root / Region=South / State=Florida / Sub-Category=Accessories, Appliances, Art, Binders, Bookcases, Chairs, Copiers, Envelopes (+8 more)",
+            "root / Region=South / State=Florida / Sub-Category=Storage"
+          ],
+          "uncapped_f1": 0.9999999999999999,
+          "uncapped_recall": 0.9999999999999998,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 2
+        },
+        {
+          "rule": "Sub-Category=Phones & Category=Technology & Region=West",
+          "f1": 0.9999999999999999,
+          "recall": 0.9999999999999999,
+          "precision": 1.0,
+          "n_segments_used": 2,
+          "best_jaccard": 0.8050541516245487,
+          "matched_paths": [
+            "Ship Mode=First Class, Same Day, Standard Class & Region=West & Category=Technology & Sub-Category=Phones, Storage",
+            "root / Region=East, West / Sub-Category=Phones, Storage / Region=West / Category=Technology / Ship Mode=Second Class"
+          ],
+          "uncapped_f1": 0.9999999999999999,
+          "uncapped_recall": 0.9999999999999999,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 2
+        },
+        {
+          "rule": "Ship Mode=Second Class & Category=Technology",
+          "f1": 0.8,
+          "recall": 0.6666666666666667,
+          "precision": 1.0,
+          "n_segments_used": 3,
+          "best_jaccard": 0.273224043715847,
+          "matched_paths": [
+            "root / Region=Central / Category=Technology / Ship Mode=Second Class",
+            "Ship Mode=Second Class & Region=East & Category=Technology & Sub-Category=Accessories, Appliances, Art, Binders, Chairs, Furnishings, Paper, Phones (+1 more)",
+            "root / Region=East, West / Sub-Category=Phones, Storage / Region=West / Category=Technology / Ship Mode=Second Class"
+          ],
+          "uncapped_f1": 0.8590474385553329,
+          "uncapped_recall": 0.7595628415300544,
+          "uncapped_precision": 0.9885199502791405,
+          "uncapped_n_segments": 5
+        }
+      ],
+      "n_terminal_segments": 28,
+      "null_pass": null,
+      "conservation_ok": true,
+      "extras": {},
+      "meta": {
+        "kaggle": "vivek468/superstore-dataset-final",
+        "domain": "retail",
+        "n_rows": 9994,
+        "base": 3.0,
+        "cardinalities": {
+          "Ship Mode": 4,
+          "Segment": 3,
+          "Region": 4,
+          "Category": 3,
+          "Sub-Category": 17,
+          "State": 49
+        }
+      },
+      "n_rules": 5
+    },
+    {
+      "case": "kaggle_superstore",
+      "seed": 7,
+      "impact_f1": 1.0,
+      "floor_rule_f1": 0.9999999999999998,
+      "rule_scores": [
+        {
+          "rule": "Category=Technology & State=Ohio",
+          "f1": 0.9999999999999998,
+          "recall": 0.9999999999999996,
+          "precision": 1.0,
+          "n_segments_used": 1,
+          "best_jaccard": 1.0,
+          "matched_paths": [
+            "root / Region=East, South / Category=Technology / State=Ohio"
+          ],
+          "uncapped_f1": 0.9999999999999998,
+          "uncapped_recall": 0.9999999999999996,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 1
+        },
+        {
+          "rule": "Ship Mode=First Class & Category=Office Supplies & Region=West",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 2,
+          "best_jaccard": 0.8668941979522184,
+          "matched_paths": [
+            "root / Region=West / Ship Mode=First Class / Category=Office Supplies / Sub-Category=Appliances, Art, Binders, Envelopes, Fasteners, Labels, Paper, Supplies",
+            "root / Region=West / Ship Mode=First Class / Category=Office Supplies / Sub-Category=Storage"
+          ],
+          "uncapped_f1": 1.0,
+          "uncapped_recall": 1.0,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 2
+        },
+        {
+          "rule": "Region=Central & State=Texas",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 1,
+          "best_jaccard": 1.0,
+          "matched_paths": [
+            "root / Region=Central / State=Texas"
+          ],
+          "uncapped_f1": 1.0,
+          "uncapped_recall": 1.0,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 1
+        },
+        {
+          "rule": "Sub-Category=Storage & Region=West",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 2,
+          "best_jaccard": 0.8533834586466166,
+          "matched_paths": [
+            "root / Region=West / Ship Mode=Same Day, Second Class, Standard Class / Sub-Category=Storage",
+            "root / Region=West / Ship Mode=First Class / Category=Office Supplies / Sub-Category=Storage"
+          ],
+          "uncapped_f1": 1.0,
+          "uncapped_recall": 1.0,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 2
+        },
+        {
+          "rule": "Category=Office Supplies & Region=East & Ship Mode=First Class",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 1,
+          "best_jaccard": 1.0,
+          "matched_paths": [
+            "root / Region=East, South / Category=Office Supplies / Ship Mode=First Class / Region=East"
+          ],
+          "uncapped_f1": 1.0,
+          "uncapped_recall": 1.0,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 1
+        }
+      ],
+      "n_terminal_segments": 17,
+      "null_pass": null,
+      "conservation_ok": true,
+      "extras": {},
+      "meta": {
+        "kaggle": "vivek468/superstore-dataset-final",
+        "domain": "retail",
+        "n_rows": 9994,
+        "base": 3.0,
+        "cardinalities": {
+          "Ship Mode": 4,
+          "Segment": 3,
+          "Region": 4,
+          "Category": 3,
+          "Sub-Category": 17,
+          "State": 49
+        }
+      },
+      "n_rules": 5
+    },
+    {
+      "case": "kaggle_superstore",
+      "seed": 2026,
+      "impact_f1": 0.9298573513130057,
+      "floor_rule_f1": 0.8275717433227948,
+      "rule_scores": [
+        {
+          "rule": "State=New York|Michigan & Category=Technology & Segment=Consumer",
+          "f1": 0.922667394194615,
+          "recall": 1.0,
+          "precision": 0.8564368972243752,
+          "n_segments_used": 2,
+          "best_jaccard": 0.8285714285714286,
+          "matched_paths": [
+            "root / Segment=Consumer / Category=Technology / Region=East / State=New York",
+            "Segment=Consumer & Region=Central & Category=Furniture, Technology & State=Michigan"
+          ],
+          "uncapped_f1": 0.922667394194615,
+          "uncapped_recall": 1.0,
+          "uncapped_precision": 0.8564368972243752,
+          "uncapped_n_segments": 2
+        },
+        {
+          "rule": "Segment=Corporate & State=Ohio",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 1,
+          "best_jaccard": 1.0,
+          "matched_paths": [
+            "root / Segment=Corporate / Region=East / State=Ohio"
+          ],
+          "uncapped_f1": 1.0,
+          "uncapped_recall": 1.0,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 1
+        },
+        {
+          "rule": "State=Illinois|California & Segment=Home Office & Category=Office Supplies",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 3,
+          "best_jaccard": 0.6550387596899225,
+          "matched_paths": [
+            "Ship Mode=First Class, Same Day, Standard Class & Segment=Home Office & Region=West & Category=Office Supplies & State=California",
+            "root / Segment=Home Office / Region=Central / State=Illinois / Category=Office Supplies",
+            "root / Segment=Home Office / Region=West / Category=Office Supplies / State=California / Ship Mode=Second Class"
+          ],
+          "uncapped_f1": 1.0,
+          "uncapped_recall": 1.0,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 3
+        },
+        {
+          "rule": "State=Michigan|Colorado & Category=Furniture",
+          "f1": 0.8275717433227948,
+          "recall": 0.8712871287128714,
+          "precision": 0.7880334719632222,
+          "n_segments_used": 3,
+          "best_jaccard": 0.39603960396039606,
+          "matched_paths": [
+            "root / Segment=Corporate / Region=Central, South, West / Category=Furniture / State=Colorado, Michigan",
+            "root / Segment=Consumer / Category=Furniture / Region=South, West / State=Colorado",
+            "Segment=Consumer & Region=Central & Category=Furniture, Technology & State=Michigan"
+          ],
+          "uncapped_f1": 0.8608606228956397,
+          "uncapped_recall": 0.9702970297029704,
+          "uncapped_precision": 0.7736080750481781,
+          "uncapped_n_segments": 5
+        },
+        {
+          "rule": "Ship Mode=Second Class & Sub-Category=Paper",
+          "f1": 0.899047619047619,
+          "recall": 0.8166089965397922,
+          "precision": 1.0,
+          "n_segments_used": 3,
+          "best_jaccard": 0.5259515570934256,
+          "matched_paths": [
+            "root / Segment=Consumer / Category=Office Supplies / Ship Mode=Second Class / Sub-Category=Paper",
+            "root / Segment=Corporate / Region=Central, South, West / Category=Office Supplies / Ship Mode=Second Class / Sub-Category=Paper",
+            "root / Segment=Home Office / Region=East, South / Ship Mode=Second Class / Sub-Category=Paper"
+          ],
+          "uncapped_f1": 0.9566787003610109,
+          "uncapped_recall": 0.9169550173010381,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 6
+        }
+      ],
+      "n_terminal_segments": 39,
+      "null_pass": null,
+      "conservation_ok": true,
+      "extras": {},
+      "meta": {
+        "kaggle": "vivek468/superstore-dataset-final",
+        "domain": "retail",
+        "n_rows": 9994,
+        "base": 3.0,
+        "cardinalities": {
+          "Ship Mode": 4,
+          "Segment": 3,
+          "Region": 4,
+          "Category": 3,
+          "Sub-Category": 17,
+          "State": 49
+        }
+      },
+      "n_rules": 5
+    },
+    {
+      "case": "kaggle_insurance",
+      "seed": 42,
+      "impact_f1": 0.8363856290332361,
+      "floor_rule_f1": 0.65090861204291,
+      "rule_scores": [
+        {
+          "rule": "children=2 & smoker=yes|no & sex=male",
+          "f1": 0.9099099099099098,
+          "recall": 0.8347107438016529,
+          "precision": 1.0,
+          "n_segments_used": 3,
+          "best_jaccard": 0.38016528925619836,
+          "matched_paths": [
+            "root / smoker=no / children=2 / sex=male / region=northeast, northwest",
+            "root / smoker=no / children=2 / sex=male / region=southeast, southwest",
+            "root / smoker=yes / children=2 / region=southeast / sex=male"
+          ],
+          "uncapped_f1": 0.9999999999999999,
+          "uncapped_recall": 0.9999999999999999,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 5
+        },
+        {
+          "rule": "smoker=yes & sex=female",
+          "f1": 0.65090861204291,
+          "recall": 0.9217391304347825,
+          "precision": 0.5030883845209705,
+          "n_segments_used": 3,
+          "best_jaccard": 0.28125,
+          "matched_paths": [
+            "smoker=yes & region=northeast, southeast & children=0, 1, 3, 4, 5",
+            "smoker=yes & region=northwest, southwest & children=0, 1, 3, 4, 5",
+            "root / smoker=yes / children=2 / region=northeast, southwest / sex=female"
+          ],
+          "uncapped_f1": 0.6818577749349586,
+          "uncapped_recall": 1.0,
+          "uncapped_precision": 0.5172869527803143,
+          "uncapped_n_segments": 5
+        },
+        {
+          "rule": "children=2 & region=southeast|southwest",
+          "f1": 0.9017857142857142,
+          "recall": 0.8211382113821136,
+          "precision": 1.0,
+          "n_segments_used": 3,
+          "best_jaccard": 0.37398373983739835,
+          "matched_paths": [
+            "root / smoker=no / children=2 / sex=female / region=southeast, southwest",
+            "root / smoker=no / children=2 / sex=male / region=southeast, southwest",
+            "root / smoker=yes / children=2 / region=southeast / sex=male"
+          ],
+          "uncapped_f1": 0.9616723032035959,
+          "uncapped_recall": 1.0,
+          "uncapped_precision": 0.926174180049982,
+          "uncapped_n_segments": 6
+        },
+        {
+          "rule": "smoker=yes & region=southeast|northeast",
+          "f1": 0.9639300140767766,
+          "recall": 0.9493670886075949,
+          "precision": 0.9789466790704142,
+          "n_segments_used": 3,
+          "best_jaccard": 0.8291139240506329,
+          "matched_paths": [
+            "smoker=yes & region=northeast, southeast & children=0, 1, 3, 4, 5",
+            "root / smoker=yes / children=2 / region=southeast / sex=male",
+            "root / smoker=yes / children=2 / region=northeast, southwest / sex=female"
+          ],
+          "uncapped_f1": 0.9740724962444578,
+          "uncapped_recall": 0.981012658227848,
+          "uncapped_precision": 0.9672298406345914,
+          "uncapped_n_segments": 4
+        },
+        {
+          "rule": "smoker=yes & sex=male",
+          "f1": 0.7553938948508694,
+          "recall": 0.8742138364779876,
+          "precision": 0.665008390882482,
+          "n_segments_used": 3,
+          "best_jaccard": 0.3615023474178404,
+          "matched_paths": [
+            "smoker=yes & region=northeast, southeast & children=0, 1, 3, 4, 5",
+            "smoker=yes & region=northwest, southwest & children=0, 1, 3, 4, 5",
+            "root / smoker=yes / children=2 / region=southeast / sex=male"
+          ],
+          "uncapped_f1": 0.801586260003405,
+          "uncapped_recall": 1.0,
+          "uncapped_precision": 0.6688727217076821,
+          "uncapped_n_segments": 5
+        }
+      ],
+      "n_terminal_segments": 13,
+      "null_pass": null,
+      "conservation_ok": true,
+      "extras": {},
+      "meta": {
+        "kaggle": "mirichoi0218/insurance",
+        "domain": "health",
+        "n_rows": 1338,
+        "base": 0.0,
+        "cardinalities": {
+          "sex": 2,
+          "smoker": 2,
+          "region": 4,
+          "children": 6
+        }
+      },
+      "n_rules": 5
+    },
+    {
+      "case": "kaggle_insurance",
+      "seed": 7,
+      "impact_f1": 1.0,
+      "floor_rule_f1": 0.9999999999999999,
+      "rule_scores": [
+        {
+          "rule": "smoker=no & region=southwest & children=0",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 1,
+          "best_jaccard": 1.0,
+          "matched_paths": [
+            "root / children=0, 3 / smoker=no / region=southwest / children=0"
+          ],
+          "uncapped_f1": 1.0,
+          "uncapped_recall": 1.0,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 1
+        },
+        {
+          "rule": "children=0 & smoker=yes",
+          "f1": 0.9999999999999999,
+          "recall": 0.9999999999999997,
+          "precision": 1.0,
+          "n_segments_used": 1,
+          "best_jaccard": 1.0,
+          "matched_paths": [
+            "root / children=0, 3 / smoker=yes / children=0"
+          ],
+          "uncapped_f1": 0.9999999999999999,
+          "uncapped_recall": 0.9999999999999997,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 1
+        },
+        {
+          "rule": "smoker=no & sex=female & children=1",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 1,
+          "best_jaccard": 1.0,
+          "matched_paths": [
+            "root / children=1 / sex=female / smoker=no"
+          ],
+          "uncapped_f1": 1.0,
+          "uncapped_recall": 1.0,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 1
+        },
+        {
+          "rule": "children=1 & sex=female",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 2,
+          "best_jaccard": 0.8417721518987342,
+          "matched_paths": [
+            "root / children=1 / sex=female / smoker=no",
+            "root / children=1 / sex=female / smoker=yes"
+          ],
+          "uncapped_f1": 1.0,
+          "uncapped_recall": 1.0,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 2
+        },
+        {
+          "rule": "children=2 & region=southwest|southeast",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 1,
+          "best_jaccard": 1.0,
+          "matched_paths": [
+            "root / children=2, 4, 5 / region=southeast, southwest / children=2"
+          ],
+          "uncapped_f1": 1.0,
+          "uncapped_recall": 1.0,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 1
+        }
+      ],
+      "n_terminal_segments": 11,
+      "null_pass": null,
+      "conservation_ok": true,
+      "extras": {},
+      "meta": {
+        "kaggle": "mirichoi0218/insurance",
+        "domain": "health",
+        "n_rows": 1338,
+        "base": 0.0,
+        "cardinalities": {
+          "sex": 2,
+          "smoker": 2,
+          "region": 4,
+          "children": 6
+        }
+      },
+      "n_rules": 5
+    },
+    {
+      "case": "kaggle_insurance",
+      "seed": 2026,
+      "impact_f1": 0.9927499871742669,
+      "floor_rule_f1": 0.9732028667089787,
+      "rule_scores": [
+        {
+          "rule": "children=2 & sex=female",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 3,
+          "best_jaccard": 0.6218487394957983,
+          "matched_paths": [
+            "root / smoker=no / sex=female / children=2 / region=northeast, northwest, southwest",
+            "root / smoker=no / sex=female / children=2 / region=southeast",
+            "root / smoker=yes / sex=female / children=2"
+          ],
+          "uncapped_f1": 1.0,
+          "uncapped_recall": 1.0,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 3
+        },
+        {
+          "rule": "children=0 & sex=female|male & region=southwest",
+          "f1": 0.9732028667089787,
+          "recall": 0.9999999999999997,
+          "precision": 0.9478044251932554,
+          "n_segments_used": 3,
+          "best_jaccard": 0.8188405797101449,
+          "matched_paths": [
+            "smoker=no & region=southwest & children=0",
+            "root / smoker=yes / sex=male / children=0, 3 / region=southwest",
+            "sex=female & smoker=yes & region=southwest & children=0, 1"
+          ],
+          "uncapped_f1": 0.9732028667089787,
+          "uncapped_recall": 0.9999999999999997,
+          "uncapped_precision": 0.9478044251932554,
+          "uncapped_n_segments": 3
+        },
+        {
+          "rule": "children=2 & sex=male",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 1,
+          "best_jaccard": 1.0,
+          "matched_paths": [
+            "sex=male & children=2"
+          ],
+          "uncapped_f1": 1.0,
+          "uncapped_recall": 1.0,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 1
+        },
+        {
+          "rule": "region=southeast & smoker=no & sex=female",
+          "f1": 0.9949138813894288,
+          "recall": 0.9999999999999996,
+          "precision": 0.9898792381739348,
+          "n_segments_used": 3,
+          "best_jaccard": 0.8129496402877698,
+          "matched_paths": [
+            "root / smoker=no / sex=female / children=0, 1, 3, 4 / region=southeast",
+            "root / smoker=no / sex=female / children=2 / region=southeast",
+            "root / smoker=no / sex=female / children=5"
+          ],
+          "uncapped_f1": 0.9949138813894288,
+          "uncapped_recall": 0.9999999999999996,
+          "uncapped_precision": 0.9898792381739348,
+          "uncapped_n_segments": 3
+        },
+        {
+          "rule": "sex=female & smoker=yes",
+          "f1": 0.9956331877729259,
+          "recall": 0.9913043478260871,
+          "precision": 1.0,
+          "n_segments_used": 3,
+          "best_jaccard": 0.6869565217391305,
+          "matched_paths": [
+            "root / smoker=yes / sex=female / children=0, 1, 3, 5 / region=northeast, northwest, southeast",
+            "root / smoker=yes / sex=female / children=2",
+            "sex=female & smoker=yes & region=southwest & children=0, 1"
+          ],
+          "uncapped_f1": 1.0,
+          "uncapped_recall": 1.0,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 4
+        }
+      ],
+      "n_terminal_segments": 18,
+      "null_pass": null,
+      "conservation_ok": true,
+      "extras": {},
+      "meta": {
+        "kaggle": "mirichoi0218/insurance",
+        "domain": "health",
+        "n_rows": 1338,
+        "base": 0.0,
+        "cardinalities": {
+          "sex": 2,
+          "smoker": 2,
+          "region": 4,
+          "children": 6
+        }
+      },
+      "n_rules": 5
+    },
+    {
+      "case": "kaggle_adult_census",
+      "seed": 42,
+      "impact_f1": 0.943946366579226,
+      "floor_rule_f1": 0.8417454422562356,
+      "rule_scores": [
+        {
+          "rule": "race=Asian-Pac-Islander & marital.status=Never-married",
+          "f1": 0.8417454422562356,
+          "recall": 0.7768817204301075,
+          "precision": 0.9184271305309264,
+          "n_segments_used": 3,
+          "best_jaccard": 0.47043010752688175,
+          "matched_paths": [
+            "root / marital.status=Divorced, Never-married, Separated, Widowed / occupation=?, Armed-Forces, Craft-repair, Farming-fishing, Handlers-cleaners, Machine-op-inspct, Other-service, Priv-house-serv (+3 more) / race=Asian-Pac-Islander / marital.status=Never-married",
+            "education=10th, 11th, 12th, 1st-4th, 5th-6th, 7th-8th, 9th, Assoc-acdm (+5 more) & marital.status=Divorced, Never-married, Separated, Widowed & occupation=Adm-clerical, Prof-specialty & race=Asian-Pac-Islander",
+            "workclass=Federal-gov, Local-gov, Private, Self-emp-inc, State-gov & education=HS-grad, Some-college & marital.status=Divorced, Never-married, Separated, Widowed & occupation=Adm-clerical, Exec-managerial, Prof-specialty & race=Asian-Pac-Islander"
+          ],
+          "uncapped_f1": 0.925038933937871,
+          "uncapped_recall": 0.9032258064516129,
+          "uncapped_precision": 0.9479317203446026,
+          "uncapped_n_segments": 5
+        },
+        {
+          "rule": "occupation=Sales & sex=Male|Female & education=Some-college",
+          "f1": 0.9938957633327146,
+          "recall": 0.9881070366699701,
+          "precision": 0.9997527150423395,
+          "n_segments_used": 3,
+          "best_jaccard": 0.5659068384539148,
+          "matched_paths": [
+            "root / marital.status=Divorced, Never-married, Separated, Widowed / occupation=Sales / education=Some-college / race=Amer-Indian-Eskimo, Black, Other, White",
+            "root / marital.status=Married-civ-spouse / occupation=Armed-Forces, Priv-house-serv, Sales / education=Some-college / occupation=Sales",
+            "root / marital.status=Divorced, Never-married, Separated, Widowed / occupation=Sales / education=Some-college / race=Asian-Pac-Islander"
+          ],
+          "uncapped_f1": 0.9938957633327146,
+          "uncapped_recall": 0.9881070366699701,
+          "uncapped_precision": 0.9997527150423395,
+          "uncapped_n_segments": 3
+        },
+        {
+          "rule": "education=Assoc-voc & occupation=Prof-specialty|Adm-clerical",
+          "f1": 0.9369085173501578,
+          "recall": 0.881305637982196,
+          "precision": 1.0,
+          "n_segments_used": 3,
+          "best_jaccard": 0.5222551928783383,
+          "matched_paths": [
+            "root / marital.status=Divorced, Never-married, Separated, Widowed / occupation=Adm-clerical, Exec-managerial, Prof-specialty / education=Assoc-voc / occupation=Adm-clerical, Prof-specialty / sex=Female",
+            "root / marital.status=Married-civ-spouse / occupation=?, Craft-repair, Farming-fishing, Handlers-cleaners, Machine-op-inspct, Other-service, Prof-specialty, Protective-serv (+2 more) / education=Assoc-voc / occupation=Prof-specialty",
+            "root / marital.status=Married-civ-spouse / occupation=Adm-clerical, Exec-managerial / workclass=Federal-gov, Local-gov, Private, Self-emp-inc, State-gov / occupation=Adm-clerical / education=Assoc-voc"
+          ],
+          "uncapped_f1": 0.9940298507462686,
+          "uncapped_recall": 0.9881305637982195,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 4
+        },
+        {
+          "rule": "occupation=Exec-managerial|Adm-clerical & marital.status=Married-civ-spouse",
+          "f1": 0.9890951959917476,
+          "recall": 0.9784256559766761,
+          "precision": 1.0,
+          "n_segments_used": 3,
+          "best_jaccard": 0.6291545189504373,
+          "matched_paths": [
+            "root / marital.status=Married-civ-spouse / occupation=Adm-clerical, Exec-managerial / workclass=Federal-gov, Local-gov, Private, Self-emp-inc, State-gov / occupation=Exec-managerial",
+            "workclass=Federal-gov, Local-gov, Private, Self-emp-inc, State-gov & education=10th, 11th, 12th, 5th-6th, 7th-8th, 9th, Assoc-acdm, Bachelors (+5 more) & marital.status=Married-civ-spouse & occupation=Adm-clerical",
+            "root / marital.status=Married-civ-spouse / occupation=Adm-clerical, Exec-managerial / workclass=Self-emp-not-inc / occupation=Exec-managerial"
+          ],
+          "uncapped_f1": 0.9999999999999999,
+          "uncapped_recall": 0.9999999999999999,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 6
+        },
+        {
+          "rule": "occupation=Exec-managerial & workclass=Self-emp-not-inc",
+          "f1": 0.9580869139652747,
+          "recall": 0.9719387755102042,
+          "precision": 0.9446243319712915,
+          "n_segments_used": 3,
+          "best_jaccard": 0.7295918367346939,
+          "matched_paths": [
+            "root / marital.status=Married-civ-spouse / occupation=Adm-clerical, Exec-managerial / workclass=Self-emp-not-inc / occupation=Exec-managerial",
+            "root / marital.status=Divorced, Never-married, Separated, Widowed / occupation=Adm-clerical, Exec-managerial, Prof-specialty / education=10th, 11th, 12th, 1st-4th, 5th-6th, 7th-8th, 9th, Assoc-acdm (+5 more) / occupation=Exec-managerial / workclass=Self-emp-not-inc",
+            "root / marital.status=Divorced, Never-married, Separated, Widowed / occupation=Adm-clerical, Exec-managerial, Prof-specialty / education=HS-grad, Some-college / workclass=Self-emp-not-inc"
+          ],
+          "uncapped_f1": 0.9580869139652747,
+          "uncapped_recall": 0.9719387755102042,
+          "uncapped_precision": 0.9446243319712915,
+          "uncapped_n_segments": 3
+        }
+      ],
+      "n_terminal_segments": 34,
+      "null_pass": null,
+      "conservation_ok": true,
+      "extras": {},
+      "meta": {
+        "kaggle": "uciml/adult-census-income",
+        "domain": "socioeconomic",
+        "n_rows": 32561,
+        "base": 3.0,
+        "cardinalities": {
+          "workclass": 9,
+          "education": 16,
+          "marital.status": 7,
+          "occupation": 15,
+          "race": 5,
+          "sex": 2,
+          "native.country": 42
+        }
+      },
+      "n_rules": 5
+    },
+    {
+      "case": "kaggle_adult_census",
+      "seed": 7,
+      "impact_f1": 0.92690521397912,
+      "floor_rule_f1": 0.864100351871947,
+      "rule_scores": [
+        {
+          "rule": "education=Masters & marital.status=Divorced|Never-married",
+          "f1": 0.9124221772138432,
+          "recall": 0.8430141287284144,
+          "precision": 0.9942848258312733,
+          "n_segments_used": 2,
+          "best_jaccard": 0.8226059654631083,
+          "matched_paths": [
+            "root / occupation=Adm-clerical, Craft-repair, Exec-managerial, Handlers-cleaners, Machine-op-inspct, Prof-specialty, Sales / race=White / education=11th, Masters / marital.status=Divorced, Never-married / education=Masters",
+            "root / occupation=Adm-clerical, Craft-repair, Exec-managerial, Handlers-cleaners, Machine-op-inspct, Prof-specialty, Sales / race=Asian-Pac-Islander / sex=Male / education=11th, Masters / marital.status=Divorced, Never-married"
+          ],
+          "uncapped_f1": 0.9145717450540518,
+          "uncapped_recall": 0.8461538461538464,
+          "uncapped_precision": 0.9950271713604376,
+          "uncapped_n_segments": 3
+        },
+        {
+          "rule": "workclass=Private & education=11th",
+          "f1": 0.864100351871947,
+          "recall": 0.8450704225352116,
+          "precision": 0.8840070861923192,
+          "n_segments_used": 3,
+          "best_jaccard": 0.503030303030303,
+          "matched_paths": [
+            "education=11th & marital.status=Divorced, Married-civ-spouse, Never-married, Separated, Widowed & occupation=Adm-clerical, Craft-repair, Exec-managerial, Handlers-cleaners, Machine-op-inspct, Prof-specialty, Sales & race=White",
+            "root / occupation=Other-service / race=Amer-Indian-Eskimo, Other, White / workclass=Private, Self-emp-not-inc / education=11th, Masters",
+            "root / occupation=?, Armed-Forces, Farming-fishing, Priv-house-serv, Protective-serv, Tech-support, Transport-moving / race=Black, White / education=11th, Masters / workclass=Private"
+          ],
+          "uncapped_f1": 0.9075163311888562,
+          "uncapped_recall": 0.9046587215601303,
+          "uncapped_precision": 0.9103920510919701,
+          "uncapped_n_segments": 5
+        },
+        {
+          "rule": "race=Asian-Pac-Islander",
+          "f1": 0.8911419423692638,
+          "recall": 0.8036573628488934,
+          "precision": 1.0,
+          "n_segments_used": 3,
+          "best_jaccard": 0.4138594802694899,
+          "matched_paths": [
+            "root / occupation=Adm-clerical, Craft-repair, Exec-managerial, Handlers-cleaners, Machine-op-inspct, Prof-specialty, Sales / race=Asian-Pac-Islander / sex=Male / education=10th, 12th, 1st-4th, 5th-6th, 7th-8th, 9th, Assoc-acdm, Assoc-voc (+6 more)",
+            "occupation=?, Adm-clerical, Armed-Forces, Craft-repair, Exec-managerial, Farming-fishing, Handlers-cleaners, Machine-op-inspct (+6 more) & race=Asian-Pac-Islander & sex=Female",
+            "root / occupation=?, Armed-Forces, Farming-fishing, Priv-house-serv, Protective-serv, Tech-support, Transport-moving / race=Asian-Pac-Islander / sex=Male / native.country=?, Cambodia, China, Hong, India, Japan, Philippines, South (+4 more)"
+          ],
+          "uncapped_f1": 1.0,
+          "uncapped_recall": 1.0,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 10
+        },
+        {
+          "rule": "sex=Female & race=Asian-Pac-Islander",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 2,
+          "best_jaccard": 0.8497109826589595,
+          "matched_paths": [
+            "occupation=?, Adm-clerical, Armed-Forces, Craft-repair, Exec-managerial, Farming-fishing, Handlers-cleaners, Machine-op-inspct (+6 more) & race=Asian-Pac-Islander & sex=Female",
+            "root / occupation=Other-service / race=Asian-Pac-Islander / sex=Female"
+          ],
+          "uncapped_f1": 1.0,
+          "uncapped_recall": 1.0,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 2
+        },
+        {
+          "rule": "workclass=Private|Self-emp-not-inc & occupation=Other-service & sex=Female|Male",
+          "f1": 0.9668615984405459,
+          "recall": 0.9358490566037736,
+          "precision": 1.0,
+          "n_segments_used": 3,
+          "best_jaccard": 0.7351629502572898,
+          "matched_paths": [
+            "workclass=Private, Self-emp-not-inc & education=10th, 12th, 1st-4th, 5th-6th, 7th-8th, 9th, Assoc-acdm, Assoc-voc (+6 more) & occupation=Other-service & race=Amer-Indian-Eskimo, Other, White",
+            "workclass=Private & education=10th, 12th, 1st-4th, 5th-6th, 7th-8th, 9th, Assoc-acdm, Assoc-voc (+4 more) & occupation=Other-service & race=Black",
+            "root / occupation=Other-service / race=Amer-Indian-Eskimo, Other, White / workclass=Private, Self-emp-not-inc / education=11th, Masters"
+          ],
+          "uncapped_f1": 0.9986555593450392,
+          "uncapped_recall": 0.999656946826758,
+          "uncapped_precision": 0.9976561760976412,
+          "uncapped_n_segments": 7
+        }
+      ],
+      "n_terminal_segments": 28,
+      "null_pass": null,
+      "conservation_ok": true,
+      "extras": {},
+      "meta": {
+        "kaggle": "uciml/adult-census-income",
+        "domain": "socioeconomic",
+        "n_rows": 32561,
+        "base": 3.0,
+        "cardinalities": {
+          "workclass": 9,
+          "education": 16,
+          "marital.status": 7,
+          "occupation": 15,
+          "race": 5,
+          "sex": 2,
+          "native.country": 42
+        }
+      },
+      "n_rules": 5
+    },
+    {
+      "case": "kaggle_adult_census",
+      "seed": 2026,
+      "impact_f1": 0.9020473441394987,
+      "floor_rule_f1": 0.8351728468589689,
+      "rule_scores": [
+        {
+          "rule": "education=Bachelors & occupation=Tech-support|Sales",
+          "f1": 0.9071324845097154,
+          "recall": 0.8662175168431187,
+          "precision": 0.9521042300957044,
+          "n_segments_used": 3,
+          "best_jaccard": 0.5813282001924928,
+          "matched_paths": [
+            "root / sex=Male / occupation=Sales, Transport-moving / education=Bachelors / occupation=Sales / marital.status=Married-civ-spouse, Married-spouse-absent, Never-married, Separated, Widowed",
+            "root / sex=Male / occupation=Armed-Forces, Priv-house-serv, Tech-support / education=Bachelors",
+            "root / sex=Female / occupation=Adm-clerical, Sales / race=White / occupation=Sales / education=Bachelors"
+          ],
+          "uncapped_f1": 0.9264739075162992,
+          "uncapped_recall": 0.9066410009624644,
+          "uncapped_precision": 0.9471939150897417,
+          "uncapped_n_segments": 4
+        },
+        {
+          "rule": "marital.status=Divorced & race=Black",
+          "f1": 0.9308794970396936,
+          "recall": 0.8948453608247422,
+          "precision": 0.969937485145607,
+          "n_segments_used": 3,
+          "best_jaccard": 0.4144329896907217,
+          "matched_paths": [
+            "root / sex=Female / occupation=?, Craft-repair, Exec-managerial, Handlers-cleaners, Machine-op-inspct, Other-service, Prof-specialty, Tech-support / race=Black / marital.status=Divorced / workclass=?, Federal-gov, Local-gov, Private, Self-emp-inc, Self-emp-not-inc",
+            "root / sex=Male / occupation=?, Adm-clerical, Craft-repair, Exec-managerial, Farming-fishing, Handlers-cleaners, Machine-op-inspct, Other-service (+2 more) / race=Black / marital.status=Divorced",
+            "root / sex=Female / occupation=Adm-clerical, Sales / race=Black / marital.status=Divorced"
+          ],
+          "uncapped_f1": 0.9696253913064318,
+          "uncapped_recall": 0.9855670103092781,
+          "uncapped_precision": 0.9541912770998376,
+          "uncapped_n_segments": 7
+        },
+        {
+          "rule": "occupation=Adm-clerical|Sales & sex=Female",
+          "f1": 0.9193800654059434,
+          "recall": 0.8507894736842107,
+          "precision": 1.0,
+          "n_segments_used": 3,
+          "best_jaccard": 0.5384210526315789,
+          "matched_paths": [
+            "root / sex=Female / occupation=Adm-clerical, Sales / race=White / occupation=Adm-clerical",
+            "education=10th, 11th, 12th, 1st-4th, 5th-6th, 7th-8th, 9th, Assoc-acdm (+6 more) & occupation=Sales & race=White & sex=Female",
+            "root / sex=Female / occupation=Adm-clerical, Sales / race=Black / marital.status=Married-civ-spouse, Married-spouse-absent, Never-married, Separated, Widowed / occupation=Adm-clerical"
+          ],
+          "uncapped_f1": 1.0,
+          "uncapped_recall": 1.0,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 9
+        },
+        {
+          "rule": "sex=Male & occupation=Transport-moving|Sales",
+          "f1": 0.9176718268831717,
+          "recall": 0.8574730354391369,
+          "precision": 0.9869613283773978,
+          "n_segments_used": 3,
+          "best_jaccard": 0.630457113507961,
+          "matched_paths": [
+            "root / sex=Male / occupation=Sales, Transport-moving / education=10th, 11th, Assoc-acdm, HS-grad, Some-college / marital.status=Married-AF-spouse, Married-civ-spouse, Married-spouse-absent, Never-married, Separated, Widowed",
+            "root / sex=Male / occupation=Sales, Transport-moving / education=Bachelors / occupation=Sales / marital.status=Married-civ-spouse, Married-spouse-absent, Never-married, Separated, Widowed",
+            "education=12th, 1st-4th, 5th-6th, 7th-8th, 9th, Assoc-voc, Doctorate, Masters (+1 more) & occupation=Sales & sex=Male & native.country=?, Cambodia, China, Dominican-Republic, Ecuador, El-Salvador, England, France (+10 more)"
+          ],
+          "uncapped_f1": 0.9999999999999999,
+          "uncapped_recall": 0.9999999999999997,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 9
+        },
+        {
+          "rule": "race=Asian-Pac-Islander|Black & marital.status=Divorced",
+          "f1": 0.8351728468589689,
+          "recall": 0.7750000000000001,
+          "precision": 0.9054761748648911,
+          "n_segments_used": 3,
+          "best_jaccard": 0.35892857142857143,
+          "matched_paths": [
+            "root / sex=Female / occupation=?, Craft-repair, Exec-managerial, Handlers-cleaners, Machine-op-inspct, Other-service, Prof-specialty, Tech-support / race=Black / marital.status=Divorced / workclass=?, Federal-gov, Local-gov, Private, Self-emp-inc, Self-emp-not-inc",
+            "root / sex=Male / occupation=?, Adm-clerical, Craft-repair, Exec-managerial, Farming-fishing, Handlers-cleaners, Machine-op-inspct, Other-service (+2 more) / race=Black / marital.status=Divorced",
+            "root / sex=Female / occupation=Adm-clerical, Sales / race=Black / marital.status=Divorced"
+          ],
+          "uncapped_f1": 0.9440956344094585,
+          "uncapped_recall": 0.9803571428571429,
+          "uncapped_precision": 0.9104209307448927,
+          "uncapped_n_segments": 10
+        }
+      ],
+      "n_terminal_segments": 35,
+      "null_pass": null,
+      "conservation_ok": true,
+      "extras": {},
+      "meta": {
+        "kaggle": "uciml/adult-census-income",
+        "domain": "socioeconomic",
+        "n_rows": 32561,
+        "base": 3.0,
+        "cardinalities": {
+          "workclass": 9,
+          "education": 16,
+          "marital.status": 7,
+          "occupation": 15,
+          "race": 5,
+          "sex": 2,
+          "native.country": 42
+        }
+      },
+      "n_rules": 5
+    },
+    {
+      "case": "kaggle_vgsales",
+      "seed": 42,
+      "impact_f1": 0.9945450730701845,
+      "floor_rule_f1": 0.9859350932053087,
+      "rule_scores": [
+        {
+          "rule": "Platform=PS3|GBA & Genre=Action|Misc",
+          "f1": 0.9859350932053087,
+          "recall": 0.9999999999999999,
+          "precision": 0.9722603421133102,
+          "n_segments_used": 3,
+          "best_jaccard": 0.645326504481434,
+          "matched_paths": [
+            "root / Platform=GBA, PS, PS3 / Platform=GBA, PS3 / Platform=PS3 / Genre=Action, Misc",
+            "root / Platform=GBA, PS, PS3 / Platform=GBA, PS3 / Platform=GBA / Genre=Action",
+            "root / Platform=GBA, PS, PS3 / Platform=GBA, PS3 / Platform=GBA / Genre=Adventure, Misc, Platform, Puzzle, Racing, Role-Playing, Shooter, Sports / Genre=Misc, Role-Playing, Shooter"
+          ],
+          "uncapped_f1": 0.9859350932053087,
+          "uncapped_recall": 0.9999999999999999,
+          "uncapped_precision": 0.9722603421133102,
+          "uncapped_n_segments": 3
+        },
+        {
+          "rule": "Platform=X360",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 1,
+          "best_jaccard": 1.0,
+          "matched_paths": [
+            "root / Platform=DS, X360 / Platform=X360"
+          ],
+          "uncapped_f1": 1.0,
+          "uncapped_recall": 1.0,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 1
+        },
+        {
+          "rule": "Platform=PS2|PS3 & Genre=Shooter",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 3,
+          "best_jaccard": 0.4936708860759494,
+          "matched_paths": [
+            "root / Platform=GBA, PS, PS3 / Platform=GBA, PS3 / Platform=PS3 / Genre=Puzzle, Shooter / Genre=Shooter",
+            "root / Platform=2600, 3DO, 3DS, DC, GB, GC, GEN, GG (+18 more) / Genre=Shooter / Platform=PS2 / Publisher=3DO, Acclaim Entertainment, Activision, Activision Value, Alchemist, Atari, BAM! Entertainment, Big Ben Interactive (+38 more)",
+            "root / Platform=2600, 3DO, 3DS, DC, GB, GC, GEN, GG (+18 more) / Genre=Shooter / Platform=PS2 / Publisher=Play It"
+          ],
+          "uncapped_f1": 1.0,
+          "uncapped_recall": 1.0,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 3
+        },
+        {
+          "rule": "Platform=PS",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 1,
+          "best_jaccard": 1.0,
+          "matched_paths": [
+            "root / Platform=GBA, PS, PS3 / Platform=PS"
+          ],
+          "uncapped_f1": 1.0,
+          "uncapped_recall": 1.0,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 1
+        },
+        {
+          "rule": "Platform=GBA|DS & Genre=Puzzle|Misc",
+          "f1": 0.9867902721456133,
+          "recall": 1.0,
+          "precision": 0.9739249881021965,
+          "n_segments_used": 3,
+          "best_jaccard": 0.8069053708439897,
+          "matched_paths": [
+            "root / Platform=DS, X360 / Platform=DS / Genre=Misc, Puzzle",
+            "root / Platform=GBA, PS, PS3 / Platform=GBA, PS3 / Platform=GBA / Genre=Adventure, Misc, Platform, Puzzle, Racing, Role-Playing, Shooter, Sports / Genre=Misc, Role-Playing, Shooter",
+            "Platform=GBA & Genre=Puzzle & Publisher=Acclaim Entertainment, Activision, Atari, Capcom, Conspiracy Entertainment, Destination Software, Inc, Empire Interactive, Liquid Games (+12 more)"
+          ],
+          "uncapped_f1": 0.9867902721456133,
+          "uncapped_recall": 1.0,
+          "uncapped_precision": 0.9739249881021965,
+          "uncapped_n_segments": 3
+        }
+      ],
+      "n_terminal_segments": 16,
+      "null_pass": null,
+      "conservation_ok": true,
+      "extras": {},
+      "meta": {
+        "kaggle": "gregorut/videogamesales",
+        "domain": "media",
+        "n_rows": 16598,
+        "base": 0.0,
+        "cardinalities": {
+          "Platform": 31,
+          "Genre": 12,
+          "Publisher": 579
+        }
+      },
+      "n_rules": 5
+    },
+    {
+      "case": "kaggle_vgsales",
+      "seed": 7,
+      "impact_f1": 0.9951751307965411,
+      "floor_rule_f1": 0.9758756539827058,
+      "rule_scores": [
+        {
+          "rule": "Platform=PSP|X360 & Genre=Sports",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 2,
+          "best_jaccard": 0.9098591549295775,
+          "matched_paths": [
+            "root / Platform=PS2, PSP, Wii, X360 / Genre=Racing, Sports / Publisher=3DO, 49Games, 505 Games, Acclaim Entertainment, Ackkstudios, Activision, Activision Value, Agetec (+108 more) / Genre=Sports / Platform=PSP, X360",
+            "root / Platform=PS2, PSP, Wii, X360 / Genre=Racing, Sports / Publisher=Konami Digital Entertainment / Platform=PSP, X360 / Genre=Sports"
+          ],
+          "uncapped_f1": 1.0,
+          "uncapped_recall": 1.0,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 2
+        },
+        {
+          "rule": "Platform=XB",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 2,
+          "best_jaccard": 0.962378640776699,
+          "matched_paths": [
+            "root / Platform=GBA, XB / Platform=XB / Publisher=3DO, 505 Games, Acclaim Entertainment, Activision, Activision Value, Atari, Atlus, Avalon Interactive (+64 more)",
+            "root / Platform=GBA, XB / Platform=XB / Publisher=Konami Digital Entertainment"
+          ],
+          "uncapped_f1": 1.0,
+          "uncapped_recall": 1.0,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 2
+        },
+        {
+          "rule": "Platform=Wii|PS2 & Genre=Racing",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 1,
+          "best_jaccard": 1.0,
+          "matched_paths": [
+            "Platform=PS2, Wii & Genre=Racing & Publisher=3DO, 49Games, 505 Games, Acclaim Entertainment, Ackkstudios, Activision, Activision Value, Agetec (+109 more)"
+          ],
+          "uncapped_f1": 1.0,
+          "uncapped_recall": 1.0,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 1
+        },
+        {
+          "rule": "Genre=Sports & Publisher=Konami Digital Entertainment",
+          "f1": 0.9758756539827058,
+          "recall": 0.9714285714285716,
+          "precision": 0.980363640201431,
+          "n_segments_used": 3,
+          "best_jaccard": 0.8,
+          "matched_paths": [
+            "Platform=2600, 3DO, 3DS, DC, DS, GB, GC, GEN (+19 more) & Genre=Sports & Publisher=Konami Digital Entertainment",
+            "root / Platform=PS2, PSP, Wii, X360 / Genre=Racing, Sports / Publisher=Konami Digital Entertainment / Platform=PSP, X360 / Genre=Sports",
+            "root / Platform=GBA, XB / Platform=GBA / Genre=Role-Playing, Sports / Publisher=Konami Digital Entertainment"
+          ],
+          "uncapped_f1": 0.9793752731263029,
+          "uncapped_recall": 1.0,
+          "uncapped_precision": 0.9595841128856967,
+          "uncapped_n_segments": 4
+        },
+        {
+          "rule": "Genre=Action & Platform=GBA",
+          "f1": 0.9999999999999997,
+          "recall": 0.9999999999999994,
+          "precision": 1.0,
+          "n_segments_used": 1,
+          "best_jaccard": 1.0,
+          "matched_paths": [
+            "Platform=GBA & Genre=Action & Publisher=Activision, Atari, Atlus, BAM! Entertainment, Banpresto, Capcom, Crave Entertainment, D3Publisher (+28 more)"
+          ],
+          "uncapped_f1": 0.9999999999999997,
+          "uncapped_recall": 0.9999999999999994,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 1
+        }
+      ],
+      "n_terminal_segments": 15,
+      "null_pass": null,
+      "conservation_ok": true,
+      "extras": {},
+      "meta": {
+        "kaggle": "gregorut/videogamesales",
+        "domain": "media",
+        "n_rows": 16598,
+        "base": 0.0,
+        "cardinalities": {
+          "Platform": 31,
+          "Genre": 12,
+          "Publisher": 579
+        }
+      },
+      "n_rules": 5
+    },
+    {
+      "case": "kaggle_vgsales",
+      "seed": 2026,
+      "impact_f1": 0.9919107280384717,
+      "floor_rule_f1": 0.9595536401923587,
+      "rule_scores": [
+        {
+          "rule": "Platform=GBA",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 2,
+          "best_jaccard": 0.8661800486618005,
+          "matched_paths": [
+            "Platform=GBA & Genre=Action, Adventure, Fighting, Platform, Puzzle, Racing, Role-Playing, Shooter (+3 more)",
+            "root / Genre=Misc / Platform=GBA, PS / Platform=GBA"
+          ],
+          "uncapped_f1": 1.0,
+          "uncapped_recall": 1.0,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 2
+        },
+        {
+          "rule": "Genre=Sports & Platform=PS3",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 1,
+          "best_jaccard": 1.0,
+          "matched_paths": [
+            "root / Genre=Simulation, Sports / Platform=DS, PS2, PS3, X360, XB / Platform=PS3 / Genre=Sports"
+          ],
+          "uncapped_f1": 1.0,
+          "uncapped_recall": 1.0,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 1
+        },
+        {
+          "rule": "Platform=PS",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 2,
+          "best_jaccard": 0.9364548494983278,
+          "matched_paths": [
+            "Platform=PS & Genre=Action, Adventure, Fighting, Platform, Puzzle, Racing, Role-Playing, Shooter (+3 more)",
+            "root / Genre=Misc / Platform=GBA, PS / Platform=PS"
+          ],
+          "uncapped_f1": 1.0,
+          "uncapped_recall": 1.0,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 2
+        },
+        {
+          "rule": "Platform=PS2 & Genre=Racing",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 2,
+          "best_jaccard": 0.9861111111111112,
+          "matched_paths": [
+            "root / Genre=Action, Adventure, Fighting, Platform, Puzzle, Racing, Role-Playing, Shooter (+1 more) / Platform=2600, 3DO, DC, GB, GEN, GG, N64, NES (+10 more) / Genre=Racing / Platform=PS2 / Publisher=Acclaim Entertainment, Activision, Atari, Avalon Interactive, BAM! Entertainment, Bethesda Softworks, Black Bean Games, Capcom (+38 more)",
+            "root / Genre=Action, Adventure, Fighting, Platform, Puzzle, Racing, Role-Playing, Shooter (+1 more) / Platform=2600, 3DO, DC, GB, GEN, GG, N64, NES (+10 more) / Genre=Racing / Platform=PS2 / Publisher=Konami Digital Entertainment, Rage Software"
+          ],
+          "uncapped_f1": 1.0,
+          "uncapped_recall": 1.0,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 2
+        },
+        {
+          "rule": "Genre=Misc",
+          "f1": 0.9595536401923587,
+          "recall": 0.9551466359977001,
+          "precision": 0.964001500338157,
+          "n_segments_used": 3,
+          "best_jaccard": 0.7636572742955722,
+          "matched_paths": [
+            "root / Genre=Misc / Platform=3DS, DS, PS2, PS3, PSP, PSV, Wii, X360",
+            "root / Genre=Misc / Platform=2600, GB, GC, GEN, N64, NES, PC, PS4 (+6 more) / Publisher=ASK, Acclaim Entertainment, Activision, Activision Value, Aqua Plus, Aspyr, Atari, Avanquest Software (+61 more)",
+            "root / Genre=Misc / Platform=GBA, PS / Platform=GBA"
+          ],
+          "uncapped_f1": 1.0,
+          "uncapped_recall": 1.0,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 5
+        }
+      ],
+      "n_terminal_segments": 15,
+      "null_pass": null,
+      "conservation_ok": true,
+      "extras": {},
+      "meta": {
+        "kaggle": "gregorut/videogamesales",
+        "domain": "media",
+        "n_rows": 16598,
+        "base": 0.0,
+        "cardinalities": {
+          "Platform": 31,
+          "Genre": 12,
+          "Publisher": 579
+        }
+      },
+      "n_rules": 5
+    },
+    {
+      "case": "kaggle_airbnb_nyc",
+      "seed": 42,
+      "impact_f1": 0.9883211678832116,
+      "floor_rule_f1": 0.9416058394160584,
+      "rule_scores": [
+        {
+          "rule": "room_type=Private room & neighbourhood_group=Queens",
+          "f1": 0.9999999999999998,
+          "recall": 0.9999999999999996,
+          "precision": 1.0,
+          "n_segments_used": 1,
+          "best_jaccard": 1.0,
+          "matched_paths": [
+            "root / neighbourhood_group=Queens / room_type=Private room"
+          ],
+          "uncapped_f1": 0.9999999999999998,
+          "uncapped_recall": 0.9999999999999996,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 1
+        },
+        {
+          "rule": "room_type=Shared room",
+          "f1": 0.9416058394160584,
+          "recall": 0.8896551724137931,
+          "precision": 1.0,
+          "n_segments_used": 3,
+          "best_jaccard": 0.3543103448275862,
+          "matched_paths": [
+            "root / neighbourhood_group=Brooklyn, Manhattan / room_type=Shared room / neighbourhood_group=Brooklyn / neighbourhood=Bay Ridge, Bedford-Stuyvesant, Bensonhurst, Boerum Hill, Borough Park, Brighton Beach, Bushwick, Canarsie (+23 more)",
+            "neighbourhood_group=Manhattan & neighbourhood=Battery Park City, Chelsea, Chinatown, East Harlem, East Village, Financial District, Gramercy, Greenwich Village (+16 more) & room_type=Shared room",
+            "neighbourhood_group=Bronx, Queens, Staten Island & room_type=Shared room"
+          ],
+          "uncapped_f1": 1.0,
+          "uncapped_recall": 1.0,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 5
+        },
+        {
+          "rule": "neighbourhood_group=Brooklyn|Queens & neighbourhood=Prospect Heights|Gowanus",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 2,
+          "best_jaccard": 0.9966887417218543,
+          "matched_paths": [
+            "root / neighbourhood_group=Brooklyn, Manhattan / room_type=Entire home/apt, Private room / neighbourhood_group=Brooklyn / neighbourhood=Gowanus, Prospect Heights",
+            "root / neighbourhood_group=Brooklyn, Manhattan / room_type=Shared room / neighbourhood_group=Brooklyn / neighbourhood=Gowanus"
+          ],
+          "uncapped_f1": 1.0,
+          "uncapped_recall": 1.0,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 2
+        },
+        {
+          "rule": "room_type=Entire home/apt & neighbourhood_group=Manhattan & neighbourhood=Lower East Side",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 1,
+          "best_jaccard": 1.0,
+          "matched_paths": [
+            "root / neighbourhood_group=Brooklyn, Manhattan / room_type=Entire home/apt, Private room / neighbourhood_group=Manhattan / neighbourhood=Hell's Kitchen, Lower East Side, Washington Heights / neighbourhood=Lower East Side / room_type=Entire home/apt"
+          ],
+          "uncapped_f1": 1.0,
+          "uncapped_recall": 1.0,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 1
+        },
+        {
+          "rule": "neighbourhood_group=Manhattan & neighbourhood=Hell's Kitchen|Washington Heights",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 2,
+          "best_jaccard": 0.9558977948897445,
+          "matched_paths": [
+            "root / neighbourhood_group=Brooklyn, Manhattan / room_type=Entire home/apt, Private room / neighbourhood_group=Manhattan / neighbourhood=Hell's Kitchen, Lower East Side, Washington Heights / neighbourhood=Hell's Kitchen, Washington Heights",
+            "root / neighbourhood_group=Brooklyn, Manhattan / room_type=Shared room / neighbourhood_group=Manhattan / neighbourhood=Hell's Kitchen, Washington Heights"
+          ],
+          "uncapped_f1": 1.0,
+          "uncapped_recall": 1.0,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 2
+        }
+      ],
+      "n_terminal_segments": 14,
+      "null_pass": null,
+      "conservation_ok": true,
+      "extras": {},
+      "meta": {
+        "kaggle": "dgomonov/new-york-city-airbnb-open-data",
+        "domain": "housing",
+        "n_rows": 48895,
+        "base": 3.0,
+        "cardinalities": {
+          "neighbourhood_group": 5,
+          "neighbourhood": 221,
+          "room_type": 3
+        }
+      },
+      "n_rules": 5
+    },
+    {
+      "case": "kaggle_airbnb_nyc",
+      "seed": 7,
+      "impact_f1": 0.9987755708063618,
+      "floor_rule_f1": 0.9938778540318093,
+      "rule_scores": [
+        {
+          "rule": "neighbourhood_group=Brooklyn & room_type=Entire home/apt|Private room & neighbourhood=Greenpoint",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 1,
+          "best_jaccard": 1.0,
+          "matched_paths": [
+            "root / neighbourhood_group=Bronx, Brooklyn, Manhattan / neighbourhood_group=Brooklyn / neighbourhood=Bedford-Stuyvesant, Greenpoint / neighbourhood=Greenpoint / room_type=Entire home/apt, Private room"
+          ],
+          "uncapped_f1": 1.0,
+          "uncapped_recall": 1.0,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 1
+        },
+        {
+          "rule": "neighbourhood_group=Brooklyn & room_type=Private room & neighbourhood=Bedford-Stuyvesant",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 1,
+          "best_jaccard": 1.0,
+          "matched_paths": [
+            "root / neighbourhood_group=Bronx, Brooklyn, Manhattan / neighbourhood_group=Brooklyn / neighbourhood=Bedford-Stuyvesant, Greenpoint / neighbourhood=Bedford-Stuyvesant / room_type=Private room"
+          ],
+          "uncapped_f1": 1.0,
+          "uncapped_recall": 1.0,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 1
+        },
+        {
+          "rule": "neighbourhood=Astoria",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 1,
+          "best_jaccard": 1.0,
+          "matched_paths": [
+            "root / neighbourhood_group=Queens / neighbourhood=Astoria, Maspeth / neighbourhood=Astoria"
+          ],
+          "uncapped_f1": 1.0,
+          "uncapped_recall": 1.0,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 1
+        },
+        {
+          "rule": "neighbourhood=West Village|Maspeth",
+          "f1": 0.9999999999999999,
+          "recall": 0.9999999999999998,
+          "precision": 1.0,
+          "n_segments_used": 2,
+          "best_jaccard": 0.8747152619589977,
+          "matched_paths": [
+            "root / neighbourhood_group=Bronx, Brooklyn, Manhattan / neighbourhood_group=Manhattan / neighbourhood=West Village",
+            "root / neighbourhood_group=Queens / neighbourhood=Astoria, Maspeth / neighbourhood=Maspeth"
+          ],
+          "uncapped_f1": 0.9999999999999999,
+          "uncapped_recall": 0.9999999999999998,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 2
+        },
+        {
+          "rule": "neighbourhood_group=Queens",
+          "f1": 0.9938778540318093,
+          "recall": 0.9890575361807269,
+          "precision": 0.9987453870536913,
+          "n_segments_used": 3,
+          "best_jaccard": 0.8108012707377339,
+          "matched_paths": [
+            "neighbourhood_group=Queens & neighbourhood=Arverne, Bay Terrace, Bayside, Bayswater, Belle Harbor, Bellerose, Breezy Point, Briarwood (+40 more)",
+            "root / neighbourhood_group=Queens / neighbourhood=Astoria, Maspeth / neighbourhood=Astoria",
+            "root / neighbourhood_group=Queens / neighbourhood=Astoria, Maspeth / neighbourhood=Maspeth"
+          ],
+          "uncapped_f1": 0.9999999999999999,
+          "uncapped_recall": 0.9999999999999998,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 4
+        }
+      ],
+      "n_terminal_segments": 12,
+      "null_pass": null,
+      "conservation_ok": true,
+      "extras": {},
+      "meta": {
+        "kaggle": "dgomonov/new-york-city-airbnb-open-data",
+        "domain": "housing",
+        "n_rows": 48895,
+        "base": 3.0,
+        "cardinalities": {
+          "neighbourhood_group": 5,
+          "neighbourhood": 221,
+          "room_type": 3
+        }
+      },
+      "n_rules": 5
+    },
+    {
+      "case": "kaggle_airbnb_nyc",
+      "seed": 2026,
+      "impact_f1": 0.9997908635844436,
+      "floor_rule_f1": 0.9989543179222181,
+      "rule_scores": [
+        {
+          "rule": "neighbourhood_group=Queens & room_type=Entire home/apt",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 1,
+          "best_jaccard": 1.0,
+          "matched_paths": [
+            "root / neighbourhood_group=Queens / room_type=Entire home/apt"
+          ],
+          "uncapped_f1": 1.0,
+          "uncapped_recall": 1.0,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 1
+        },
+        {
+          "rule": "room_type=Private room & neighbourhood=Bushwick|East Elmhurst",
+          "f1": 0.9989543179222181,
+          "recall": 0.9999999999999999,
+          "precision": 0.9979108204620364,
+          "n_segments_used": 2,
+          "best_jaccard": 0.9317073170731708,
+          "matched_paths": [
+            "root / neighbourhood_group=Brooklyn, Staten Island / neighbourhood=Bushwick, East Flatbush / room_type=Private room / neighbourhood=Bushwick",
+            "root / neighbourhood_group=Queens / room_type=Private room, Shared room / neighbourhood=East Elmhurst"
+          ],
+          "uncapped_f1": 0.9989543179222181,
+          "uncapped_recall": 0.9999999999999999,
+          "uncapped_precision": 0.9979108204620364,
+          "uncapped_n_segments": 2
+        },
+        {
+          "rule": "neighbourhood_group=Brooklyn & neighbourhood=East Flatbush|Bushwick",
+          "f1": 0.9999999999999998,
+          "recall": 0.9999999999999996,
+          "precision": 1.0,
+          "n_segments_used": 3,
+          "best_jaccard": 0.5797639123102867,
+          "matched_paths": [
+            "root / neighbourhood_group=Brooklyn, Staten Island / neighbourhood=Bushwick, East Flatbush / room_type=Private room / neighbourhood=Bushwick",
+            "root / neighbourhood_group=Brooklyn, Staten Island / neighbourhood=Bushwick, East Flatbush / room_type=Entire home/apt, Shared room",
+            "root / neighbourhood_group=Brooklyn, Staten Island / neighbourhood=Bushwick, East Flatbush / room_type=Private room / neighbourhood=East Flatbush"
+          ],
+          "uncapped_f1": 0.9999999999999998,
+          "uncapped_recall": 0.9999999999999996,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 3
+        },
+        {
+          "rule": "neighbourhood=East Harlem & neighbourhood_group=Manhattan",
+          "f1": 0.9999999999999999,
+          "recall": 0.9999999999999998,
+          "precision": 1.0,
+          "n_segments_used": 1,
+          "best_jaccard": 1.0,
+          "matched_paths": [
+            "root / neighbourhood_group=Bronx, Manhattan / neighbourhood=East Harlem, Harlem / neighbourhood=East Harlem"
+          ],
+          "uncapped_f1": 0.9999999999999999,
+          "uncapped_recall": 0.9999999999999998,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 1
+        },
+        {
+          "rule": "neighbourhood_group=Manhattan & neighbourhood=Harlem",
+          "f1": 0.9999999999999999,
+          "recall": 0.9999999999999999,
+          "precision": 1.0,
+          "n_segments_used": 1,
+          "best_jaccard": 1.0,
+          "matched_paths": [
+            "root / neighbourhood_group=Bronx, Manhattan / neighbourhood=East Harlem, Harlem / neighbourhood=Harlem"
+          ],
+          "uncapped_f1": 0.9999999999999999,
+          "uncapped_recall": 0.9999999999999999,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 1
+        }
+      ],
+      "n_terminal_segments": 10,
+      "null_pass": null,
+      "conservation_ok": true,
+      "extras": {},
+      "meta": {
+        "kaggle": "dgomonov/new-york-city-airbnb-open-data",
+        "domain": "housing",
+        "n_rows": 48895,
+        "base": 3.0,
+        "cardinalities": {
+          "neighbourhood_group": 5,
+          "neighbourhood": 221,
+          "room_type": 3
+        }
+      },
+      "n_rules": 5
+    },
+    {
+      "case": "kaggle_telco_churn",
+      "seed": 42,
+      "impact_f1": 1.0,
+      "floor_rule_f1": 0.9999999999999999,
+      "rule_scores": [
+        {
+          "rule": "Contract=One year & Partner=No & InternetService=No",
+          "f1": 0.9999999999999999,
+          "recall": 0.9999999999999997,
+          "precision": 1.0,
+          "n_segments_used": 2,
+          "best_jaccard": 0.5376344086021505,
+          "matched_paths": [
+            "root / Contract=Month-to-month, One year / Contract=One year / InternetService=DSL, No / PaymentMethod=Bank transfer (automatic), Credit card (automatic), Electronic check / Partner=No / InternetService=No",
+            "root / Contract=Month-to-month, One year / Contract=One year / InternetService=DSL, No / PaymentMethod=Mailed check / InternetService=No / Partner=No"
+          ],
+          "uncapped_f1": 0.9999999999999999,
+          "uncapped_recall": 0.9999999999999997,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 2
+        },
+        {
+          "rule": "Partner=No|Yes & Contract=Two year & PaymentMethod=Mailed check",
+          "f1": 0.9999999999999999,
+          "recall": 0.9999999999999998,
+          "precision": 1.0,
+          "n_segments_used": 3,
+          "best_jaccard": 0.5523560209424084,
+          "matched_paths": [
+            "root / Contract=Two year / PaymentMethod=Mailed check / Dependents=Yes",
+            "root / Contract=Two year / PaymentMethod=Mailed check / Dependents=No / Partner=No",
+            "root / Contract=Two year / PaymentMethod=Mailed check / Dependents=No / Partner=Yes"
+          ],
+          "uncapped_f1": 0.9999999999999999,
+          "uncapped_recall": 0.9999999999999998,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 3
+        },
+        {
+          "rule": "PaymentMethod=Mailed check & InternetService=No & Contract=One year",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 2,
+          "best_jaccard": 0.524390243902439,
+          "matched_paths": [
+            "root / Contract=Month-to-month, One year / Contract=One year / InternetService=DSL, No / PaymentMethod=Mailed check / InternetService=No / Partner=No",
+            "root / Contract=Month-to-month, One year / Contract=One year / InternetService=DSL, No / PaymentMethod=Mailed check / InternetService=No / Partner=Yes"
+          ],
+          "uncapped_f1": 1.0,
+          "uncapped_recall": 1.0,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 2
+        },
+        {
+          "rule": "InternetService=Fiber optic & Contract=One year & Dependents=No|Yes",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 1,
+          "best_jaccard": 1.0,
+          "matched_paths": [
+            "root / Contract=Month-to-month, One year / Contract=One year / InternetService=Fiber optic"
+          ],
+          "uncapped_f1": 1.0,
+          "uncapped_recall": 1.0,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 1
+        },
+        {
+          "rule": "Contract=Two year & Dependents=No & Partner=Yes",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 2,
+          "best_jaccard": 0.8789808917197452,
+          "matched_paths": [
+            "root / Contract=Two year / PaymentMethod=Bank transfer (automatic), Credit card (automatic), Electronic check / Dependents=No / Partner=Yes",
+            "root / Contract=Two year / PaymentMethod=Mailed check / Dependents=No / Partner=Yes"
+          ],
+          "uncapped_f1": 1.0,
+          "uncapped_recall": 1.0,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 2
+        }
+      ],
+      "n_terminal_segments": 14,
+      "null_pass": null,
+      "conservation_ok": true,
+      "extras": {},
+      "meta": {
+        "kaggle": "blastchar/telco-customer-churn",
+        "domain": "telecom",
+        "n_rows": 7043,
+        "base": 0.0,
+        "cardinalities": {
+          "gender": 2,
+          "Partner": 2,
+          "Dependents": 2,
+          "InternetService": 3,
+          "Contract": 3,
+          "PaymentMethod": 4
+        }
+      },
+      "n_rules": 5
+    },
+    {
+      "case": "kaggle_telco_churn",
+      "seed": 7,
+      "impact_f1": 0.9887336242840469,
+      "floor_rule_f1": 0.9436681214202345,
+      "rule_scores": [
+        {
+          "rule": "PaymentMethod=Mailed check & gender=Male & InternetService=DSL|Fiber optic",
+          "f1": 0.9436681214202345,
+          "recall": 0.9020044543429848,
+          "precision": 0.989367075862717,
+          "n_segments_used": 3,
+          "best_jaccard": 0.6859688195991092,
+          "matched_paths": [
+            "root / Contract=Month-to-month / PaymentMethod=Electronic check, Mailed check / PaymentMethod=Mailed check / gender=Male / InternetService=DSL, Fiber optic",
+            "root / Contract=One year / PaymentMethod=Mailed check / InternetService=DSL / gender=Male",
+            "root / Contract=Two year / gender=Male / Dependents=No / PaymentMethod=Mailed check / InternetService=DSL, Fiber optic"
+          ],
+          "uncapped_f1": 0.9857959552419538,
+          "uncapped_recall": 0.9888641425389758,
+          "uncapped_precision": 0.9827467486213478,
+          "uncapped_n_segments": 5
+        },
+        {
+          "rule": "PaymentMethod=Bank transfer (automatic) & Partner=No & Contract=One year",
+          "f1": 0.9999999999999999,
+          "recall": 0.9999999999999998,
+          "precision": 1.0,
+          "n_segments_used": 1,
+          "best_jaccard": 1.0,
+          "matched_paths": [
+            "root / Contract=One year / PaymentMethod=Bank transfer (automatic) / Partner=No"
+          ],
+          "uncapped_f1": 0.9999999999999999,
+          "uncapped_recall": 0.9999999999999998,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 1
+        },
+        {
+          "rule": "Contract=One year & Dependents=No & PaymentMethod=Electronic check",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 1,
+          "best_jaccard": 1.0,
+          "matched_paths": [
+            "Dependents=No & Contract=One year & PaymentMethod=Electronic check"
+          ],
+          "uncapped_f1": 1.0,
+          "uncapped_recall": 1.0,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 1
+        },
+        {
+          "rule": "Contract=Two year & Dependents=No & gender=Male",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 3,
+          "best_jaccard": 0.8237885462555066,
+          "matched_paths": [
+            "root / Contract=Two year / gender=Male / Dependents=No / PaymentMethod=Bank transfer (automatic), Credit card (automatic), Electronic check",
+            "root / Contract=Two year / gender=Male / Dependents=No / PaymentMethod=Mailed check / InternetService=No",
+            "root / Contract=Two year / gender=Male / Dependents=No / PaymentMethod=Mailed check / InternetService=DSL, Fiber optic"
+          ],
+          "uncapped_f1": 1.0,
+          "uncapped_recall": 1.0,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 3
+        },
+        {
+          "rule": "gender=Male & PaymentMethod=Credit card (automatic) & Contract=One year|Month-to-month",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 1,
+          "best_jaccard": 1.0,
+          "matched_paths": [
+            "gender=Male & Contract=Month-to-month, One year & PaymentMethod=Credit card (automatic)"
+          ],
+          "uncapped_f1": 1.0,
+          "uncapped_recall": 1.0,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 1
+        }
+      ],
+      "n_terminal_segments": 21,
+      "null_pass": null,
+      "conservation_ok": true,
+      "extras": {},
+      "meta": {
+        "kaggle": "blastchar/telco-customer-churn",
+        "domain": "telecom",
+        "n_rows": 7043,
+        "base": 0.0,
+        "cardinalities": {
+          "gender": 2,
+          "Partner": 2,
+          "Dependents": 2,
+          "InternetService": 3,
+          "Contract": 3,
+          "PaymentMethod": 4
+        }
+      },
+      "n_rules": 5
+    },
+    {
+      "case": "kaggle_telco_churn",
+      "seed": 2026,
+      "impact_f1": 0.8609878253149625,
+      "floor_rule_f1": 0.7708333333333333,
+      "rule_scores": [
+        {
+          "rule": "Contract=Month-to-month|One year & InternetService=Fiber optic|DSL & PaymentMethod=Bank transfer (automatic)",
+          "f1": 0.7708333333333333,
+          "recall": 0.6271186440677966,
+          "precision": 1.0,
+          "n_segments_used": 3,
+          "best_jaccard": 0.39588377723970947,
+          "matched_paths": [
+            "root / Contract=Month-to-month, Two year / Contract=Month-to-month / InternetService=Fiber optic, No / PaymentMethod=Bank transfer (automatic) / InternetService=Fiber optic",
+            "root / Contract=One year / Partner=Yes / InternetService=Fiber optic / PaymentMethod=Bank transfer (automatic)",
+            "root / Contract=Month-to-month, Two year / Contract=Month-to-month / InternetService=DSL / gender=Female / PaymentMethod=Bank transfer (automatic)"
+          ],
+          "uncapped_f1": 0.9758214507129571,
+          "uncapped_recall": 0.9527845036319612,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 10
+        },
+        {
+          "rule": "InternetService=DSL & Dependents=No & gender=Male",
+          "f1": 0.8866259334691106,
+          "recall": 0.796341463414634,
+          "precision": 1.0,
+          "n_segments_used": 3,
+          "best_jaccard": 0.48292682926829267,
+          "matched_paths": [
+            "root / Contract=Month-to-month, Two year / Contract=Month-to-month / InternetService=DSL / gender=Male / Dependents=No / PaymentMethod=Credit card (automatic), Electronic check, Mailed check",
+            "gender=Male & Partner=Yes & Dependents=No & InternetService=DSL & Contract=One year, Two year",
+            "root / Contract=Month-to-month, Two year / Contract=Month-to-month / InternetService=DSL / gender=Male / Dependents=No / PaymentMethod=Bank transfer (automatic)"
+          ],
+          "uncapped_f1": 0.9371354504212572,
+          "uncapped_recall": 0.8817073170731705,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 4
+        },
+        {
+          "rule": "gender=Female|Male & Partner=No & Contract=Two year",
+          "f1": 0.9782417241556326,
+          "recall": 0.9582504970178928,
+          "precision": 0.9990848462339336,
+          "n_segments_used": 3,
+          "best_jaccard": 0.6560636182902585,
+          "matched_paths": [
+            "root / Contract=Month-to-month, Two year / Contract=Two year / Partner=No / InternetService=Fiber optic, No",
+            "root / Contract=Month-to-month, Two year / Contract=Two year / Partner=No / InternetService=DSL / gender=Female / Dependents=No",
+            "root / Contract=Month-to-month, Two year / Contract=Two year / Partner=No / InternetService=DSL / gender=Male / Dependents=No"
+          ],
+          "uncapped_f1": 1.0,
+          "uncapped_recall": 1.0,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 4
+        },
+        {
+          "rule": "InternetService=No & Partner=No|Yes & Contract=One year",
+          "f1": 0.8678071539657853,
+          "recall": 0.7664835164835164,
+          "precision": 1.0,
+          "n_segments_used": 3,
+          "best_jaccard": 0.489010989010989,
+          "matched_paths": [
+            "root / Contract=One year / Partner=Yes / InternetService=No",
+            "root / Contract=One year / Partner=No / gender=Female / InternetService=No",
+            "root / Contract=One year / Partner=No / gender=Male / InternetService=DSL, No / Dependents=Yes"
+          ],
+          "uncapped_f1": 0.8678071539657854,
+          "uncapped_recall": 0.7664835164835165,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 4
+        },
+        {
+          "rule": "Contract=One year & Partner=No",
+          "f1": 0.8014309816509512,
+          "recall": 0.6982892690513219,
+          "precision": 0.940322527254719,
+          "n_segments_used": 3,
+          "best_jaccard": 0.28304821150855364,
+          "matched_paths": [
+            "root / Contract=One year / Partner=No / gender=Male / InternetService=DSL, No / Dependents=No",
+            "gender=Female & Partner=No & InternetService=DSL, Fiber optic & Contract=One year & PaymentMethod=Credit card (automatic), Electronic check, Mailed check",
+            "root / Contract=One year / Partner=No / gender=Female / InternetService=No"
+          ],
+          "uncapped_f1": 0.9999999999999999,
+          "uncapped_recall": 0.9999999999999998,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 7
+        }
+      ],
+      "n_terminal_segments": 30,
+      "null_pass": null,
+      "conservation_ok": true,
+      "extras": {},
+      "meta": {
+        "kaggle": "blastchar/telco-customer-churn",
+        "domain": "telecom",
+        "n_rows": 7043,
+        "base": 0.0,
+        "cardinalities": {
+          "gender": 2,
+          "Partner": 2,
+          "Dependents": 2,
+          "InternetService": 3,
+          "Contract": 3,
+          "PaymentMethod": 4
+        }
+      },
+      "n_rules": 5
+    },
+    {
+      "case": "kaggle_ibm_hr",
+      "seed": 42,
+      "impact_f1": 0.9917525773195877,
+      "floor_rule_f1": 0.9587628865979382,
+      "rule_scores": [
+        {
+          "rule": "EducationField=Marketing",
+          "f1": 0.9999999999999999,
+          "recall": 0.9999999999999998,
+          "precision": 1.0,
+          "n_segments_used": 2,
+          "best_jaccard": 0.6981132075471698,
+          "matched_paths": [
+            "root / MaritalStatus=Divorced, Married / EducationField=Marketing",
+            "root / MaritalStatus=Single / Department=Sales / EducationField=Marketing"
+          ],
+          "uncapped_f1": 0.9999999999999999,
+          "uncapped_recall": 0.9999999999999998,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 2
+        },
+        {
+          "rule": "JobRole=Laboratory Technician & MaritalStatus=Married",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 1,
+          "best_jaccard": 1.0,
+          "matched_paths": [
+            "EducationField=Human Resources, Life Sciences, Medical, Other, Technical Degree & JobRole=Laboratory Technician & MaritalStatus=Married"
+          ],
+          "uncapped_f1": 1.0,
+          "uncapped_recall": 1.0,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 1
+        },
+        {
+          "rule": "OverTime=Yes|No & Department=Sales|Human Resources & EducationField=Medical",
+          "f1": 0.9587628865979382,
+          "recall": 0.9207920792079209,
+          "precision": 1.0,
+          "n_segments_used": 2,
+          "best_jaccard": 0.6138613861386139,
+          "matched_paths": [
+            "root / MaritalStatus=Divorced, Married / EducationField=Life Sciences, Medical / JobRole=Human Resources, Sales Executive, Sales Representative / EducationField=Medical",
+            "root / MaritalStatus=Single / Department=Sales / EducationField=Life Sciences, Medical / EducationField=Medical"
+          ],
+          "uncapped_f1": 0.9587628865979382,
+          "uncapped_recall": 0.9207920792079209,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 2
+        },
+        {
+          "rule": "JobRole=Research Scientist & MaritalStatus=Single",
+          "f1": 0.9999999999999999,
+          "recall": 0.9999999999999998,
+          "precision": 1.0,
+          "n_segments_used": 1,
+          "best_jaccard": 1.0,
+          "matched_paths": [
+            "root / MaritalStatus=Single / Department=Human Resources, Research & Development / JobRole=Research Scientist"
+          ],
+          "uncapped_f1": 0.9999999999999999,
+          "uncapped_recall": 0.9999999999999998,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 1
+        },
+        {
+          "rule": "MaritalStatus=Single & Department=Sales",
+          "f1": 0.9999999999999999,
+          "recall": 0.9999999999999998,
+          "precision": 1.0,
+          "n_segments_used": 3,
+          "best_jaccard": 0.48366013071895425,
+          "matched_paths": [
+            "Department=Sales & EducationField=Life Sciences, Other, Technical Degree & MaritalStatus=Single",
+            "root / MaritalStatus=Single / Department=Sales / EducationField=Marketing",
+            "root / MaritalStatus=Single / Department=Sales / EducationField=Life Sciences, Medical / EducationField=Medical"
+          ],
+          "uncapped_f1": 0.9999999999999999,
+          "uncapped_recall": 0.9999999999999998,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 3
+        }
+      ],
+      "n_terminal_segments": 12,
+      "null_pass": null,
+      "conservation_ok": true,
+      "extras": {},
+      "meta": {
+        "kaggle": "pavansubhasht/ibm-hr-analytics-attrition-dataset",
+        "domain": "hr",
+        "n_rows": 1470,
+        "base": 3.0,
+        "cardinalities": {
+          "BusinessTravel": 3,
+          "Department": 3,
+          "EducationField": 6,
+          "JobRole": 9,
+          "MaritalStatus": 3,
+          "OverTime": 2
+        }
+      },
+      "n_rules": 5
+    },
+    {
+      "case": "kaggle_ibm_hr",
+      "seed": 7,
+      "impact_f1": 0.8154369436626178,
+      "floor_rule_f1": 0.7626459143968872,
+      "rule_scores": [
+        {
+          "rule": "EducationField=Marketing",
+          "f1": 0.7626459143968872,
+          "recall": 0.6163522012578616,
+          "precision": 1.0,
+          "n_segments_used": 3,
+          "best_jaccard": 0.3081761006289308,
+          "matched_paths": [
+            "root / Department=Human Resources, Sales / OverTime=No / EducationField=Marketing / MaritalStatus=Married / JobRole=Sales Executive, Sales Representative",
+            "root / Department=Human Resources, Sales / OverTime=No / EducationField=Marketing / MaritalStatus=Single / JobRole=Manager, Sales Executive",
+            "Department=Human Resources, Sales & EducationField=Human Resources, Life Sciences, Marketing, Other, Technical Degree & MaritalStatus=Divorced & OverTime=No"
+          ],
+          "uncapped_f1": 0.9087309568327752,
+          "uncapped_recall": 0.8867924528301886,
+          "uncapped_precision": 0.9317824764110528,
+          "uncapped_n_segments": 7
+        },
+        {
+          "rule": "Department=Human Resources|Sales & OverTime=Yes",
+          "f1": 0.7659574468085107,
+          "recall": 0.6206896551724138,
+          "precision": 1.0,
+          "n_segments_used": 3,
+          "best_jaccard": 0.2413793103448276,
+          "matched_paths": [
+            "Department=Human Resources, Sales & EducationField=Human Resources, Life Sciences, Medical, Other, Technical Degree & MaritalStatus=Married & OverTime=Yes",
+            "root / Department=Human Resources, Sales / OverTime=Yes / MaritalStatus=Divorced / EducationField=Human Resources, Life Sciences, Marketing, Other, Technical Degree",
+            "root / Department=Human Resources, Sales / OverTime=Yes / MaritalStatus=Single / EducationField=Life Sciences, Technical Degree"
+          ],
+          "uncapped_f1": 1.0,
+          "uncapped_recall": 1.0,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 7
+        },
+        {
+          "rule": "Department=Sales|Human Resources & MaritalStatus=Single",
+          "f1": 0.8970099667774087,
+          "recall": 0.8132530120481928,
+          "precision": 1.0,
+          "n_segments_used": 3,
+          "best_jaccard": 0.5060240963855421,
+          "matched_paths": [
+            "Department=Human Resources, Sales & EducationField=Human Resources, Life Sciences, Medical, Other, Technical Degree & MaritalStatus=Single & OverTime=No",
+            "root / Department=Human Resources, Sales / OverTime=No / EducationField=Marketing / MaritalStatus=Single / JobRole=Manager, Sales Executive",
+            "root / Department=Human Resources, Sales / OverTime=Yes / MaritalStatus=Single / EducationField=Life Sciences, Technical Degree"
+          ],
+          "uncapped_f1": 1.0,
+          "uncapped_recall": 1.0,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 6
+        },
+        {
+          "rule": "JobRole=Sales Executive|Research Scientist & EducationField=Marketing",
+          "f1": 0.8149346250649518,
+          "recall": 0.704918032786885,
+          "precision": 0.9656424974519594,
+          "n_segments_used": 3,
+          "best_jaccard": 0.3464566929133858,
+          "matched_paths": [
+            "root / Department=Human Resources, Sales / OverTime=No / EducationField=Marketing / MaritalStatus=Married / JobRole=Sales Executive, Sales Representative",
+            "root / Department=Human Resources, Sales / OverTime=No / EducationField=Marketing / MaritalStatus=Single / JobRole=Manager, Sales Executive",
+            "Department=Human Resources, Sales & EducationField=Human Resources, Life Sciences, Marketing, Other, Technical Degree & MaritalStatus=Divorced & OverTime=No"
+          ],
+          "uncapped_f1": 0.8172255371648536,
+          "uncapped_recall": 0.7950819672131146,
+          "uncapped_precision": 0.8406378697811075,
+          "uncapped_n_segments": 4
+        },
+        {
+          "rule": "MaritalStatus=Divorced & EducationField=Marketing|Medical",
+          "f1": 0.8366367652653308,
+          "recall": 0.8581560283687942,
+          "precision": 0.8161703422018352,
+          "n_segments_used": 3,
+          "best_jaccard": 0.5957446808510638,
+          "matched_paths": [
+            "root / Department=Research & Development / MaritalStatus=Divorced / EducationField=Medical",
+            "Department=Human Resources, Sales & EducationField=Human Resources, Life Sciences, Marketing, Other, Technical Degree & MaritalStatus=Divorced & OverTime=No",
+            "root / Department=Human Resources, Sales / OverTime=No / EducationField=Life Sciences, Medical / MaritalStatus=Divorced / EducationField=Medical"
+          ],
+          "uncapped_f1": 0.9256896828324543,
+          "uncapped_recall": 0.9999999999999998,
+          "uncapped_precision": 0.8616594926436766,
+          "uncapped_n_segments": 5
+        }
+      ],
+      "n_terminal_segments": 18,
+      "null_pass": null,
+      "conservation_ok": true,
+      "extras": {},
+      "meta": {
+        "kaggle": "pavansubhasht/ibm-hr-analytics-attrition-dataset",
+        "domain": "hr",
+        "n_rows": 1470,
+        "base": 3.0,
+        "cardinalities": {
+          "BusinessTravel": 3,
+          "Department": 3,
+          "EducationField": 6,
+          "JobRole": 9,
+          "MaritalStatus": 3,
+          "OverTime": 2
+        }
+      },
+      "n_rules": 5
+    },
+    {
+      "case": "kaggle_ibm_hr",
+      "seed": 2026,
+      "impact_f1": 0.8873467310491323,
+      "floor_rule_f1": 0.7523919286354653,
+      "rule_scores": [
+        {
+          "rule": "EducationField=Life Sciences & MaritalStatus=Divorced & Department=Research & Development|Human Resources",
+          "f1": 0.8622183247202573,
+          "recall": 0.8000000000000003,
+          "precision": 0.9349305938164777,
+          "n_segments_used": 3,
+          "best_jaccard": 0.38181818181818183,
+          "matched_paths": [
+            "root / Department=Research & Development / EducationField=Life Sciences / MaritalStatus=Divorced / BusinessTravel=Travel_Rarely / JobRole=Healthcare Representative, Laboratory Technician, Manager, Manufacturing Director, Research Director",
+            "BusinessTravel=Non-Travel, Travel_Rarely & Department=Research & Development & EducationField=Life Sciences & JobRole=Research Scientist & MaritalStatus=Divorced",
+            "root / Department=Research & Development / EducationField=Life Sciences / MaritalStatus=Divorced / BusinessTravel=Travel_Frequently / OverTime=No"
+          ],
+          "uncapped_f1": 1.0,
+          "uncapped_recall": 1.0,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 8
+        },
+        {
+          "rule": "EducationField=Life Sciences|Marketing & JobRole=Research Scientist",
+          "f1": 0.9649805447470817,
+          "recall": 0.9323308270676692,
+          "precision": 1.0,
+          "n_segments_used": 3,
+          "best_jaccard": 0.49624060150375937,
+          "matched_paths": [
+            "root / Department=Research & Development / EducationField=Life Sciences / MaritalStatus=Married, Single / JobRole=Research Scientist / OverTime=No",
+            "root / Department=Research & Development / EducationField=Life Sciences / MaritalStatus=Married, Single / JobRole=Research Scientist / OverTime=Yes",
+            "BusinessTravel=Non-Travel, Travel_Rarely & Department=Research & Development & EducationField=Life Sciences & JobRole=Research Scientist & MaritalStatus=Divorced"
+          ],
+          "uncapped_f1": 0.9769230769230771,
+          "uncapped_recall": 0.954887218045113,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 4
+        },
+        {
+          "rule": "BusinessTravel=Travel_Frequently|Non-Travel & OverTime=Yes",
+          "f1": 0.7523919286354653,
+          "recall": 0.6528925619834711,
+          "precision": 0.8876710050766917,
+          "n_segments_used": 3,
+          "best_jaccard": 0.33884297520661155,
+          "matched_paths": [
+            "root / Department=Research & Development / EducationField=Medical, Other / OverTime=Yes / BusinessTravel=Non-Travel, Travel_Frequently",
+            "root / Department=Sales / EducationField=Life Sciences, Medical, Technical Degree / OverTime=Yes / BusinessTravel=Non-Travel, Travel_Frequently",
+            "BusinessTravel=Travel_Frequently & Department=Research & Development & EducationField=Life Sciences & JobRole=Healthcare Representative, Laboratory Technician, Manager, Manufacturing Director, Research Director & MaritalStatus=Married, Single"
+          ],
+          "uncapped_f1": 0.9205729458792777,
+          "uncapped_recall": 0.9586776859504135,
+          "uncapped_precision": 0.8853815220504517,
+          "uncapped_n_segments": 12
+        },
+        {
+          "rule": "EducationField=Marketing",
+          "f1": 0.9999999999999999,
+          "recall": 0.9999999999999998,
+          "precision": 1.0,
+          "n_segments_used": 3,
+          "best_jaccard": 0.6981132075471698,
+          "matched_paths": [
+            "root / Department=Sales / EducationField=Marketing / OverTime=No",
+            "root / Department=Sales / EducationField=Marketing / OverTime=Yes / BusinessTravel=Travel_Rarely",
+            "root / Department=Sales / EducationField=Marketing / OverTime=Yes / BusinessTravel=Non-Travel, Travel_Frequently"
+          ],
+          "uncapped_f1": 0.9999999999999999,
+          "uncapped_recall": 0.9999999999999998,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 3
+        },
+        {
+          "rule": "BusinessTravel=Travel_Frequently & Department=Research & Development & EducationField=Life Sciences|Technical Degree",
+          "f1": 0.8571428571428573,
+          "recall": 0.7500000000000002,
+          "precision": 1.0,
+          "n_segments_used": 3,
+          "best_jaccard": 0.4423076923076923,
+          "matched_paths": [
+            "BusinessTravel=Travel_Frequently & Department=Research & Development & EducationField=Life Sciences & JobRole=Healthcare Representative, Laboratory Technician, Manager, Manufacturing Director, Research Director & MaritalStatus=Married, Single",
+            "root / Department=Research & Development / EducationField=Life Sciences / MaritalStatus=Divorced / BusinessTravel=Travel_Frequently / OverTime=No",
+            "root / Department=Research & Development / EducationField=Technical Degree / BusinessTravel=Travel_Frequently / OverTime=No"
+          ],
+          "uncapped_f1": 0.9109947643979059,
+          "uncapped_recall": 0.8365384615384619,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 5
+        }
+      ],
+      "n_terminal_segments": 30,
+      "null_pass": null,
+      "conservation_ok": true,
+      "extras": {},
+      "meta": {
+        "kaggle": "pavansubhasht/ibm-hr-analytics-attrition-dataset",
+        "domain": "hr",
+        "n_rows": 1470,
+        "base": 3.0,
+        "cardinalities": {
+          "BusinessTravel": 3,
+          "Department": 3,
+          "EducationField": 6,
+          "JobRole": 9,
+          "MaritalStatus": 3,
+          "OverTime": 2
+        }
+      },
+      "n_rules": 5
+    },
+    {
+      "case": "kaggle_black_friday",
+      "seed": 42,
+      "impact_f1": 0.9908410522415709,
+      "floor_rule_f1": 0.9542052612078545,
+      "rule_scores": [
+        {
+          "rule": "City_Category=C & Occupation=16",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 3,
+          "best_jaccard": 0.7324044301536263,
+          "matched_paths": [
+            "Occupation=16 & City_Category=C & Product_Category_1=1, 10, 12, 13, 14, 15, 16, 17 (+10 more)",
+            "root / City_Category=A, C / Occupation=16, 4 / Occupation=16 / City_Category=C / Product_Category_1=11, 8 / Stay_In_Current_City_Years=0, 1, 3",
+            "root / City_Category=A, C / Occupation=16, 4 / Occupation=16 / City_Category=C / Product_Category_1=11, 8 / Stay_In_Current_City_Years=2, 4+"
+          ],
+          "uncapped_f1": 1.0,
+          "uncapped_recall": 1.0,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 3
+        },
+        {
+          "rule": "Occupation=4 & City_Category=A|C",
+          "f1": 0.9999999999999999,
+          "recall": 0.9999999999999999,
+          "precision": 1.0,
+          "n_segments_used": 3,
+          "best_jaccard": 0.7607999246242992,
+          "matched_paths": [
+            "Occupation=4 & City_Category=A, C & Product_Category_1=1, 10, 12, 13, 14, 15, 16, 17 (+10 more)",
+            "root / City_Category=A, C / Occupation=16, 4 / Occupation=4 / Product_Category_1=11, 8 / Stay_In_Current_City_Years=0, 1, 3",
+            "root / City_Category=A, C / Occupation=16, 4 / Occupation=4 / Product_Category_1=11, 8 / Stay_In_Current_City_Years=2, 4+"
+          ],
+          "uncapped_f1": 0.9999999999999999,
+          "uncapped_recall": 0.9999999999999999,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 3
+        },
+        {
+          "rule": "City_Category=C|A & Product_Category_1=8|11 & Stay_In_Current_City_Years=2|4+",
+          "f1": 0.9542052612078545,
+          "recall": 0.9124211719691061,
+          "precision": 1.0,
+          "n_segments_used": 3,
+          "best_jaccard": 0.7641890455608304,
+          "matched_paths": [
+            "Occupation=0, 1, 10, 11, 12, 13, 14, 15 (+9 more) & City_Category=A, C & Stay_In_Current_City_Years=2, 4+ & Product_Category_1=11, 8",
+            "root / City_Category=A, C / Occupation=16, 4 / Occupation=4 / Product_Category_1=11, 8 / Stay_In_Current_City_Years=2, 4+",
+            "root / City_Category=A, C / Occupation=16, 4 / Occupation=16 / City_Category=C / Product_Category_1=11, 8 / Stay_In_Current_City_Years=2, 4+"
+          ],
+          "uncapped_f1": 0.9642024916973999,
+          "uncapped_recall": 0.9308793311131578,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 7
+        },
+        {
+          "rule": "Product_Category_1=1|5 & Gender=M & Occupation=12",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 1,
+          "best_jaccard": 1.0,
+          "matched_paths": [
+            "Gender=M & Occupation=12 & Product_Category_1=1, 5"
+          ],
+          "uncapped_f1": 1.0,
+          "uncapped_recall": 1.0,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 1
+        },
+        {
+          "rule": "Occupation=17 & Product_Category_1=11|8 & Gender=M",
+          "f1": 0.9999999999999999,
+          "recall": 0.9999999999999998,
+          "precision": 1.0,
+          "n_segments_used": 2,
+          "best_jaccard": 0.6107119529719138,
+          "matched_paths": [
+            "root / City_Category=A, C / Occupation=11, 13, 15, 17, 18, 19, 5, 8 (+1 more) / Product_Category_1=11, 8 / Occupation=17 / Gender=M",
+            "root / City_Category=B / Occupation=17 / Product_Category_1=11, 8 / Gender=M"
+          ],
+          "uncapped_f1": 0.9999999999999999,
+          "uncapped_recall": 0.9999999999999998,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 2
+        }
+      ],
+      "n_terminal_segments": 23,
+      "null_pass": null,
+      "conservation_ok": true,
+      "extras": {},
+      "meta": {
+        "kaggle": "sdolezel/black-friday",
+        "domain": "retail-large",
+        "n_rows": 550068,
+        "base": 0.0,
+        "cardinalities": {
+          "Gender": 2,
+          "Age": 7,
+          "Occupation": 21,
+          "City_Category": 3,
+          "Stay_In_Current_City_Years": 5,
+          "Product_Category_1": 20
+        }
+      },
+      "n_rules": 5
+    },
+    {
+      "case": "kaggle_black_friday",
+      "seed": 7,
+      "impact_f1": 0.9061434832999644,
+      "floor_rule_f1": 0.7679272849433454,
+      "rule_scores": [
+        {
+          "rule": "Product_Category_1=2",
+          "f1": 0.782139194795814,
+          "recall": 0.6545424069728464,
+          "precision": 0.9715296086441978,
+          "n_segments_used": 3,
+          "best_jaccard": 0.4814783774723433,
+          "matched_paths": [
+            "Gender=M & Stay_In_Current_City_Years=0, 1, 4+ & Product_Category_1=2",
+            "root / Stay_In_Current_City_Years=0, 2, 4+ / Stay_In_Current_City_Years=2 / Age=0-17, 18-25, 36-45, 46-50, 51-55, 55+ / Gender=M / Product_Category_1=2",
+            "root / Stay_In_Current_City_Years=3 / City_Category=A, C / Product_Category_1=2 / Occupation=0, 1, 10, 11, 12, 13, 14, 15 (+11 more)"
+          ],
+          "uncapped_f1": 0.9755961451782535,
+          "uncapped_recall": 0.9523550117331548,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 13
+        },
+        {
+          "rule": "Gender=F & City_Category=B|A & Occupation=4",
+          "f1": 0.7679272849433454,
+          "recall": 0.6380484114977307,
+          "precision": 0.964195504874235,
+          "n_segments_used": 3,
+          "best_jaccard": 0.23789712556732223,
+          "matched_paths": [
+            "Gender=F & Occupation=4 & City_Category=A, B & Stay_In_Current_City_Years=0, 4+ & Product_Category_1=1, 10, 11, 12, 13, 14, 15, 16 (+11 more)",
+            "root / Stay_In_Current_City_Years=0, 2, 4+ / Stay_In_Current_City_Years=2 / Age=0-17, 18-25, 36-45, 46-50, 51-55, 55+ / Gender=F / Occupation=4 / City_Category=A, B",
+            "root / Stay_In_Current_City_Years=1 / Product_Category_1=1, 11, 16, 3, 4, 6, 8 / Gender=F / Occupation=4 / City_Category=A, B"
+          ],
+          "uncapped_f1": 0.9530915528461256,
+          "uncapped_recall": 0.9661119515885024,
+          "uncapped_precision": 0.9404174418826242,
+          "uncapped_n_segments": 9
+        },
+        {
+          "rule": "Stay_In_Current_City_Years=3 & Occupation=7|1 & City_Category=B",
+          "f1": 0.9999999999999999,
+          "recall": 0.9999999999999998,
+          "precision": 1.0,
+          "n_segments_used": 2,
+          "best_jaccard": 0.9568250625246808,
+          "matched_paths": [
+            "Occupation=1, 7 & City_Category=B & Stay_In_Current_City_Years=3 & Product_Category_1=1, 10, 11, 12, 13, 14, 15, 16 (+11 more)",
+            "root / Stay_In_Current_City_Years=3 / City_Category=B / Occupation=1, 7 / Product_Category_1=2"
+          ],
+          "uncapped_f1": 0.9999999999999999,
+          "uncapped_recall": 0.9999999999999998,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 2
+        },
+        {
+          "rule": "Age=26-35 & Stay_In_Current_City_Years=2",
+          "f1": 0.9806509367606625,
+          "recall": 0.9620364329803786,
+          "precision": 1.0,
+          "n_segments_used": 3,
+          "best_jaccard": 0.7921664073869624,
+          "matched_paths": [
+            "Gender=M & Age=26-35 & Stay_In_Current_City_Years=2 & Product_Category_1=1, 10, 11, 12, 13, 14, 15, 16 (+11 more)",
+            "Gender=F & Age=26-35 & Occupation=0, 1, 11, 14, 16, 17, 2, 20 (+3 more) & Stay_In_Current_City_Years=2 & Product_Category_1=1, 10, 11, 12, 13, 14, 15, 16 (+11 more)",
+            "root / Stay_In_Current_City_Years=0, 2, 4+ / Stay_In_Current_City_Years=2 / Age=26-35 / Gender=M / Product_Category_1=2"
+          ],
+          "uncapped_f1": 1.0,
+          "uncapped_recall": 1.0,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 7
+        },
+        {
+          "rule": "Stay_In_Current_City_Years=1 & Product_Category_1=5",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 3,
+          "best_jaccard": 0.6968664080448947,
+          "matched_paths": [
+            "root / Stay_In_Current_City_Years=1 / Product_Category_1=2, 5 / Product_Category_1=5 / Gender=M",
+            "Gender=F & Occupation=0, 1, 10, 11, 12, 13, 14, 15 (+11 more) & Stay_In_Current_City_Years=1 & Product_Category_1=5",
+            "root / Stay_In_Current_City_Years=1 / Product_Category_1=2, 5 / Product_Category_1=5 / Gender=F / Occupation=4"
+          ],
+          "uncapped_f1": 1.0,
+          "uncapped_recall": 1.0,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 3
+        }
+      ],
+      "n_terminal_segments": 45,
+      "null_pass": null,
+      "conservation_ok": true,
+      "extras": {},
+      "meta": {
+        "kaggle": "sdolezel/black-friday",
+        "domain": "retail-large",
+        "n_rows": 550068,
+        "base": 0.0,
+        "cardinalities": {
+          "Gender": 2,
+          "Age": 7,
+          "Occupation": 21,
+          "City_Category": 3,
+          "Stay_In_Current_City_Years": 5,
+          "Product_Category_1": 20
+        }
+      },
+      "n_rules": 5
+    },
+    {
+      "case": "kaggle_black_friday",
+      "seed": 2026,
+      "impact_f1": 0.8347338716835268,
+      "floor_rule_f1": 0.6847233904668105,
+      "rule_scores": [
+        {
+          "rule": "Gender=M & Age=18-25 & Occupation=0|20",
+          "f1": 0.700195150288046,
+          "recall": 0.6354255419861782,
+          "precision": 0.7796674959556422,
+          "n_segments_used": 3,
+          "best_jaccard": 0.27657351788978846,
+          "matched_paths": [
+            "Age=18-25 & Occupation=0, 20 & Stay_In_Current_City_Years=0, 4+ & Product_Category_1=1, 10, 11, 12, 13, 14, 15, 16 (+11 more)",
+            "root / Stay_In_Current_City_Years=0, 1, 4+ / Product_Category_1=1, 5, 8 / Stay_In_Current_City_Years=1 / Occupation=0, 17 / Age=18-25",
+            "root / Stay_In_Current_City_Years=2 / Occupation=0, 17 / Age=18-25"
+          ],
+          "uncapped_f1": 0.7358419584506306,
+          "uncapped_recall": 0.7135283536873993,
+          "uncapped_precision": 0.7595962065401354,
+          "uncapped_n_segments": 5
+        },
+        {
+          "rule": "Stay_In_Current_City_Years=1|2 & Occupation=0|17",
+          "f1": 0.9307634730538922,
+          "recall": 0.8704935246762338,
+          "precision": 1.0,
+          "n_segments_used": 3,
+          "best_jaccard": 0.5325516275813791,
+          "matched_paths": [
+            "Age=0-17, 26-35, 36-45, 46-50, 51-55, 55+ & Occupation=0, 17 & Stay_In_Current_City_Years=1 & Product_Category_1=1, 10, 11, 12, 13, 14, 15, 16 (+11 more)",
+            "Age=26-35, 36-45, 46-50, 51-55 & Occupation=0, 17 & Stay_In_Current_City_Years=2 & Product_Category_1=1, 10, 11, 12, 13, 14, 15, 16 (+11 more)",
+            "root / Stay_In_Current_City_Years=0, 1, 4+ / Product_Category_1=1, 5, 8 / Stay_In_Current_City_Years=1 / Occupation=0, 17 / Age=18-25"
+          ],
+          "uncapped_f1": 0.9924264466015993,
+          "uncapped_recall": 0.9849667483374168,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 10
+        },
+        {
+          "rule": "City_Category=A & Stay_In_Current_City_Years=3",
+          "f1": 0.9592363369348579,
+          "recall": 0.9216658603451057,
+          "precision": 1.0,
+          "n_segments_used": 3,
+          "best_jaccard": 0.6737219803257539,
+          "matched_paths": [
+            "root / Stay_In_Current_City_Years=3 / City_Category=A, B / City_Category=A / Product_Category_1=1, 5, 8 / Occupation=1, 10, 11, 12, 13, 14, 15, 16 (+9 more)",
+            "root / Stay_In_Current_City_Years=3 / City_Category=A, B / City_Category=A / Product_Category_1=10, 11, 12, 13, 14, 15, 16, 17 (+8 more) / Age=0-17, 26-35, 36-45, 46-50, 51-55, 55+",
+            "root / Stay_In_Current_City_Years=3 / City_Category=A, B / City_Category=A / Product_Category_1=1, 5, 8 / Occupation=0"
+          ],
+          "uncapped_f1": 1.0,
+          "uncapped_recall": 1.0,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 6
+        },
+        {
+          "rule": "Product_Category_1=2 & Age=26-35|18-25",
+          "f1": 0.6847233904668105,
+          "recall": 0.5393081761006291,
+          "precision": 0.9375057660843692,
+          "n_segments_used": 3,
+          "best_jaccard": 0.18538484576220426,
+          "matched_paths": [
+            "root / Stay_In_Current_City_Years=0, 1, 4+ / Product_Category_1=2 / Age=18-25, 26-35 / Age=26-35 / Stay_In_Current_City_Years=0, 4+",
+            "Age=18-25 & Occupation=1, 10, 11, 12, 14, 15, 16, 18 (+8 more) & Stay_In_Current_City_Years=0, 1, 4+ & Product_Category_1=2",
+            "Age=26-35 & Occupation=1, 11, 12, 14, 15, 16, 18, 19 (+9 more) & Stay_In_Current_City_Years=1 & Product_Category_1=2"
+          ],
+          "uncapped_f1": 0.9691198171924461,
+          "uncapped_recall": 0.9911650194669065,
+          "uncapped_precision": 0.9480339241173869,
+          "uncapped_n_segments": 14
+        },
+        {
+          "rule": "Stay_In_Current_City_Years=3 & City_Category=A|C",
+          "f1": 0.8987510076740266,
+          "recall": 0.8161197094725634,
+          "precision": 1.0,
+          "n_segments_used": 3,
+          "best_jaccard": 0.41223333460090505,
+          "matched_paths": [
+            "Age=0-17, 26-35, 36-45, 46-50, 51-55, 55+ & City_Category=C & Stay_In_Current_City_Years=3 & Product_Category_1=1, 10, 11, 12, 13, 14, 15, 16 (+11 more)",
+            "root / Stay_In_Current_City_Years=3 / City_Category=A, B / City_Category=A / Product_Category_1=1, 5, 8 / Occupation=1, 10, 11, 12, 13, 14, 15, 16 (+9 more)",
+            "root / Stay_In_Current_City_Years=3 / City_Category=A, B / City_Category=A / Product_Category_1=10, 11, 12, 13, 14, 15, 16, 17 (+8 more) / Age=0-17, 26-35, 36-45, 46-50, 51-55, 55+"
+          ],
+          "uncapped_f1": 1.0,
+          "uncapped_recall": 1.0,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 11
+        }
+      ],
+      "n_terminal_segments": 44,
+      "null_pass": null,
+      "conservation_ok": true,
+      "extras": {},
+      "meta": {
+        "kaggle": "sdolezel/black-friday",
+        "domain": "retail-large",
+        "n_rows": 550068,
+        "base": 0.0,
+        "cardinalities": {
+          "Gender": 2,
+          "Age": 7,
+          "Occupation": 21,
+          "City_Category": 3,
+          "Stay_In_Current_City_Years": 5,
+          "Product_Category_1": 20
+        }
+      },
+      "n_rules": 5
+    },
+    {
+      "case": "kaggle_olist",
+      "seed": 42,
+      "impact_f1": 0.9148611996880961,
+      "floor_rule_f1": 0.8180058519018683,
+      "rule_scores": [
+        {
+          "rule": "month=8|3 & seller_state=MG",
+          "f1": 0.9806972054163065,
+          "recall": 0.9621254946297343,
+          "precision": 1.0,
+          "n_segments_used": 3,
+          "best_jaccard": 0.4686263425664217,
+          "matched_paths": [
+            "product_category_name=alimentos, alimentos_bebidas, artes, automotivo, bebes, bebidas, beleza_saude, brinquedos (+31 more) & seller_state=MG & customer_state=RJ, SP & month=3, 8",
+            "product_category_name=agro_industria_e_comercio, alimentos_bebidas, artigos_de_natal, automotivo, bebes, bebidas, beleza_saude, brinquedos (+31 more) & seller_state=MG & customer_state=AC, AL, AM, AP, BA, CE, DF, ES (+16 more) & month=3, 8",
+            "root / customer_state=MG / seller_state=MG, RJ / month=3, 5, 8 / seller_state=MG / month=3, 8"
+          ],
+          "uncapped_f1": 1.0,
+          "uncapped_recall": 1.0,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 4
+        },
+        {
+          "rule": "customer_state=MG",
+          "f1": 0.8180058519018683,
+          "recall": 0.6920557544367433,
+          "precision": 1.0,
+          "n_segments_used": 3,
+          "best_jaccard": 0.4819864422271308,
+          "matched_paths": [
+            "product_category_name=agro_industria_e_comercio, alimentos, alimentos_bebidas, artes, artes_e_artesanato, artigos_de_natal, audio, automotivo (+57 more) & seller_state=SP & customer_state=MG & month=10, 11, 2, 3, 4, 5, 6, 7 (+1 more)",
+            "product_category_name=agro_industria_e_comercio, alimentos, alimentos_bebidas, artes, artigos_de_festas, artigos_de_natal, automotivo, bebes (+36 more) & seller_state=MG, RJ & customer_state=MG & month=1, 10, 11, 12, 2, 4, 6, 7 (+1 more)",
+            "product_category_name=artigos_de_natal, audio, automotivo, bebes, bebidas, beleza_saude, brinquedos, cama_mesa_banho (+36 more) & seller_state=SP & customer_state=MG & month=1, 12"
+          ],
+          "uncapped_f1": 1.0,
+          "uncapped_recall": 1.0,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 15
+        },
+        {
+          "rule": "month=5 & seller_state=RJ|MG",
+          "f1": 0.9402560455192032,
+          "recall": 0.8872483221476507,
+          "precision": 1.0,
+          "n_segments_used": 3,
+          "best_jaccard": 0.5228187919463088,
+          "matched_paths": [
+            "product_category_name=alimentos, alimentos_bebidas, artes, automotivo, bebes, beleza_saude, brinquedos, cama_mesa_banho (+27 more) & seller_state=MG, RJ & customer_state=RJ, SP & month=5",
+            "root / customer_state=AC, AL, AM, AP, BA, CE, DF, ES (+16 more) / seller_state=MG, RJ / month=3, 5, 8 / month=5 / product_category_name=alimentos_bebidas, artes, artigos_de_festas, audio, automotivo, bebes, beleza_saude, brinquedos (+27 more)",
+            "root / customer_state=MG / seller_state=MG, RJ / month=3, 5, 8 / seller_state=MG / month=5"
+          ],
+          "uncapped_f1": 0.9710280565605874,
+          "uncapped_recall": 0.9630872483221474,
+          "uncapped_precision": 0.9791008999149707,
+          "uncapped_n_segments": 6
+        },
+        {
+          "rule": "seller_state=RS|SP & month=8",
+          "f1": 0.965493403997926,
+          "recall": 0.9332887849426438,
+          "precision": 1.0,
+          "n_segments_used": 3,
+          "best_jaccard": 0.5755652077068716,
+          "matched_paths": [
+            "product_category_name=agro_industria_e_comercio, alimentos, alimentos_bebidas, artes, artes_e_artesanato, artigos_de_festas, artigos_de_natal, audio (+57 more) & seller_state=SP & customer_state=RJ, SP & month=8",
+            "product_category_name=agro_industria_e_comercio, alimentos, alimentos_bebidas, artes, artigos_de_festas, artigos_de_natal, audio, automotivo (+53 more) & seller_state=SP & customer_state=AC, AL, AM, AP, BA, CE, DF, ES (+16 more) & month=8",
+            "root / customer_state=MG / seller_state=SP / month=8 / product_category_name=agro_industria_e_comercio, alimentos, alimentos_bebidas, artes, artigos_de_festas, artigos_de_natal, audio, automotivo (+39 more)"
+          ],
+          "uncapped_f1": 0.9849649559122766,
+          "uncapped_recall": 0.9703753201915579,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 6
+        },
+        {
+          "rule": "product_category_name=papelaria|eletronicos",
+          "f1": 0.8698534916051761,
+          "recall": 0.7696820590461775,
+          "precision": 1.0,
+          "n_segments_used": 3,
+          "best_jaccard": 0.6139288417865254,
+          "matched_paths": [
+            "product_category_name=eletronicos, papelaria & seller_state=SP & customer_state=AC, AL, AM, AP, BA, CE, DF, ES (+18 more) & month=1, 10, 11, 12, 2, 3, 4, 5 (+3 more)",
+            "root / customer_state=RJ, SP / seller_state=AC, BA, CE, DF, ES, GO, MA, MS (+11 more) / product_category_name=eletronicos, papelaria / seller_state=DF, ES, PB, PR, SC",
+            "root / customer_state=AC, AL, AM, AP, BA, CE, DF, ES (+16 more) / seller_state=AM, BA, CE, DF, ES, GO, MA, MS (+11 more) / product_category_name=eletronicos, papelaria"
+          ],
+          "uncapped_f1": 0.994866092129945,
+          "uncapped_recall": 0.9911052233156701,
+          "uncapped_precision": 0.99865561180787,
+          "uncapped_n_segments": 12
+        }
+      ],
+      "n_terminal_segments": 46,
+      "null_pass": null,
+      "conservation_ok": true,
+      "extras": {},
+      "meta": {
+        "kaggle": "olistbr/brazilian-ecommerce",
+        "domain": "ecommerce",
+        "n_rows": 112650,
+        "base": 3.0,
+        "cardinalities": {
+          "product_category_name": 74,
+          "seller_state": 23,
+          "customer_state": 27,
+          "month": 12
+        }
+      },
+      "n_rules": 5
+    },
+    {
+      "case": "kaggle_olist",
+      "seed": 7,
+      "impact_f1": 0.9784549203838223,
+      "floor_rule_f1": 0.9082853749684526,
+      "rule_scores": [
+        {
+          "rule": "product_category_name=moveis_escritorio & seller_state=SP",
+          "f1": 0.9996914532551682,
+          "recall": 0.9993830968537939,
+          "precision": 1.0,
+          "n_segments_used": 2,
+          "best_jaccard": 0.8827884022208513,
+          "matched_paths": [
+            "root / month=1, 10, 11, 12, 2, 3, 4, 5 (+3 more) / product_category_name=bebes, informatica_acessorios, moveis_escritorio, papelaria / product_category_name=informatica_acessorios, moveis_escritorio / product_category_name=moveis_escritorio / seller_state=SP",
+            "root / month=7 / product_category_name=bebes, informatica_acessorios, moveis_escritorio, papelaria / product_category_name=moveis_escritorio / customer_state=BA, CE, DF, GO, MA, MG, MT, PA (+8 more) / seller_state=SP"
+          ],
+          "uncapped_f1": 0.9996914532551682,
+          "uncapped_recall": 0.9993830968537939,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 2
+        },
+        {
+          "rule": "month=7",
+          "f1": 0.9842977736954907,
+          "recall": 0.9690810438377403,
+          "precision": 1.0,
+          "n_segments_used": 3,
+          "best_jaccard": 0.8646111446042546,
+          "matched_paths": [
+            "product_category_name=agro_industria_e_comercio, alimentos, alimentos_bebidas, artes, artes_e_artesanato, artigos_de_festas, artigos_de_natal, audio (+60 more) & month=7",
+            "product_category_name=informatica_acessorios, papelaria & customer_state=AC, AL, AM, BA, CE, DF, ES, GO (+18 more) & month=7",
+            "root / month=7 / product_category_name=bebes, informatica_acessorios, moveis_escritorio, papelaria / product_category_name=moveis_escritorio / customer_state=BA, CE, DF, GO, MA, MG, MT, PA (+8 more) / seller_state=SP"
+          ],
+          "uncapped_f1": 1.0,
+          "uncapped_recall": 1.0,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 7
+        },
+        {
+          "rule": "customer_state=PR|RS & month=5",
+          "f1": 0.9082853749684526,
+          "recall": 0.8752997601918466,
+          "precision": 0.9438544695265938,
+          "n_segments_used": 1,
+          "best_jaccard": 0.8752997601918465,
+          "matched_paths": [
+            "product_category_name=agro_industria_e_comercio, alimentos, alimentos_bebidas, artes, artes_e_artesanato, artigos_de_festas, artigos_de_natal, audio (+62 more) & customer_state=PR, RS & month=5"
+          ],
+          "uncapped_f1": 0.9082853749684526,
+          "uncapped_recall": 0.8752997601918466,
+          "uncapped_precision": 0.9438544695265938,
+          "uncapped_n_segments": 1
+        },
+        {
+          "rule": "customer_state=SP|PR & product_category_name=bebes",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 2,
+          "best_jaccard": 0.8823938761308281,
+          "matched_paths": [
+            "root / month=1, 10, 11, 12, 2, 3, 4, 5 (+3 more) / product_category_name=bebes, informatica_acessorios, moveis_escritorio, papelaria / product_category_name=bebes / customer_state=PR, SP",
+            "root / month=7 / product_category_name=bebes, informatica_acessorios, moveis_escritorio, papelaria / product_category_name=bebes / customer_state=PR, SP"
+          ],
+          "uncapped_f1": 1.0,
+          "uncapped_recall": 1.0,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 2
+        },
+        {
+          "rule": "product_category_name=informatica_acessorios|papelaria",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 3,
+          "best_jaccard": 0.8062645011600929,
+          "matched_paths": [
+            "product_category_name=informatica_acessorios, papelaria & month=1, 10, 11, 12, 2, 3, 4, 6 (+2 more)",
+            "product_category_name=informatica_acessorios, papelaria & customer_state=AC, AL, AM, BA, CE, DF, ES, GO (+18 more) & month=7",
+            "product_category_name=informatica_acessorios, papelaria & month=5"
+          ],
+          "uncapped_f1": 1.0,
+          "uncapped_recall": 1.0,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 3
+        }
+      ],
+      "n_terminal_segments": 19,
+      "null_pass": null,
+      "conservation_ok": true,
+      "extras": {},
+      "meta": {
+        "kaggle": "olistbr/brazilian-ecommerce",
+        "domain": "ecommerce",
+        "n_rows": 112650,
+        "base": 3.0,
+        "cardinalities": {
+          "product_category_name": 74,
+          "seller_state": 23,
+          "customer_state": 27,
+          "month": 12
+        }
+      },
+      "n_rules": 5
+    },
+    {
+      "case": "kaggle_olist",
+      "seed": 2026,
+      "impact_f1": 0.9539999167975559,
+      "floor_rule_f1": 0.9252821127522205,
+      "rule_scores": [
+        {
+          "rule": "seller_state=SP & product_category_name=beleza_saude",
+          "f1": 0.9252821127522205,
+          "recall": 0.8997501561524051,
+          "precision": 0.9523054151239463,
+          "n_segments_used": 3,
+          "best_jaccard": 0.670206121174266,
+          "matched_paths": [
+            "root / month=1, 10, 11, 12, 2, 4, 6, 7 (+1 more) / seller_state=SP / product_category_name=beleza_saude",
+            "product_category_name=beleza_saude & seller_state=SP & customer_state=AC, AL, BA, CE, DF, ES, GO, MA (+14 more) & month=8",
+            "root / month=5, 8 / month=5 / seller_state=SP / product_category_name=beleza_saude"
+          ],
+          "uncapped_f1": 1.0,
+          "uncapped_recall": 1.0,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 5
+        },
+        {
+          "rule": "month=5",
+          "f1": 0.9553262886249853,
+          "recall": 0.9505016167813612,
+          "precision": 0.960200189665796,
+          "n_segments_used": 3,
+          "best_jaccard": 0.6702595141364729,
+          "matched_paths": [
+            "product_category_name=agro_industria_e_comercio, alimentos, alimentos_bebidas, artes, artes_e_artesanato, artigos_de_festas, artigos_de_natal, audio (+59 more) & seller_state=SP & month=5",
+            "root / month=5, 8 / month=5 / seller_state=BA, CE, ES, GO, MA, MG, MS, MT (+9 more)",
+            "root / month=5, 8 / month=5 / seller_state=SP / product_category_name=beleza_saude"
+          ],
+          "uncapped_f1": 0.9999999999999999,
+          "uncapped_recall": 0.9999999999999997,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 4
+        },
+        {
+          "rule": "seller_state=DF|RJ",
+          "f1": 0.9348978012169142,
+          "recall": 0.8810564981633722,
+          "precision": 0.9957478873093567,
+          "n_segments_used": 3,
+          "best_jaccard": 0.6982683225467903,
+          "matched_paths": [
+            "root / month=1, 10, 11, 12, 2, 4, 6, 7 (+1 more) / seller_state=DF, RJ",
+            "root / month=5, 8 / month=5 / seller_state=DF, RJ",
+            "root / month=3 / seller_state=DF, RJ / customer_state=AL, AM, BA, CE, DF, ES, GO, MA (+15 more)"
+          ],
+          "uncapped_f1": 0.9999999999999999,
+          "uncapped_recall": 0.9999999999999997,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 6
+        },
+        {
+          "rule": "month=3",
+          "f1": 0.9760839799178458,
+          "recall": 0.953285192119105,
+          "precision": 1.0,
+          "n_segments_used": 3,
+          "best_jaccard": 0.6654185611125969,
+          "matched_paths": [
+            "product_category_name=agro_industria_e_comercio, alimentos, alimentos_bebidas, artes, artigos_de_festas, artigos_de_natal, audio, automotivo (+57 more) & seller_state=SP & month=3",
+            "root / month=3 / seller_state=AM, BA, CE, ES, GO, MA, MG, MS (+9 more)",
+            "root / month=3 / seller_state=SP / product_category_name=beleza_saude"
+          ],
+          "uncapped_f1": 1.0,
+          "uncapped_recall": 1.0,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 5
+        },
+        {
+          "rule": "customer_state=RJ|SC & month=8",
+          "f1": 0.9784094014758132,
+          "recall": 0.9577314071696096,
+          "precision": 1.0,
+          "n_segments_used": 3,
+          "best_jaccard": 0.593900481540931,
+          "matched_paths": [
+            "product_category_name=agro_industria_e_comercio, alimentos, alimentos_bebidas, artes, artes_e_artesanato, artigos_de_festas, artigos_de_natal, audio (+60 more) & seller_state=SP & customer_state=RJ, SC & month=8",
+            "root / month=5, 8 / month=8 / seller_state=BA, CE, ES, GO, MA, MG, MS, MT (+8 more) / customer_state=RJ, SC",
+            "root / month=5, 8 / month=8 / seller_state=DF, RJ / customer_state=RJ, SC"
+          ],
+          "uncapped_f1": 1.0,
+          "uncapped_recall": 1.0,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 4
+        }
+      ],
+      "n_terminal_segments": 22,
+      "null_pass": null,
+      "conservation_ok": true,
+      "extras": {},
+      "meta": {
+        "kaggle": "olistbr/brazilian-ecommerce",
+        "domain": "ecommerce",
+        "n_rows": 112650,
+        "base": 3.0,
+        "cardinalities": {
+          "product_category_name": 74,
+          "seller_state": 23,
+          "customer_state": 27,
+          "month": 12
+        }
+      },
+      "n_rules": 5
+    },
+    {
+      "case": "kaggle_wine",
+      "seed": 42,
+      "impact_f1": 0.9999318873439824,
+      "floor_rule_f1": 0.9997792324692761,
+      "rule_scores": [
+        {
+          "rule": "taster_name=Kerin O\u2019Keefe & country=Italy",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 1,
+          "best_jaccard": 1.0,
+          "matched_paths": [
+            "root / country=France, Italy / taster_name=Kerin O\u2019Keefe"
+          ],
+          "uncapped_f1": 1.0,
+          "uncapped_recall": 1.0,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 1
+        },
+        {
+          "rule": "taster_name=Roger Voss & country=Portugal",
+          "f1": 0.9999060947162659,
+          "recall": 1.0,
+          "precision": 0.9998122070672805,
+          "n_segments_used": 1,
+          "best_jaccard": 0.9989406779661016,
+          "matched_paths": [
+            "root / country=Portugal, US / country=Portugal / taster_name=Lauren Buzzeo, Roger Voss, missing"
+          ],
+          "uncapped_f1": 0.9999060947162659,
+          "uncapped_recall": 1.0,
+          "uncapped_precision": 0.9998122070672805,
+          "uncapped_n_segments": 1
+        },
+        {
+          "rule": "country=France & province=Alsace",
+          "f1": 0.9997792324692761,
+          "recall": 1.0,
+          "precision": 0.9995585623936426,
+          "n_segments_used": 2,
+          "best_jaccard": 0.5712530712530712,
+          "matched_paths": [
+            "root / country=France, Italy / taster_name=Anne Krebiehl\u00a0MW, Michael Schachner, Paul Gregutt / country=France / province=Alsace, France Other, Provence, Rh\u00f4ne Valley / taster_name=Anne Krebiehl\u00a0MW, Paul Gregutt",
+            "root / country=France, Italy / taster_name=Joe Czerwinski, Lauren Buzzeo, Roger Voss, missing / country=France / province=Alsace, Burgundy / province=Alsace"
+          ],
+          "uncapped_f1": 0.9997792324692761,
+          "uncapped_recall": 1.0,
+          "uncapped_precision": 0.9995585623936426,
+          "uncapped_n_segments": 2
+        },
+        {
+          "rule": "taster_name=Paul Gregutt & province=Oregon",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 1,
+          "best_jaccard": 1.0,
+          "matched_paths": [
+            "root / country=Portugal, US / country=US / province=Oregon / taster_name=Paul Gregutt"
+          ],
+          "uncapped_f1": 1.0,
+          "uncapped_recall": 1.0,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 1
+        },
+        {
+          "rule": "taster_name=Roger Voss|Paul Gregutt & province=Burgundy",
+          "f1": 0.9999741095343696,
+          "recall": 1.0,
+          "precision": 0.9999482204093368,
+          "n_segments_used": 1,
+          "best_jaccard": 0.9997477295660948,
+          "matched_paths": [
+            "country=France & province=Burgundy & taster_name=Anne Krebiehl\u00a0MW, Michael Schachner, Paul Gregutt, Roger Voss"
+          ],
+          "uncapped_f1": 0.9999741095343696,
+          "uncapped_recall": 1.0,
+          "uncapped_precision": 0.9999482204093368,
+          "uncapped_n_segments": 1
+        }
+      ],
+      "n_terminal_segments": 15,
+      "null_pass": null,
+      "conservation_ok": true,
+      "extras": {},
+      "meta": {
+        "kaggle": "zynicide/wine-reviews",
+        "domain": "wine",
+        "n_rows": 129971,
+        "base": 0.0,
+        "cardinalities": {
+          "country": 44,
+          "province": 426,
+          "variety": 708,
+          "taster_name": 20
+        }
+      },
+      "n_rules": 5
+    },
+    {
+      "case": "kaggle_wine",
+      "seed": 7,
+      "impact_f1": 0.9928953264504555,
+      "floor_rule_f1": 0.964476632252278,
+      "rule_scores": [
+        {
+          "rule": "taster_name=Michael Schachner",
+          "f1": 0.9999999999999999,
+          "recall": 0.9999999999999997,
+          "precision": 1.0,
+          "n_segments_used": 2,
+          "best_jaccard": 0.9953085767146822,
+          "matched_paths": [
+            "root / taster_name=Joe Czerwinski, Michael Schachner, Roger Voss, missing / taster_name=Joe Czerwinski, Michael Schachner / taster_name=Michael Schachner / country=Argentina, Brazil, Chile, France, Italy, Mexico, Peru, Portugal (+3 more)",
+            "root / taster_name=Joe Czerwinski, Michael Schachner, Roger Voss, missing / taster_name=Joe Czerwinski, Michael Schachner / taster_name=Michael Schachner / country=US"
+          ],
+          "uncapped_f1": 0.9999999999999999,
+          "uncapped_recall": 0.9999999999999997,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 2
+        },
+        {
+          "rule": "country=South Africa",
+          "f1": 0.964476632252278,
+          "recall": 0.9321912919343328,
+          "precision": 0.999078532867604,
+          "n_segments_used": 1,
+          "best_jaccard": 0.9321912919343326,
+          "matched_paths": [
+            "root / taster_name=Alexander Peartree, Anna Lee C. Iijima, Anne Krebiehl\u00a0MW, Carrie Dykes, Christina Pickard, Fiona Adams, Jeff Jenssen, Jim Gordon (+7 more) / country=South Africa"
+          ],
+          "uncapped_f1": 0.964476632252278,
+          "uncapped_recall": 0.9321912919343328,
+          "uncapped_precision": 0.999078532867604,
+          "uncapped_n_segments": 1
+        },
+        {
+          "rule": "taster_name=Michael Schachner|Virginie Boone & country=US",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 2,
+          "best_jaccard": 0.9926103247293921,
+          "matched_paths": [
+            "root / taster_name=Virginie Boone",
+            "root / taster_name=Joe Czerwinski, Michael Schachner, Roger Voss, missing / taster_name=Joe Czerwinski, Michael Schachner / taster_name=Michael Schachner / country=US"
+          ],
+          "uncapped_f1": 1.0,
+          "uncapped_recall": 1.0,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 2
+        },
+        {
+          "rule": "taster_name=Virginie Boone",
+          "f1": 0.9999999999999999,
+          "recall": 0.9999999999999999,
+          "precision": 1.0,
+          "n_segments_used": 1,
+          "best_jaccard": 1.0,
+          "matched_paths": [
+            "root / taster_name=Virginie Boone"
+          ],
+          "uncapped_f1": 0.9999999999999999,
+          "uncapped_recall": 0.9999999999999999,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 1
+        },
+        {
+          "rule": "country=New Zealand & taster_name=missing|Joe Czerwinski",
+          "f1": 0.9999999999999999,
+          "recall": 0.9999999999999998,
+          "precision": 1.0,
+          "n_segments_used": 1,
+          "best_jaccard": 1.0,
+          "matched_paths": [
+            "country=New Zealand & taster_name=Joe Czerwinski, Roger Voss, missing"
+          ],
+          "uncapped_f1": 0.9999999999999999,
+          "uncapped_recall": 0.9999999999999998,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 1
+        }
+      ],
+      "n_terminal_segments": 8,
+      "null_pass": null,
+      "conservation_ok": true,
+      "extras": {},
+      "meta": {
+        "kaggle": "zynicide/wine-reviews",
+        "domain": "wine",
+        "n_rows": 129971,
+        "base": 0.0,
+        "cardinalities": {
+          "country": 44,
+          "province": 426,
+          "variety": 708,
+          "taster_name": 20
+        }
+      },
+      "n_rules": 5
+    },
+    {
+      "case": "kaggle_wine",
+      "seed": 2026,
+      "impact_f1": 0.9895255839132044,
+      "floor_rule_f1": 0.9728343243558353,
+      "rule_scores": [
+        {
+          "rule": "country=Germany & taster_name=Anna Lee C. Iijima|missing",
+          "f1": 0.9809768442264879,
+          "recall": 0.9687150837988827,
+          "precision": 0.9935529969304545,
+          "n_segments_used": 3,
+          "best_jaccard": 0.8044692737430168,
+          "matched_paths": [
+            "root / taster_name=Anna Lee C. Iijima, Joe Czerwinski, Michael Schachner / country=Germany, Spain / country=Germany / taster_name=Anna Lee C. Iijima / variety=Riesling",
+            "root / taster_name=Anna Lee C. Iijima, Joe Czerwinski, Michael Schachner / country=Germany, Spain / country=Germany / taster_name=Anna Lee C. Iijima / variety=Dornfelder, Gew\u00fcrztraminer, Pinot Blanc, Pinot Gris, Pinot Noir, Ros\u00e9, Silvaner, Sparkling Blend (+3 more) / province=Ahr, Baden, Germany, Mosel, Nahe, Pfalz, Rheingau, Rheinhessen (+1 more)",
+            "root / taster_name=Anna Lee C. Iijima, Joe Czerwinski, Michael Schachner / country=Germany, Spain / country=Germany / taster_name=Anna Lee C. Iijima / variety=Auxerrois, Bacchus, Chardonnay, Elbling, Fr\u00fcburgunder, Gew\u00fcrztraminer-Riesling, Grauburgunder, Lemberger (+10 more)"
+          ],
+          "uncapped_f1": 0.9906747517898276,
+          "uncapped_recall": 0.9826815642458101,
+          "uncapped_precision": 0.9987990397935224,
+          "uncapped_n_segments": 4
+        },
+        {
+          "rule": "country=Germany|Spain",
+          "f1": 0.9728343243558353,
+          "recall": 0.9471055618615207,
+          "precision": 1.0,
+          "n_segments_used": 3,
+          "best_jaccard": 0.7464245175936436,
+          "matched_paths": [
+            "root / taster_name=Anna Lee C. Iijima, Joe Czerwinski, Michael Schachner / country=Germany, Spain / country=Spain",
+            "root / taster_name=Anna Lee C. Iijima, Joe Czerwinski, Michael Schachner / country=Germany, Spain / country=Germany / taster_name=Anna Lee C. Iijima / variety=Riesling",
+            "root / taster_name=Anna Lee C. Iijima, Joe Czerwinski, Michael Schachner / country=Germany, Spain / country=Germany / taster_name=Joe Czerwinski / variety=Riesling"
+          ],
+          "uncapped_f1": 0.9942922374429223,
+          "uncapped_recall": 0.9886492622020429,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 7
+        },
+        {
+          "rule": "taster_name=Michael Schachner & country=Argentina",
+          "f1": 0.9999999999999999,
+          "recall": 0.9999999999999997,
+          "precision": 1.0,
+          "n_segments_used": 1,
+          "best_jaccard": 1.0,
+          "matched_paths": [
+            "root / taster_name=Anna Lee C. Iijima, Joe Czerwinski, Michael Schachner / country=Argentina, Australia, Chile, France, New Zealand, US / country=Argentina"
+          ],
+          "uncapped_f1": 0.9999999999999999,
+          "uncapped_recall": 0.9999999999999997,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 1
+        },
+        {
+          "rule": "country=Germany & variety=Riesling",
+          "f1": 0.9938167509836986,
+          "recall": 0.9877094972067036,
+          "precision": 1.0,
+          "n_segments_used": 2,
+          "best_jaccard": 0.8044692737430168,
+          "matched_paths": [
+            "root / taster_name=Anna Lee C. Iijima, Joe Czerwinski, Michael Schachner / country=Germany, Spain / country=Germany / taster_name=Anna Lee C. Iijima / variety=Riesling",
+            "root / taster_name=Anna Lee C. Iijima, Joe Czerwinski, Michael Schachner / country=Germany, Spain / country=Germany / taster_name=Joe Czerwinski / variety=Riesling"
+          ],
+          "uncapped_f1": 0.9938167509836986,
+          "uncapped_recall": 0.9877094972067036,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 2
+        },
+        {
+          "rule": "taster_name=Virginie Boone",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 1,
+          "best_jaccard": 1.0,
+          "matched_paths": [
+            "root / taster_name=Virginie Boone"
+          ],
+          "uncapped_f1": 1.0,
+          "uncapped_recall": 1.0,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 1
+        }
+      ],
+      "n_terminal_segments": 11,
+      "null_pass": null,
+      "conservation_ok": true,
+      "extras": {},
+      "meta": {
+        "kaggle": "zynicide/wine-reviews",
+        "domain": "wine",
+        "n_rows": 129971,
+        "base": 0.0,
+        "cardinalities": {
+          "country": 44,
+          "province": 426,
+          "variety": 708,
+          "taster_name": 20
+        }
+      },
+      "n_rules": 5
+    }
+  ]
+}
