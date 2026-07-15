@@ -994,6 +994,18 @@ class ImpactSplitter:
             )
         return self.summary()
 
+    def plot_segments(
+        self,
+        *,
+        top: int = 15,
+        figsize: tuple[float, float] | None = None,
+        show: bool = True,
+    ) -> Figure:
+        """Tornado chart of consolidated segments (the stakeholder deliverable view)."""
+        from impact_split.viz.static import plot_segments
+
+        return plot_segments(self.to_dict(), top=top, figsize=figsize, show=show)
+
     def plot_tree(
         self,
         figsize: tuple[float, float] = (16.0, 10.0),
