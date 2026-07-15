@@ -169,6 +169,7 @@ class ImpactSplitter:
         max_depth: int = 5,
         noise_z: float = 3.0,
         consolidate: bool = True,
+        lookahead: bool = True,
         numeric_binning_strategy: str = "quantiles",
         numeric_n_bins: int = 10,
     ) -> None:
@@ -182,12 +183,15 @@ class ImpactSplitter:
             raise ValueError("noise_z must be >= 0 (0 disables the noise floor).")
         if not isinstance(consolidate, bool):
             raise ValueError("consolidate must be a bool.")
+        if not isinstance(lookahead, bool):
+            raise ValueError("lookahead must be a bool.")
 
         self.delta_pct = delta_pct
         self.min_global_impact_pct = min_global_impact_pct
         self.max_depth = max_depth
         self.noise_z = noise_z
         self.consolidate = consolidate
+        self.lookahead = lookahead
         self.numeric_binning_strategy = numeric_binning_strategy
         self.numeric_n_bins = numeric_n_bins
         self._X: np.ndarray | None = None
@@ -819,7 +823,7 @@ class ImpactSplitter:
                 f"ImpactSplitter(delta_pct={self.delta_pct}, "
                 f"min_global_impact_pct={self.min_global_impact_pct}, "
                 f"max_depth={self.max_depth}, noise_z={self.noise_z}, "
-                f"consolidate={self.consolidate})"
+                f"consolidate={self.consolidate}, lookahead={self.lookahead})"
             )
         return self.summary()
 
