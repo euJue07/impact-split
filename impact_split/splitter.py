@@ -834,6 +834,30 @@ class ImpactSplitter:
         rec(self._tree, {}, np.ones(n, dtype=bool))
         return out
 
+    def _finalize_segments(self, segs: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        """Attach gross flows + churn flag from row masks, then drop fit-only fields.
+
+        A segment is churn when its positive AND negative gross flows each clear
+        ``min_global_impact_pct`` against their global pools — the net then hides
+        offsetting material mass.
+        """
+        assert self._y is not None
+        y = self._y
+        for s in segs:
+            ym = y[s["mask"]]
+            pos = float(ym[ym > 0].sum())
+            neg = float(np.abs(ym[ym < 0]).sum())
+            s["pos_sum"] = pos
+            s["neg_sum"] = neg
+            ratio_p = pos / self._v_global_p if self._v_global_p > 0 else 0.0
+            ratio_n = neg / self._v_global_n if self._v_global_n > 0 else 0.0
+            s["is_churn"] = bool(
+                ratio_p > self.min_global_impact_pct and ratio_n > self.min_global_impact_pct
+            )
+            s.pop("mask", None)
+            s.pop("mean", None)
+        return segs
+
     def _consolidate_segments(self) -> list[dict[str, Any]]:
         """Merge terminal segments that fragmentation split without statistical cause.
 
@@ -848,9 +872,7 @@ class ImpactSplitter:
         assert self._y is not None and self._X is not None
         segs = self._leaf_segments()
         if not self.consolidate or len(segs) <= 1:
-            for s in segs:
-                s.pop("mask", None)
-            return segs
+            return self._finalize_segments(segs)
 
         X = self._X
         y = self._y
@@ -928,10 +950,7 @@ class ImpactSplitter:
             segs = [s for k, s in enumerate(segs) if k not in (i, j)]
             segs.append(merged)
 
-        for s in segs:
-            s.pop("mask", None)
-            s.pop("mean", None)
-        return segs
+        return self._finalize_segments(segs)
 
     def get_impact_segments(self) -> pd.DataFrame:
         """Return terminal segments sorted by absolute total impact.
