@@ -4,7 +4,7 @@ Use this page to set up a local environment and run the first Impact Split workf
 
 ## Prerequisites
 
-- Python `3.13.x` (project requires `~=3.13.0`)
+- Python 3.10+ (3.10–3.13 tested in CI)
 - `pip`
 
 ## Installation

@@ -146,6 +146,12 @@ function fmt(v) {
   if (Math.abs(v) >= 1000) return sign + Math.round(v).toLocaleString("en-US");
   return sign + v.toLocaleString("en-US", { maximumFractionDigits: 2 });
 }
+function fmtMag(v) {
+  if (v === null || v === undefined) return "—";
+  var a = Math.abs(v);
+  if (a >= 1000) return Math.round(a).toLocaleString("en-US");
+  return a.toLocaleString("en-US", { maximumFractionDigits: 2 });
+}
 function pct(v) { return v == null ? "—" : (100 * v).toFixed(1) + "%"; }
 
 var POS_RGB = [1, 115, 178], NEG_RGB = [198, 102, 10], MID_RGB = [242, 242, 240];
@@ -191,7 +197,8 @@ function nodeTip(n) {
   var mean = n.n ? (n.total_sum || 0) / n.n : 0;
   var lines = [cumPath(n),
     "n = " + n.n.toLocaleString("en-US") + "   mean = " + fmt(mean),
-    "Σy = " + fmt(n.total_sum) + "   Σy⁺ = " + fmt(n.pos_sum) + "   Σy⁻ = -" + fmt(n.neg_sum)];
+    "Σy = " + fmt(n.total_sum) + "   Σy⁺ = " + fmt(n.pos_sum) + "   Σy⁻ = " +
+      (n.neg_sum ? "-" : "") + fmtMag(n.neg_sum)];
   if (n.split_feature) lines.push("splits on: " + n.split_feature);
   if (n.segment_id) {
     var s = segById[n.segment_id];

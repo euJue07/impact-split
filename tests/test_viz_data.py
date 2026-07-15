@@ -76,3 +76,20 @@ def test_get_impact_segments_gains_columns_after_existing() -> None:
     assert list(df.columns) == ["path", "total_sum", "n_samples", "node_id", "mean", "pool_share"]
     assert (df["mean"] == df["total_sum"] / df["n_samples"]).all()
     assert (df["pool_share"].dropna() >= 0).all()
+
+
+def test_payload_params_json_safe_with_numpy_scalars() -> None:
+    """numpy scalar constructor args must not break json.dumps(..., allow_nan=False)."""
+    X, y = demo_frame()
+    model = ImpactSplitter(
+        max_depth=np.int64(5),
+        delta_pct=np.float64(0.01),
+        min_global_impact_pct=np.float64(0.01),
+        noise_z=np.float64(3.0),
+    ).fit(X, y)
+    text = json.dumps(model.to_dict(), allow_nan=False)
+    params = json.loads(text)["meta"]["params"]
+    assert params["max_depth"] == 5
+    assert isinstance(params["max_depth"], int)
+    assert params["delta_pct"] == pytest.approx(0.01)
+    assert params["consolidate"] is True

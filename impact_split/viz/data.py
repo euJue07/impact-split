@@ -147,11 +147,11 @@ def build_payload(model: ImpactSplitter) -> dict[str, Any]:
         "meta": {
             "package_version": _package_version(),
             "params": {
-                "delta_pct": model.delta_pct,
-                "min_global_impact_pct": model.min_global_impact_pct,
-                "max_depth": model.max_depth,
-                "noise_z": model.noise_z,
-                "consolidate": model.consolidate,
+                "delta_pct": safe_float(model.delta_pct),
+                "min_global_impact_pct": safe_float(model.min_global_impact_pct),
+                "max_depth": int(model.max_depth),
+                "noise_z": safe_float(model.noise_z),
+                "consolidate": bool(model.consolidate),
             },
             "n_rows": int(tree.n_samples),
             "n_features": n_features,
