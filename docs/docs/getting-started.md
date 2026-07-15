@@ -4,17 +4,21 @@ Use this page to set up a local environment and run the first Impact Split workf
 
 ## Prerequisites
 
-- Python `3.13.x` (project requires `~=3.13.0`)
+- Python 3.10+ (3.10–3.13 tested in CI)
 - `pip`
 
 ## Installation
 
 ```bash
+pip install impact-split
+```
+
+(PyPI, once published — see [CHANGELOG](../../CHANGELOG.md)). To work on the library itself, use an editable dev install instead:
+
+```bash
 python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install --upgrade pip
-python -m pip install -e .
-# Optional contributor toolchain (lint, tests, packaging checks):
 python -m pip install -e ".[dev]"
 ```
 
@@ -46,63 +50,28 @@ For the full three-act origin story and formulas, read:
 ```python
 from impact_split import ImpactSplitter
 
-model = ImpactSplitter(
-    delta_pct=0.05,
-    min_global_impact_pct=0.01,
-    max_depth=5,
-)
+model = ImpactSplitter().fit(X, y)   # X: DataFrame or int-encoded ndarray; y: additive target
 
-model.fit(X, y, trace=True)  # or verbose=True (alias); inspect model.fit_trace_
-model.plot_tree(figsize=(16, 10))
-segments = model.get_impact_segments()
+print(model)                          # designed text summary (ledger + top segments)
+model.plot_segments()                 # tornado: ranked segment impacts (matplotlib)
+model.plot_tree()                     # icicle: where impact concentrates in the tree
+model.to_html("report.html")          # self-contained interactive report (offline-safe)
+
+segments = model.get_impact_segments()   # DataFrame: path, total_sum, n_samples, node_id, mean, pool_share
+payload = model.to_dict()                # JSON-safe dict for custom renderers
 ```
 
-After fitting with a `DataFrame`, `model.feature_names_in_` and `model.category_maps_` hold column names and code-to-value maps for each feature.
+After fitting with a `DataFrame`, `model.feature_names_in_` and `model.category_maps_` hold column names and code-to-value maps for each feature. Pass `trace=True` (or the `verbose=True` alias) to `fit()` to populate `model.fit_trace_` with one pre-order step per visited node.
 
-`plot_tree` returns a matplotlib `Figure`. Pass `show=False` if you want to save without calling `plt.show()`.
+## Outputs
 
-!!! note "`plot_tree` layout, crowded trees, and export"
+Five ways to read a fitted model, all built from the same `model.to_dict()` payload:
 
-    - Node labels show the segment (all data or `feature=categories`) on every node; internal nodes add which feature is split on, plus **n** and **Σy** stats.
-    - For crowded trees: widen `figsize`, tune `level_gap` and `sibling_gap`, or set `compact_stats=True`. Layout uses measured label widths (iterative); `node_label_max_chars` trims long lines before layout.
-    - Optional `max_leaf_width` (in data coordinates) tightens per-line truncation via a binary search on character budget; default `None` means no width budget. Raise `layout_max_iterations` only if needed.
-    - Optional `node_facecolor="impact"` (magnitude of **Σy**) or `"n"` (sample count) adds a colorbar and contrasting label text.
-    - PDF/SVG export: `fig = model.plot_tree(figsize=(16, 10), show=False); fig.savefig("reports/figures/tree.pdf")`.
-
-## Interactive Chart Workflow
-
-`impact_split` also includes a notebook-first interactive D3 force graph that can be exported to standalone HTML.
-
-```python
-from impact_split import interactive_force_graph
-
-nodes = [
-    {"id": "root", "label": "Root", "group": "all"},
-    {"id": "p1", "label": "Positive branch", "group": "positive"},
-    {"id": "n1", "label": "Negative branch", "group": "negative"},
-]
-links = [
-    {"source": "root", "target": "p1", "value": 3},
-    {"source": "root", "target": "n1", "value": 2},
-]
-
-def on_selection(event: dict) -> None:
-    print(event)
-
-graph = interactive_force_graph(
-    nodes=nodes,
-    links=links,
-    filter_keys=["group"],
-    on_selection=on_selection,
-)
-graph.show()
-graph.save_html("reports/figures/impact_force_graph.html")
-```
-
-The callback receives a payload with:
-- `event_type` (`"node_click"`)
-- `selected_node_id` (string or `None`)
-- `filters` (active filter dictionary)
+- **`print(model)` / `model.summary()`** — text ledger (global pools, split/stop counts) plus the top segments ranked by absolute impact.
+- **`model.plot_segments()`** — tornado chart of consolidated segments: additive bars diverging at zero, blue positive / orange negative.
+- **`model.plot_tree()`** — impact icicle: cell width ∝ Σ|y| within its parent, color = mean excess (diverging), so magnitude and direction are both visible at a glance. Returns a matplotlib `Figure`; pass `show=False` to save without displaying (`fig = model.plot_tree(show=False); fig.savefig("tree.svg")`).
+- **`model.to_html(path)`** — self-contained interactive report (both figures + a sortable segment table with linked highlighting); no CDN, safe to open offline or email.
+- **`model.to_dict()`** — the JSON-safe `meta` / `tree` / `segments` payload behind every renderer above, for custom dashboards.
 
 ### Kaggle example notebook
 

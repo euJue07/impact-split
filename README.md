@@ -27,7 +27,7 @@ Unlike standard decision trees that optimize for variance reduction (often favor
 
 | Path | Purpose |
 |------|---------|
-| [`impact_split/`](impact_split/) | Library source: [`splitter.py`](impact_split/splitter.py) (`ImpactSplitter`), [`plots.py`](impact_split/plots.py) (`interactive_force_graph`), plus config, features, dataset, and modeling helpers |
+| [`impact_split/`](impact_split/) | Library source: [`splitter.py`](impact_split/splitter.py) (`ImpactSplitter`) plus [`viz/`](impact_split/viz/) renderers — [`data.py`](impact_split/viz/data.py) (`to_dict` payload builder), [`text.py`](impact_split/viz/text.py) (`summary()`), [`static.py`](impact_split/viz/static.py) (tornado + icicle matplotlib figures), [`html.py`](impact_split/viz/html.py) (self-contained HTML report) — and [`py.typed`](impact_split/py.typed) |
 | [`tests/`](tests/) | Pytest suite |
 | [`docs/`](docs/) | MkDocs site ([local build](docs/README.md)) |
 | [`notebooks/`](notebooks/) | Explainer and trace walkthrough notebooks |
@@ -151,11 +151,15 @@ segment count (Kaggle suite: −26%). Disable with `consolidate=False`.
 ### Install
 
 ```bash
+pip install impact-split
+```
+
+(PyPI, once published — see [CHANGELOG](CHANGELOG.md)). To work on the library itself, use an editable dev install instead:
+
+```bash
 python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install --upgrade pip
-python -m pip install -e .
-# For contributor tooling (lint/test/build/check): 
 python -m pip install -e ".[dev]"
 ```
 
@@ -183,6 +187,20 @@ This creates both wheel and sdist artifacts under `dist/` and validates long-des
 ```python
 from impact_split import ImpactSplitter
 
+model = ImpactSplitter().fit(X, y)   # X: DataFrame or int-encoded ndarray; y: additive target
+
+print(model)                          # designed text summary (ledger + top segments)
+model.plot_segments()                 # tornado: ranked segment impacts (matplotlib)
+model.plot_tree()                     # icicle: where impact concentrates in the tree
+model.to_html("report.html")          # self-contained interactive report (offline-safe)
+
+segments = model.get_impact_segments()   # DataFrame: path, total_sum, n_samples, node_id, mean, pool_share
+payload = model.to_dict()                # JSON-safe dict for custom renderers
+```
+
+Constructor knobs (all optional, defaults shown) and `fit()` options:
+
+```python
 model = ImpactSplitter(
     delta_pct=0.01,          # materiality: share of node excess volume a category must move
     min_global_impact_pct=0.01,
@@ -192,54 +210,26 @@ model = ImpactSplitter(
     numeric_binning_strategy="quantiles",  # "quantiles" or "interval"
     numeric_n_bins=10,                     # number of bins for float columns
 )
-
-# X: 2D numpy ndarray of integer label-encoded categories (0, 1, 2, ...)
-#     or a pandas DataFrame.
-#     - float columns are pre-binned using the selected strategy.
-#     - non-float columns are treated as categorical (factorized internally).
-# y: 1D numpy ndarray or pandas Series with additive target (e.g., profit/loss)
 model.fit(X, y, trace=True)  # optional: populate model.fit_trace_
-
-model.plot_tree(figsize=(16, 10))  # returns a matplotlib Figure; pass show=False to save without displaying
-segments = model.get_impact_segments()
-print(segments.head())
 ```
-
-### Interactive Force Graph (Notebook + HTML Export)
-
-You can render a D3 force graph in notebooks and export the same interactive chart to standalone HTML:
-
-```python
-from impact_split import interactive_force_graph
-
-nodes = [
-    {"id": "root", "label": "Root", "group": "all", "tooltip": "Global node"},
-    {"id": "segA", "label": "Segment A", "group": "positive"},
-    {"id": "segB", "label": "Segment B", "group": "negative"},
-]
-links = [
-    {"source": "root", "target": "segA", "value": 2},
-    {"source": "root", "target": "segB", "value": 1},
-]
-
-def on_select(event: dict) -> None:
-    print("Selection event:", event)
-
-graph = interactive_force_graph(
-    nodes=nodes,
-    links=links,
-    filter_keys=["group"],
-    options={"width": 860, "height": 520, "charge_strength": -120},
-    on_selection=on_select,
-)
-
-graph.show()                      # notebook rendering
-graph.save_html("reports/force_graph.html")  # standalone interactive export
-```
-
-Interaction support includes drag (with simulation reheating), zoom/pan, hover tooltips, click-select highlighting, Python-side filter controls, and click events sent back to the Python callback payload.
 
 If you want the motivation behind each formula (not just usage), read the Story Behind the Math section above, then the explainer notebook linked below.
+
+## Outputs
+
+`impact-split` ships five ways to read a fitted model — a text ledger, two matplotlib figures, a self-contained HTML report, and the raw JSON-safe payload behind all of them. Each is also available as a standalone function (`impact_split.viz.text.render_summary`, `impact_split.viz.static.plot_segments` / `plot_icicle`, `impact_split.viz.html.render_html`) if you want to build a custom renderer from `model.to_dict()`.
+
+- **`print(model)` / `model.summary()`** — a designed text report: a ledger header (global positive/negative pools, split/stop counts) followed by the top segments ranked by absolute impact. Cheapest way to sanity-check a fit in a terminal or log.
+- **`model.plot_segments()`** — a tornado chart of the consolidated terminal segments, one horizontal bar per segment, sorted by absolute impact. Bars are additive and diverge from a zero baseline: blue for positive segments, orange for negative, so the reader sees at a glance which segments help and which hurt.
+
+  ![Segment tornado](reports/figures/segments-tornado.png)
+
+- **`model.plot_tree()`** — an impact icicle showing where impact concentrates as the tree splits. Cell width is proportional to Σ|y| within its parent (so wide cells carry more absolute volume), and color encodes the mean excess of that node (diverging: positive vs. negative), making both *where* the impact lives and *which direction* it points visible in one figure.
+
+  ![Impact icicle](reports/figures/impact-icicle.png)
+
+- **`model.to_html(path)`** — a self-contained interactive HTML report combining both figures plus a sortable segment table, with linked highlighting (hovering a segment row highlights it in the icicle and vice versa). No CDN or network calls — every asset is inlined, so the file is safe to open offline or email as an attachment.
+- **`model.to_dict()`** — the JSON-safe `meta` / `tree` / `segments` payload every renderer above is built from. Use it to feed a custom dashboard or notebook widget without re-deriving anything from the fitted tree.
 
 ### Fit trace (optional)
 
@@ -247,12 +237,14 @@ Pass `trace=True` or `verbose=True` to `fit()` to record one pre-order step per 
 
 ## Output
 
-`model.get_impact_segments()` returns terminal segments sorted by absolute impact, with columns such as:
+`model.get_impact_segments()` returns terminal segments sorted by absolute impact, with columns:
 
 - `path` — rule path for the segment,
 - `total_sum` — sum of `y` in the segment,
 - `n_samples` — row count,
-- `node_id` — tree node identifier.
+- `node_id` — tree node identifier (or `merged(...)` for a consolidated segment),
+- `mean` — `total_sum / n_samples`,
+- `pool_share` — `|total_sum|` as a share of the segment's own-sign global pool (`V_global_P` or `V_global_N`).
 
 ## Assumptions and Limitations
 

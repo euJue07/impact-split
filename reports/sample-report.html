@@ -1,0 +1,360 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>impact-split sample report</title>
+<style>
+:root { --pos:#0173B2; --neg:#C6660A; --ink:#26261f; --muted:#6b6b66; --line:#e4e4df;
+        --surface:#fcfcfb; --card:#ffffff; }
+* { box-sizing:border-box; }
+body { margin:0; padding:24px 28px 60px; background:var(--surface); color:var(--ink);
+       font:14px/1.5 system-ui, "Segoe UI", Roboto, sans-serif; }
+h1 { font-size:20px; margin:0 0 2px; }
+h2 { font-size:15px; margin:34px 0 4px; }
+.params { color:var(--muted); font-size:12px; margin-bottom:14px; }
+.hint { color:var(--muted); font-size:12px; margin:0 0 10px; }
+.tiles { display:flex; flex-wrap:wrap; gap:10px; }
+.tile { background:var(--card); border:1px solid var(--line); border-radius:8px;
+        padding:8px 14px; min-width:110px; }
+.tile-label { font-size:11px; color:var(--muted); }
+.tile-value { font-size:16px; font-weight:600; font-variant-numeric:tabular-nums; }
+#breadcrumb { font-size:12px; margin:6px 0 8px; min-height:18px; }
+.crumb { color:var(--pos); cursor:pointer; }
+.crumb:hover { text-decoration:underline; }
+.crumb-sep { color:var(--muted); }
+#icicle { width:100%; display:block; background:var(--card); border:1px solid var(--line);
+          border-radius:8px; }
+#icicle rect { cursor:pointer; }
+#icicle rect.hl { stroke:#1a1a18; stroke-width:3; }
+#icicle text { pointer-events:none; font-size:11px; }
+#tornado { background:var(--card); border:1px solid var(--line); border-radius:8px;
+           padding:10px 14px; }
+.trow { display:grid; grid-template-columns:minmax(180px, 30%) 1fr 110px 200px;
+        gap:10px; align-items:center; padding:3px 0; }
+.trow.hl { background:#f3f0e9; }
+.tpath { font-size:12px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.ttrack { position:relative; height:16px; }
+.tzero { position:absolute; top:-2px; bottom:-2px; width:1px; background:#949494; }
+.tbar { position:absolute; top:1px; height:14px; border-radius:4px; }
+.tbar.pos { background:var(--pos); }
+.tbar.neg { background:var(--neg); }
+.tbar.rolled { background:#c9c9c5; }
+.tval { font-variant-numeric:tabular-nums; font-size:12px; font-weight:600; text-align:right; }
+.tnote { color:var(--muted); font-size:11px; }
+table { border-collapse:collapse; width:100%; background:var(--card);
+        border:1px solid var(--line); border-radius:8px; font-size:12.5px; }
+th, td { padding:6px 10px; text-align:right; border-bottom:1px solid var(--line);
+         font-variant-numeric:tabular-nums; }
+th { cursor:pointer; user-select:none; color:var(--muted); font-weight:600; }
+th:hover { color:var(--ink); }
+td.path, th.path { text-align:left; }
+tr.hl td { background:#f3f0e9; }
+.chip { display:inline-block; width:9px; height:9px; border-radius:2px; margin-right:6px; }
+#tooltip { display:none; position:fixed; z-index:10; max-width:420px; background:#26261f;
+           color:#fcfcfb; border-radius:6px; padding:8px 10px; font-size:12px;
+           pointer-events:none; white-space:pre-line; }
+</style>
+</head>
+<body>
+<h1>impact-split sample report</h1>
+<div class="params">delta_pct=0.01 · noise_z=3.0 · max_depth=5 · consolidate=True · impact_split v0.1.0</div>
+<div class="tiles"><div class="tile"><div class="tile-label">rows</div><div class="tile-value">6,000</div></div><div class="tile"><div class="tile-label">total Σy</div><div class="tile-value">+174,075</div></div><div class="tile"><div class="tile-label">Σy⁺ pool</div><div class="tile-value">272,982</div></div><div class="tile"><div class="tile-label">Σy⁻ pool</div><div class="tile-value">-98,907</div></div><div class="tile"><div class="tile-label">nodes / leaves</div><div class="tile-value">21 / 11</div></div><div class="tile"><div class="tile-label">segments</div><div class="tile-value">10</div></div><div class="tile"><div class="tile-label">conservation</div><div class="tile-value">exact ✓</div></div></div>
+
+<h2>Impact tree — where the impact concentrates</h2>
+<p class="hint">Cell width ∝ Σ|y| · blue = above overall mean, orange = below ·
+click a cell to zoom into that subtree · dark-outlined leaves were merged into one
+consolidated segment · hover for the full rule path.</p>
+<div id="breadcrumb"></div>
+<svg id="icicle"></svg>
+
+<h2>Segments ranked by |impact|</h2>
+<p class="hint">Each bar is a consolidated segment's total Σy. Bars are additive —
+together they reconstruct the total exactly. Hover to locate the segment in the tree.</p>
+<div id="tornado"></div>
+
+<h2>All segments</h2>
+<table id="segtable"><thead></thead><tbody></tbody></table>
+
+<div id="tooltip"></div>
+<script>
+var DATA = {"meta": {"package_version": "0.1.0", "params": {"delta_pct": 0.01, "min_global_impact_pct": 0.01, "max_depth": 5, "noise_z": 3.0, "consolidate": true}, "n_rows": 6000, "n_features": 3, "feature_names": ["region", "product", "channel"], "total_sum": 174075.43602860323, "pos_pool": 272982.1015609391, "neg_pool": 98906.6655323359, "n_nodes": 21, "n_leaves": 11, "physical_depth": 5, "interaction_depth": 5, "n_segments": 10, "conservation_exact": true}, "tree": [{"id": "node_0", "parent_id": null, "branch": "root", "depth": 0, "condition": "all data", "split_feature": "product", "n": 6000, "total_sum": 174075.43602860323, "pos_sum": 272982.1015609391, "neg_sum": 98906.6655323359, "abs_volume": 371888.767093275, "is_leaf": false, "segment_id": null}, {"id": "node_1", "parent_id": "node_0", "branch": "positive", "depth": 1, "condition": "product=plus, premium", "split_feature": "region", "n": 3037, "total_sum": 190992.7713905149, "pos_sum": 224979.04982029926, "neg_sum": 33986.27842978437, "abs_volume": 258965.32825008364, "is_leaf": false, "segment_id": null}, {"id": "node_2", "parent_id": "node_1", "branch": "positive", "depth": 2, "condition": "region=north", "split_feature": "product", "n": 983, "total_sum": 138981.91413721122, "pos_sum": 139634.13333384134, "neg_sum": 652.219196630128, "abs_volume": 140286.35253047146, "is_leaf": false, "segment_id": null}, {"id": "node_3", "parent_id": "node_2", "branch": "positive", "depth": 3, "condition": "product=premium", "split_feature": null, "n": 392, "total_sum": 102735.09299292705, "pos_sum": 102735.09299292705, "neg_sum": 0.0, "abs_volume": 102735.09299292705, "is_leaf": true, "segment_id": "s0"}, {"id": "node_4", "parent_id": "node_2", "branch": "negative", "depth": 3, "condition": "product=plus", "split_feature": null, "n": 591, "total_sum": 36246.821144284164, "pos_sum": 36899.04034091429, "neg_sum": 652.219196630128, "abs_volume": 37551.259537544414, "is_leaf": true, "segment_id": "s2"}, {"id": "node_5", "parent_id": "node_1", "branch": "negative", "depth": 2, "condition": "region=east, south, west", "split_feature": "product", "n": 2054, "total_sum": 52010.85725330369, "pos_sum": 85344.91648645795, "neg_sum": 33334.05923315424, "abs_volume": 118678.9757196122, "is_leaf": false, "segment_id": null}, {"id": "node_6", "parent_id": "node_5", "branch": "positive", "depth": 3, "condition": "product=plus", "split_feature": "channel", "n": 1273, "total_sum": 60290.57217351819, "pos_sum": 73480.67367689661, "neg_sum": 13190.101503378435, "abs_volume": 86670.77518027504, "is_leaf": false, "segment_id": null}, {"id": "node_7", "parent_id": "node_6", "branch": "positive", "depth": 4, "condition": "channel=online, retail", "split_feature": null, "n": 1029, "total_sum": 63156.75940379108, "pos_sum": 64252.83014635694, "neg_sum": 1096.0707425658618, "abs_volume": 65348.9008889228, "is_leaf": true, "segment_id": "s1"}, {"id": "node_8", "parent_id": "node_6", "branch": "negative", "depth": 4, "condition": "channel=partner", "split_feature": "region", "n": 244, "total_sum": -2866.187230272899, "pos_sum": 9227.843530539674, "neg_sum": 12094.030760812573, "abs_volume": 21321.874291352247, "is_leaf": false, "segment_id": null}, {"id": "node_9", "parent_id": "node_8", "branch": "positive", "depth": 5, "condition": "region=east, south", "split_feature": null, "n": 157, "total_sum": 9076.448002115974, "pos_sum": 9227.843530539674, "neg_sum": 151.39552842370054, "abs_volume": 9379.239058963374, "is_leaf": true, "segment_id": "s5"}, {"id": "node_10", "parent_id": "node_8", "branch": "negative", "depth": 5, "condition": "region=west", "split_feature": null, "n": 87, "total_sum": -11942.635232388873, "pos_sum": 0.0, "neg_sum": 11942.635232388873, "abs_volume": 11942.635232388873, "is_leaf": true, "segment_id": "s4"}, {"id": "node_11", "parent_id": "node_5", "branch": "negative", "depth": 3, "condition": "product=premium", "split_feature": "channel", "n": 781, "total_sum": -8279.714920214483, "pos_sum": 11864.242809561321, "neg_sum": 20143.957729775804, "abs_volume": 32008.200539337126, "is_leaf": false, "segment_id": null}, {"id": "node_12", "parent_id": "node_11", "branch": "positive", "depth": 4, "condition": "channel=online, retail", "split_feature": null, "n": 614, "total_sum": -185.83744834672547, "pos_sum": 9521.812060950226, "neg_sum": 9707.64950929695, "abs_volume": 19229.46157024718, "is_leaf": true, "segment_id": "s9"}, {"id": "node_13", "parent_id": "node_11", "branch": "negative", "depth": 4, "condition": "channel=partner", "split_feature": "region", "n": 167, "total_sum": -8093.877471867758, "pos_sum": 2342.4307486110956, "neg_sum": 10436.308220478852, "abs_volume": 12778.738969089947, "is_leaf": false, "segment_id": null}, {"id": "node_14", "parent_id": "node_13", "branch": "positive", "depth": 5, "condition": "region=east, south", "split_feature": null, "n": 125, "total_sum": 220.5408145093239, "pos_sum": 2342.4307486110956, "neg_sum": 2121.8899341017714, "abs_volume": 4464.320682712867, "is_leaf": true, "segment_id": "s8"}, {"id": "node_15", "parent_id": "node_13", "branch": "negative", "depth": 5, "condition": "region=west", "split_feature": null, "n": 42, "total_sum": -8314.418286377082, "pos_sum": 0.0, "neg_sum": 8314.418286377082, "abs_volume": 8314.418286377082, "is_leaf": true, "segment_id": "s3"}, {"id": "node_16", "parent_id": "node_0", "branch": "negative", "depth": 1, "condition": "product=basic", "split_feature": "channel", "n": 2963, "total_sum": -16917.335361911697, "pos_sum": 48003.05174063984, "neg_sum": 64920.38710255154, "abs_volume": 112923.43884319138, "is_leaf": false, "segment_id": null}, {"id": "node_17", "parent_id": "node_16", "branch": "positive", "depth": 2, "condition": "channel=online, retail", "split_feature": null, "n": 2362, "total_sum": 5052.559540733324, "pos_sum": 40096.62707117846, "neg_sum": 35044.06753044514, "abs_volume": 75140.6946016236, "is_leaf": true, "segment_id": "s6"}, {"id": "node_18", "parent_id": "node_16", "branch": "negative", "depth": 2, "condition": "channel=partner", "split_feature": "region", "n": 601, "total_sum": -21969.89490264502, "pos_sum": 7906.424669461378, "neg_sum": 29876.319572106397, "abs_volume": 37782.74424156777, "is_leaf": false, "segment_id": null}, {"id": "node_19", "parent_id": "node_18", "branch": "positive", "depth": 3, "condition": "region=east, north, south", "split_feature": null, "n": 490, "total_sum": 571.5535103642529, "pos_sum": 7906.424669461378, "neg_sum": 7334.871159097125, "abs_volume": 15241.295828558503, "is_leaf": true, "segment_id": "s7"}, {"id": "node_20", "parent_id": "node_18", "branch": "negative", "depth": 3, "condition": "region=west", "split_feature": null, "n": 111, "total_sum": -22541.448413009275, "pos_sum": 0.0, "neg_sum": 22541.448413009275, "abs_volume": 22541.448413009275, "is_leaf": true, "segment_id": "s3"}], "segments": [{"segment_id": "s0", "path": "root / product=plus, premium / region=north / product=premium", "node_ids": ["node_3"], "n": 392, "total_sum": 102735.09299292705, "mean": 262.0793188595078, "pool_share": 0.37634369581550386}, {"segment_id": "s1", "path": "root / product=plus, premium / region=east, south, west / product=plus / channel=online, retail", "node_ids": ["node_7"], "n": 1029, "total_sum": 63156.75940379108, "mean": 61.376831296201246, "pool_share": 0.23135860938374486}, {"segment_id": "s2", "path": "root / product=plus, premium / region=north / product=plus", "node_ids": ["node_4"], "n": 591, "total_sum": 36246.821144284164, "mean": 61.331338653611105, "pool_share": 0.1327809440143555}, {"segment_id": "s3", "path": "region=west & product=basic, premium & channel=partner", "node_ids": ["node_15", "node_20"], "n": 153, "total_sum": -30855.86669938636, "mean": -201.6723313685383, "pool_share": 0.31196953747569767}, {"segment_id": "s4", "path": "root / product=plus, premium / region=east, south, west / product=plus / channel=partner / region=west", "node_ids": ["node_10"], "n": 87, "total_sum": -11942.635232388873, "mean": -137.27166933780313, "pool_share": 0.12074651559741872}, {"segment_id": "s5", "path": "root / product=plus, premium / region=east, south, west / product=plus / channel=partner / region=east, south", "node_ids": ["node_9"], "n": 157, "total_sum": 9076.448002115974, "mean": 57.81177071411449, "pool_share": 0.03324924216721877}, {"segment_id": "s6", "path": "root / product=basic / channel=online, retail", "node_ids": ["node_17"], "n": 2362, "total_sum": 5052.559540733324, "mean": 2.139102261106403, "pool_share": 0.018508757577300052}, {"segment_id": "s7", "path": "root / product=basic / channel=partner / region=east, north, south", "node_ids": ["node_19"], "n": 490, "total_sum": 571.5535103642529, "mean": 1.166435735437251, "pool_share": 0.0020937398719405136}, {"segment_id": "s8", "path": "root / product=plus, premium / region=east, south, west / product=premium / channel=partner / region=east, south", "node_ids": ["node_14"], "n": 125, "total_sum": 220.5408145093239, "mean": 1.7643265160745911, "pool_share": 0.0008078947786255925}, {"segment_id": "s9", "path": "root / product=plus, premium / region=east, south, west / product=premium / channel=online, retail", "node_ids": ["node_12"], "n": 614, "total_sum": -185.83744834672547, "mean": -0.3026668539848949, "pool_share": 0.001878917334302095}]};
+
+var byId = {}; DATA.tree.forEach(function (n) { byId[n.id] = n; });
+var childrenOf = {};
+DATA.tree.forEach(function (n) {
+  if (n.parent_id !== null) {
+    (childrenOf[n.parent_id] = childrenOf[n.parent_id] || []).push(n);
+  }
+});
+var ROOT = DATA.tree[0];
+var segById = {}; DATA.segments.forEach(function (s) { segById[s.segment_id] = s; });
+
+function esc(s) {
+  return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+function fmt(v) {
+  if (v === null || v === undefined) return "—";
+  var sign = v > 0 ? "+" : "";
+  if (Math.abs(v) >= 1000) return sign + Math.round(v).toLocaleString("en-US");
+  return sign + v.toLocaleString("en-US", { maximumFractionDigits: 2 });
+}
+function fmtMag(v) {
+  if (v === null || v === undefined) return "—";
+  var a = Math.abs(v);
+  if (a >= 1000) return Math.round(a).toLocaleString("en-US");
+  return a.toLocaleString("en-US", { maximumFractionDigits: 2 });
+}
+function pct(v) { return v == null ? "—" : (100 * v).toFixed(1) + "%"; }
+
+var POS_RGB = [1, 115, 178], NEG_RGB = [198, 102, 10], MID_RGB = [242, 242, 240];
+function mix(a, b, t) {
+  return [Math.round(a[0] + (b[0] - a[0]) * t),
+          Math.round(a[1] + (b[1] - a[1]) * t),
+          Math.round(a[2] + (b[2] - a[2]) * t)];
+}
+function divergingColor(t) {
+  t = Math.max(-1, Math.min(1, t));
+  var rgb = t >= 0 ? mix(MID_RGB, POS_RGB, t) : mix(MID_RGB, NEG_RGB, -t);
+  return { css: "rgb(" + rgb.join(",") + ")", rgb: rgb };
+}
+function inkFor(rgb) {
+  function lin(c) { c /= 255; return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); }
+  var L = 0.2126 * lin(rgb[0]) + 0.7152 * lin(rgb[1]) + 0.0722 * lin(rgb[2]);
+  return L < 0.45 ? "#ffffff" : "#26261f";
+}
+
+var rootMean = ROOT.n ? (ROOT.total_sum || 0) / ROOT.n : 0;
+var VMAX = 0;
+DATA.tree.forEach(function (n) {
+  var e = Math.abs((n.n ? (n.total_sum || 0) / n.n : 0) - rootMean);
+  if (e > VMAX) VMAX = e;
+});
+if (VMAX === 0) VMAX = 1;
+
+var tip = document.getElementById("tooltip");
+function showTip(ev, text) {
+  tip.textContent = text;
+  tip.style.display = "block";
+  tip.style.left = Math.min(ev.clientX + 14, window.innerWidth - 440) + "px";
+  tip.style.top = (ev.clientY + 14) + "px";
+}
+function hideTip() { tip.style.display = "none"; }
+
+function cumPath(n) {
+  var parts = [], cur = n;
+  while (cur && cur.parent_id !== null) { parts.unshift(cur.condition); cur = byId[cur.parent_id]; }
+  return parts.length ? parts.join("  /  ") : "all data";
+}
+function nodeTip(n) {
+  var mean = n.n ? (n.total_sum || 0) / n.n : 0;
+  var lines = [cumPath(n),
+    "n = " + n.n.toLocaleString("en-US") + "   mean = " + fmt(mean),
+    "Σy = " + fmt(n.total_sum) + "   Σy⁺ = " + fmt(n.pos_sum) + "   Σy⁻ = " +
+      (n.neg_sum ? "-" : "") + fmtMag(n.neg_sum)];
+  if (n.split_feature) lines.push("splits on: " + n.split_feature);
+  if (n.segment_id) {
+    var s = segById[n.segment_id];
+    lines.push("segment #" + (DATA.segments.indexOf(s) + 1) +
+      (s.node_ids.length > 1 ? " (merged from " + s.node_ids.length + " leaves)" : ""));
+  }
+  return lines.join("\n");
+}
+
+function highlightSegment(segId, on) {
+  document.querySelectorAll('[data-seg="' + segId + '"]').forEach(function (el) {
+    el.classList.toggle("hl", on);
+  });
+}
+function hookSegHover(el, segId) {
+  el.addEventListener("mouseenter", function () { highlightSegment(segId, true); });
+  el.addEventListener("mouseleave", function () { highlightSegment(segId, false); });
+}
+
+var currentRoot = ROOT.id;
+var W = 1000, ROW_H = 46, PAD = 2;
+
+function renderIcicle() {
+  var rects = [];
+  function place(node, x0, w, level) {
+    rects.push({ node: node, x0: x0, w: w, level: level });
+    var kids = childrenOf[node.id] || [];
+    if (!kids.length) return;
+    var ws = kids.map(function (k) { return k.abs_volume || 0; });
+    var tot = ws.reduce(function (a, b) { return a + b; }, 0);
+    if (tot <= 0) {
+      ws = kids.map(function (k) { return k.n; });
+      tot = ws.reduce(function (a, b) { return a + b; }, 0) || 1;
+    }
+    var cx = x0;
+    kids.forEach(function (k, i) {
+      var kw = w * ws[i] / tot;
+      place(k, cx, kw, level + 1);
+      cx += kw;
+    });
+  }
+  place(byId[currentRoot], 0, W, 0);
+
+  var depth = 0;
+  rects.forEach(function (r) { if (r.level > depth) depth = r.level; });
+  var H = (depth + 1) * ROW_H;
+  var svg = document.getElementById("icicle");
+  svg.setAttribute("viewBox", "0 0 " + W + " " + H);
+  svg.style.height = Math.min(H, 560) + "px";
+
+  var out = "";
+  rects.forEach(function (r) {
+    var n = r.node;
+    var mean = n.n ? (n.total_sum || 0) / n.n : 0;
+    var col = divergingColor((mean - rootMean) / VMAX);
+    var seg = n.segment_id ? segById[n.segment_id] : null;
+    var merged = seg && seg.node_ids.length > 1;
+    out += '<rect data-node="' + n.id + '"' +
+      (n.segment_id ? ' data-seg="' + n.segment_id + '"' : "") +
+      ' x="' + (r.x0 + PAD / 2) + '" y="' + (r.level * ROW_H + PAD / 2) + '"' +
+      ' width="' + Math.max(0.6, r.w - PAD) + '" height="' + (ROW_H - PAD) + '"' +
+      ' fill="' + col.css + '" stroke="' + (merged ? "#3a3a36" : "#ffffff") + '"' +
+      ' stroke-width="' + (merged ? 2 : 1) + '" rx="3"></rect>';
+    if (r.w > 76) {
+      var maxChars = Math.floor(r.w / 6.4);
+      var label = n.condition.length > maxChars
+        ? n.condition.slice(0, maxChars - 1) + "…" : n.condition;
+      var ink = inkFor(col.rgb);
+      out += '<text x="' + (r.x0 + r.w / 2) + '" y="' + (r.level * ROW_H + ROW_H / 2 - 3) +
+        '" text-anchor="middle" fill="' + ink + '">' + esc(label) + "</text>";
+      out += '<text x="' + (r.x0 + r.w / 2) + '" y="' + (r.level * ROW_H + ROW_H / 2 + 12) +
+        '" text-anchor="middle" fill="' + ink + '" opacity="0.85">' +
+        esc(fmt(n.total_sum)) + "</text>";
+    }
+  });
+  svg.innerHTML = out;
+
+  svg.querySelectorAll("rect").forEach(function (el) {
+    var n = byId[el.getAttribute("data-node")];
+    el.addEventListener("mousemove", function (ev) { showTip(ev, nodeTip(n)); });
+    el.addEventListener("mouseleave", hideTip);
+    el.addEventListener("click", function () {
+      currentRoot = n.id; renderIcicle(); renderBreadcrumb();
+    });
+    var segId = el.getAttribute("data-seg");
+    if (segId) hookSegHover(el, segId);
+  });
+}
+
+function renderBreadcrumb() {
+  var parts = [], cur = byId[currentRoot];
+  while (cur) {
+    parts.unshift(cur);
+    cur = cur.parent_id !== null ? byId[cur.parent_id] : null;
+  }
+  document.getElementById("breadcrumb").innerHTML = parts.map(function (n) {
+    return '<span class="crumb" data-node="' + n.id + '">' +
+      esc(n.parent_id === null ? "all data" : n.condition) + "</span>";
+  }).join(' <span class="crumb-sep">›</span> ');
+  document.querySelectorAll("#breadcrumb .crumb").forEach(function (el) {
+    el.addEventListener("click", function () {
+      currentRoot = el.getAttribute("data-node"); renderIcicle(); renderBreadcrumb();
+    });
+  });
+}
+
+function renderTornado() {
+  var TOP = 15;
+  var shown = DATA.segments.slice(0, TOP);
+  var rest = DATA.segments.slice(TOP);
+  var rows = shown.map(function (s) {
+    return { path: s.path, v: s.total_sum || 0, n: s.n, share: s.pool_share,
+             seg: s.segment_id, rolled: false };
+  });
+  if (rest.length) {
+    rows.push({
+      path: "(+" + rest.length + " more segments)",
+      v: rest.reduce(function (a, s) { return a + (s.total_sum || 0); }, 0),
+      n: rest.reduce(function (a, s) { return a + s.n; }, 0),
+      share: null, seg: null, rolled: true
+    });
+  }
+  var lo = 0, hi = 0;
+  rows.forEach(function (r) { lo = Math.min(lo, r.v); hi = Math.max(hi, r.v); });
+  var range = (hi - lo) || 1;
+  var zeroPct = (0 - lo) / range * 100;
+  var out = "";
+  rows.forEach(function (r) {
+    var leftPct = (Math.min(r.v, 0) - lo) / range * 100;
+    var widthPct = Math.max(Math.abs(r.v) / range * 100, 0.4);
+    var cls = r.rolled ? "rolled" : (r.v >= 0 ? "pos" : "neg");
+    var note = "n=" + r.n.toLocaleString("en-US") +
+      (r.share != null ? " · " + pct(r.share) + " of " + (r.v >= 0 ? "Σy⁺" : "Σy⁻") : "");
+    out += '<div class="trow"' + (r.seg ? ' data-seg="' + r.seg + '"' : "") + ">" +
+      '<div class="tpath" title="' + esc(r.path) + '">' + esc(r.path) + "</div>" +
+      '<div class="ttrack"><div class="tzero" style="left:' + zeroPct + '%"></div>' +
+      '<div class="tbar ' + cls + '" style="left:' + leftPct + "%;width:" + widthPct +
+      '%"></div></div>' +
+      '<div class="tval">' + fmt(r.v) + "</div>" +
+      '<div class="tnote">' + note + "</div></div>";
+  });
+  var host = document.getElementById("tornado");
+  host.innerHTML = out;
+  host.querySelectorAll(".trow[data-seg]").forEach(function (el) {
+    hookSegHover(el, el.getAttribute("data-seg"));
+  });
+}
+
+var tableRows = DATA.segments.map(function (s, i) {
+  return { rank: i + 1, path: s.path, total_sum: s.total_sum || 0, n: s.n,
+           mean: s.mean, pool_share: s.pool_share, leaves: s.node_ids.length,
+           seg: s.segment_id };
+});
+var sortKey = "rank", sortDir = 1;
+var COLS = [
+  ["#", "rank"], ["path", "path"], ["Σy", "total_sum"], ["n", "n"],
+  ["mean", "mean"], ["pool share", "pool_share"], ["leaves", "leaves"]
+];
+function renderTable() {
+  var thead = document.querySelector("#segtable thead");
+  var tbody = document.querySelector("#segtable tbody");
+  thead.innerHTML = "<tr>" + COLS.map(function (c) {
+    var mark = c[1] === sortKey ? (sortDir > 0 ? " ▲" : " ▼") : "";
+    return '<th class="' + (c[1] === "path" ? "path" : "") + '" data-key="' + c[1] + '">' +
+      esc(c[0]) + mark + "</th>";
+  }).join("") + "</tr>";
+  var rows = tableRows.slice().sort(function (a, b) {
+    var av = a[sortKey], bv = b[sortKey];
+    if (av == null) return 1;
+    if (bv == null) return -1;
+    if (typeof av === "string") return sortDir * av.localeCompare(bv);
+    return sortDir * (av - bv);
+  });
+  tbody.innerHTML = rows.map(function (r) {
+    var chip = '<span class="chip" style="background:' +
+      (r.total_sum >= 0 ? "var(--pos)" : "var(--neg)") + '"></span>';
+    return '<tr data-seg="' + r.seg + '">' +
+      "<td>" + r.rank + "</td>" +
+      '<td class="path">' + chip + esc(r.path) + "</td>" +
+      "<td>" + fmt(r.total_sum) + "</td>" +
+      "<td>" + r.n.toLocaleString("en-US") + "</td>" +
+      "<td>" + fmt(r.mean) + "</td>" +
+      "<td>" + (r.pool_share != null
+        ? pct(r.pool_share) + " of " + (r.total_sum >= 0 ? "Σy⁺" : "Σy⁻") : "—") + "</td>" +
+      "<td>" + r.leaves + "</td></tr>";
+  }).join("");
+  thead.querySelectorAll("th").forEach(function (th) {
+    th.addEventListener("click", function () {
+      var key = th.getAttribute("data-key");
+      if (key === sortKey) { sortDir = -sortDir; } else { sortKey = key; sortDir = key === "path" ? 1 : -1; }
+      renderTable();
+    });
+  });
+  tbody.querySelectorAll("tr[data-seg]").forEach(function (tr) {
+    hookSegHover(tr, tr.getAttribute("data-seg"));
+  });
+}
+
+renderIcicle();
+renderBreadcrumb();
+renderTornado();
+renderTable();
+</script>
+</body>
+</html>
