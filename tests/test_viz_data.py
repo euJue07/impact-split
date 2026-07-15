@@ -60,9 +60,15 @@ def test_payload_tree_integrity() -> None:
         assert (n["segment_id"] is not None) == n["is_leaf"]
     for s in payload["segments"]:
         assert set(s["node_ids"]) <= leaf_ids
-    # segments sorted by |impact| descending
-    mags = [abs(s["total_sum"]) for s in payload["segments"]]
-    assert mags == sorted(mags, reverse=True)
+    # segments sorted by max(|impact|, churn mass) descending
+    keys = [
+        max(
+            abs(s["total_sum"]),
+            min(s["pos_sum"], s["neg_sum"]) if s["is_churn"] else 0.0,
+        )
+        for s in payload["segments"]
+    ]
+    assert keys == sorted(keys, reverse=True)
 
 
 def test_payload_json_safe() -> None:
@@ -93,3 +99,43 @@ def test_payload_params_json_safe_with_numpy_scalars() -> None:
     assert isinstance(params["max_depth"], int)
     assert params["delta_pct"] == pytest.approx(0.01)
     assert params["consolidate"] is True
+
+
+def churn_mix_frame() -> tuple[pd.DataFrame, pd.Series]:
+    """One clean +200 segment (a=z) plus one ±(100/-99) churn segment (a=x)."""
+    rng = np.random.default_rng(5)
+    n = 1200
+    a = np.where(rng.random(n) < 0.5, "x", "z")
+    y = np.zeros(n)
+    xmask = a == "x"
+    y[xmask] = np.where(np.arange(int(xmask.sum())) % 2 == 0, 100.0, -99.0)
+    y[~xmask] = 200.0
+    y += rng.normal(0, 0.5, n)
+    return pd.DataFrame({"a": a}), pd.Series(y)
+
+
+def churn_mix_fitted() -> ImpactSplitter:
+    X, y = churn_mix_frame()
+    return ImpactSplitter().fit(X, y)
+
+
+def test_payload_segment_gross_flows_and_churn() -> None:
+    payload = churn_mix_fitted().to_dict()
+    assert payload["meta"]["params"]["lookahead"] is True
+    churn = [s for s in payload["segments"] if s["is_churn"]]
+    assert len(churn) == 1
+    assert payload["meta"]["n_churn_segments"] == 1
+    seg = churn[0]
+    assert seg["pos_sum"] > 0 and seg["neg_sum"] > 0
+    assert seg["pos_sum"] - seg["neg_sum"] == pytest.approx(seg["total_sum"], abs=1e-6)
+    churn_leaves = [n for n in payload["tree"] if n["is_churn"]]
+    assert churn_leaves
+    assert all(n["is_leaf"] for n in churn_leaves)
+
+
+def test_payload_churn_fields_json_safe() -> None:
+    payload = churn_mix_fitted().to_dict()
+    parsed = json.loads(json.dumps(payload, allow_nan=False))
+    seg = next(s for s in parsed["segments"] if s["is_churn"])
+    assert isinstance(seg["is_churn"], bool)
+    assert isinstance(parsed["meta"]["n_churn_segments"], int)

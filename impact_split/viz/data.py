@@ -59,7 +59,18 @@ def build_payload(model: ImpactSplitter) -> dict[str, Any]:
     pos_pool = float(model._v_global_p)
     neg_pool = float(model._v_global_n)
 
-    seg_sorted = sorted(model.segments_, key=lambda s: -abs(float(s["total_sum"])))
+    min_pct = float(model.min_global_impact_pct)
+
+    def churn_mass(seg: dict[str, Any]) -> float:
+        if not seg["is_churn"]:
+            return 0.0
+        return min(float(seg["pos_sum"]), float(seg["neg_sum"]))
+
+    # Churn segments rank by their offsetting mass, not their (misleading) net.
+    seg_sorted = sorted(
+        model.segments_,
+        key=lambda s: -max(abs(float(s["total_sum"])), churn_mass(s)),
+    )
     segments: list[dict[str, Any]] = []
     node_to_segment: dict[str, str] = {}
     for rank, seg in enumerate(seg_sorted):
@@ -76,6 +87,9 @@ def build_payload(model: ImpactSplitter) -> dict[str, Any]:
                 "total_sum": safe_float(total),
                 "mean": safe_float(total / n) if n else None,
                 "pool_share": safe_float(abs(total) / pool) if pool > 0 else None,
+                "pos_sum": safe_float(seg["pos_sum"]),
+                "neg_sum": safe_float(seg["neg_sum"]),
+                "is_churn": bool(seg["is_churn"]),
             }
         )
         for nid in seg["node_ids"]:
@@ -107,6 +121,15 @@ def build_payload(model: ImpactSplitter) -> dict[str, Any]:
             if is_leaf or node.feature_index is None
             else model._feature_display_name(node.feature_index)
         )
+        node_pos = float(node.s_node_p)
+        node_neg = float(node.s_node_n)
+        node_churn = bool(
+            is_leaf
+            and pos_pool > 0
+            and neg_pool > 0
+            and node_pos / pos_pool > min_pct
+            and node_neg / neg_pool > min_pct
+        )
         nodes.append(
             {
                 "id": node.node_id,
@@ -121,6 +144,7 @@ def build_payload(model: ImpactSplitter) -> dict[str, Any]:
                 "neg_sum": safe_float(node.s_node_n),
                 "abs_volume": safe_float(node.s_node_p + node.s_node_n),
                 "is_leaf": is_leaf,
+                "is_churn": node_churn,
                 "segment_id": node_to_segment.get(node.node_id),
             }
         )
@@ -152,6 +176,7 @@ def build_payload(model: ImpactSplitter) -> dict[str, Any]:
                 "max_depth": int(model.max_depth),
                 "noise_z": safe_float(model.noise_z),
                 "consolidate": bool(model.consolidate),
+                "lookahead": bool(model.lookahead),
             },
             "n_rows": int(tree.n_samples),
             "n_features": n_features,
@@ -164,6 +189,7 @@ def build_payload(model: ImpactSplitter) -> dict[str, Any]:
             "physical_depth": stats["depth"],
             "interaction_depth": stats["inter_depth"],
             "n_segments": len(segments),
+            "n_churn_segments": sum(1 for s in segments if s["is_churn"]),
             "conservation_exact": abs(seg_total - total_sum) <= 1e-9 * max(1.0, abs(total_sum)),
         },
         "tree": nodes,
