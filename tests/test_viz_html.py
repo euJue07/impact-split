@@ -7,7 +7,7 @@ import pandas as pd
 import pytest
 
 from impact_split import ImpactSplitter
-from tests.test_viz_data import fitted
+from tests.test_viz_data import churn_mix_fitted, fitted
 
 
 def test_to_html_requires_fit() -> None:
@@ -37,3 +37,12 @@ def test_html_write_mode_roundtrip(tmp_path: Path) -> None:
     assert isinstance(out, Path)
     text = out.read_text(encoding="utf-8")
     assert text.startswith("<!doctype html>") and '"segments"' in text
+
+
+def test_html_marks_churn() -> None:
+    html_out = churn_mix_fitted().to_html()
+    assert "churn segments" in html_out   # ledger tile
+    assert "lookahead=" in html_out       # params line
+    assert "tband" in html_out            # gross-band CSS + tornado renderer
+    assert "stroke-dasharray" in html_out # icicle churn outline
+    assert "Σy⁺" in html_out              # gross table columns
