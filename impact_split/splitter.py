@@ -16,6 +16,10 @@ if TYPE_CHECKING:
 # Max decoded category labels per feature in stored segment paths (fit time).
 _PATH_SEGMENT_MAX_LABELS = 8
 
+# Hard memory bound for the lookahead rescue's crossed-category bincount:
+# feature pairs whose (max_f + 1) * (max_g + 1) allocation exceeds this are skipped.
+_LOOKAHEAD_MAX_CROSS = 10_000
+
 
 def _prepare_X_y(
     X: np.ndarray | pd.DataFrame,
@@ -532,12 +536,26 @@ class ImpactSplitter:
 
         trace_entry["candidate_gains"].sort(key=lambda item: -item["gain"])
 
+        rescue_info: dict[str, Any] | None = None
+        needs_rescue = best_decision is None or best_decision.gain == 0.0
+        # Silent-failure signature: a materiality trigger fired (guaranteed —
+        # the materiality leaf returned earlier), yet every marginal category
+        # table nets ~0. Try the pairwise rescue, unless a rescued split
+        # would add an interaction term past the cap.
+        if needs_rescue and self.lookahead and not at_interaction_cap and x_sub.shape[1] >= 2:
+            rescued = self._lookahead_rescue(x_sub, y_centered, delta_centered)
+            if rescued is not None:
+                best_decision, rescue_info = rescued
+
         if best_decision is None or best_decision.gain == 0.0:
             trace_entry["action"] = "leaf"
             trace_entry["stop_reason"] = "max_depth" if at_interaction_cap else "no_split"
             if self._trace_enabled:
                 self.fit_trace_.append(trace_entry)
             return _TreeNode(True, node_id, depth, n_samples, total_sum, path, s_node_p, s_node_n)
+
+        if rescue_info is not None:
+            trace_entry["rescue"] = rescue_info
 
         best_feature_index = best_decision.feature_index
         best_pos_categories = best_decision.pos_categories
@@ -617,6 +635,157 @@ class ImpactSplitter:
                 "neutral": best_neu_categories.tolist(),
             },
             children=children,
+        )
+
+    def _lookahead_rescue(
+        self,
+        x_sub: np.ndarray,
+        y_centered: np.ndarray,
+        delta_centered: float,
+    ) -> tuple[_SplitDecision, dict[str, Any]] | None:
+        """Cross-feature sieve for XOR-style cancellation.
+
+        Runs only at would-be no_split material nodes. For each feature pair,
+        sums ``y_centered`` over crossed categories and applies the unchanged
+        two-bar sieve (volume delta + MAD noise floor) plus the unchanged
+        category-averaged gain to the cross-cells. The winning pair is realized
+        as an ordinary single-feature split via ``_lookahead_partition`` so all
+        downstream machinery (conditions, consolidation, conservation) is
+        untouched.
+        """
+        n_samples = int(y_centered.shape[0])
+        n_features = int(x_sub.shape[1])
+        best: _SplitDecision | None = None
+        best_gain = 0.0
+        best_info: dict[str, Any] | None = None
+        pairs_evaluated = 0
+        pairs_skipped = 0
+
+        for f in range(n_features):
+            codes_f = x_sub[:, f]
+            max_f = int(codes_f.max(initial=0))
+            for g in range(f + 1, n_features):
+                codes_g = x_sub[:, g]
+                max_g = int(codes_g.max(initial=0))
+                size = (max_f + 1) * (max_g + 1)
+                if size > _LOOKAHEAD_MAX_CROSS:
+                    pairs_skipped += 1
+                    continue
+                h = codes_f * (max_g + 1) + codes_g
+                cross_signal = np.bincount(h, weights=y_centered, minlength=size)
+                cross_counts = np.bincount(h, minlength=size)
+                present = np.flatnonzero(cross_counts)
+                if present.size <= 1:
+                    continue
+                pairs_evaluated += 1
+
+                present_signal = cross_signal[present]
+                present_counts = cross_counts[present]
+                if self.noise_z > 0:
+                    cross_means = np.zeros(size, dtype=float)
+                    nz = cross_counts > 0
+                    cross_means[nz] = cross_signal[nz] / cross_counts[nz]
+                    resid = y_centered - cross_means[h]
+                    med = float(np.median(resid))
+                    sigma = 1.4826 * float(np.median(np.abs(resid - med)))
+                    tau = np.maximum(
+                        delta_centered, self.noise_z * sigma * np.sqrt(present_counts)
+                    )
+                else:
+                    tau = np.full(present.shape[0], delta_centered)
+
+                pos_mask = present_signal > tau
+                neg_mask = present_signal < -tau
+                k_p = int(pos_mask.sum())
+                k_n = int(neg_mask.sum())
+                s_p = float(present_signal[pos_mask].sum())
+                s_n = float(present_signal[neg_mask].sum())
+                gain = (abs(s_p) / k_p if k_p else 0.0) + (abs(s_n) / k_n if k_n else 0.0)
+                if gain == 0.0 or gain <= best_gain:
+                    continue
+
+                sig_cells = present[pos_mask | neg_mask]
+                profile = cross_signal.reshape(max_f + 1, max_g + 1)
+                decision = self._lookahead_partition(
+                    f, codes_f, profile, sig_cells // (max_g + 1), gain, n_samples
+                )
+                if decision is None:
+                    decision = self._lookahead_partition(
+                        g, codes_g, profile.T, sig_cells % (max_g + 1), gain, n_samples
+                    )
+                if decision is None:
+                    continue
+                best_gain = gain
+                best = decision
+                best_info = {
+                    "pair": [f, g],
+                    "pair_names": [
+                        self._feature_display_name(f),
+                        self._feature_display_name(g),
+                    ],
+                    "split_feature_index": decision.feature_index,
+                    "gain": gain,
+                    "k_P": k_p,
+                    "k_N": k_n,
+                    "partition": {
+                        "positive": decision.pos_categories.tolist(),
+                        "negative": decision.neg_categories.tolist(),
+                        "neutral": decision.neu_categories.tolist(),
+                    },
+                }
+
+        if best is None or best_info is None:
+            return None
+        best_info["pairs_evaluated"] = pairs_evaluated
+        best_info["pairs_skipped_cardinality"] = pairs_skipped
+        return best, best_info
+
+    def _lookahead_partition(
+        self,
+        feature_index: int,
+        col_vals: np.ndarray,
+        profile: np.ndarray,
+        sig_rows: np.ndarray,
+        gain: float,
+        n_samples: int,
+    ) -> _SplitDecision | None:
+        """Convert a winning cross-table into a single-feature split on ``feature_index``.
+
+        Categories whose profile row holds no sieve-clearing cross-cell carry no
+        signal (the spec's "near-zero row norm") and route neutral; the rest are
+        partitioned by the sign of their profile row's dot product with the
+        max-norm anchor row. Returns None when the induced split is degenerate
+        (either signed group empty, or one branch holds every row).
+        """
+        present_rows = np.flatnonzero(np.bincount(col_vals, minlength=profile.shape[0]))
+        carries = np.isin(present_rows, sig_rows)
+        active = present_rows[carries]
+        if active.size < 2:
+            return None
+        norms = np.linalg.norm(profile[active], axis=1)
+        anchor_row = profile[active[int(np.argmax(norms))]]
+        dots = profile[active] @ anchor_row
+        pos = active[dots > 0]
+        neg = active[dots < 0]
+        neu = np.concatenate([present_rows[~carries], active[dots == 0]])
+        if pos.size == 0 or neg.size == 0:
+            return None
+        row_p = np.isin(col_vals, pos)
+        row_n = np.isin(col_vals, neg)
+        row_u = ~(row_p | row_n)
+        if (
+            int(row_p.sum()) == n_samples
+            or int(row_n.sum()) == n_samples
+            or int(row_u.sum()) == n_samples
+        ):
+            return None
+        return _SplitDecision(
+            gain=gain,
+            feature_index=int(feature_index),
+            pos_categories=np.sort(pos).astype(np.int64, copy=False),
+            neg_categories=np.sort(neg).astype(np.int64, copy=False),
+            neu_categories=np.sort(neu).astype(np.int64, copy=False),
+            mode="lookahead_rescue",
         )
 
     def _render_conditions_path(self, conditions: dict[int, frozenset[int]]) -> str:
