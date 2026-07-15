@@ -146,6 +146,31 @@ segment count (Kaggle suite: −26%). Disable with `consolidate=False`.
 - `max_depth` caps **interaction order** — the number of distinct-feature transitions along a path. Consecutive splits that refine the same feature's category pool are free and remain legal even at the cap; they narrow a segment rather than add an interaction term.
 - Defaults (`delta_pct=0.01`, `min_global_impact_pct=0.01`, `max_depth=5`, `noise_z=3.0`, `consolidate=True`) were fixed by benchmark loops over an 8-case synthetic battery and 10 semi-synthetic Kaggle datasets (see `reports/validation-report-v3.md`); the same configuration is used for every dataset — no per-dataset tuning.
 
+## Validation
+
+`impact-split` is validated on a planted-rule-recovery benchmark: an 8-case
+synthetic battery and 10 semi-synthetic Kaggle datasets, each with known driver
+rules and run at three seeds. The primary metric is **impact-weighted F1** — per
+planted rule, the harmonic mean of
+
+- **recall** — the share of the rule's total impact (the sum of its per-row
+  contribution) captured by the matched segments, and
+- **precision** — how cleanly the matched rows isolate that impact (captured
+  impact ÷ observed `|y|` over those rows), normalized so a perfect recovery
+  scores 1.0 at any noise level,
+
+where the matched set is a greedy union of at most three terminal segments per
+rule. A dataset scores the mean F1 over its rules; the suite reports the **mean**
+and the **floor** (worst dataset-seed). Unlike row-level Jaccard, this credits
+recovering a rule's *impact mass* even when the tree spreads it across a few
+readable segments.
+
+With the shipped defaults — one fixed configuration, no per-dataset tuning — the
+current release scores **mean 0.962 / floor 0.815** across the 51 scored
+dataset-seeds, beating CART under the same metric on both suites. Full method,
+per-case results, and known-weakness analysis:
+[`reports/validation-report-v3.md`](reports/validation-report-v3.md).
+
 ## Quick Start
 
 ### Install
@@ -231,11 +256,7 @@ If you want the motivation behind each formula (not just usage), read the Story 
 - **`model.to_html(path)`** — a self-contained interactive HTML report combining both figures plus a sortable segment table, with linked highlighting (hovering a segment row highlights it in the icicle and vice versa). No CDN or network calls — every asset is inlined, so the file is safe to open offline or email as an attachment.
 - **`model.to_dict()`** — the JSON-safe `meta` / `tree` / `segments` payload every renderer above is built from. Use it to feed a custom dashboard or notebook widget without re-deriving anything from the fitted tree.
 
-### Fit trace (optional)
-
-Pass `trace=True` or `verbose=True` to `fit()` to record one pre-order step per visited node in `model.fit_trace_` (`verbose` is an alias for `trace`; there is no extra logging). Each step includes raw and centered diagnostics (`delta_raw`, `delta_centered_excess`, `V_node`, `V_node_centered`), `routing_mode` (always `centered_excess`), per-category thresholds (`tau`, the max of the materiality and noise-floor bars), `delta_pct`, `s_node_p`, `s_node_n`, `total_sum`, global materiality ratios, per-feature candidate gains, category tables, `chosen_feature_index` when splitting, and `stop_reason` when a leaf is created (`materiality`, `max_depth`, `identical_rows`, or `no_split`). When `X` is a DataFrame, trace rows also include `chosen_feature_name`, `routing_labels`, and per-row `category_label` in category tables where applicable.
-
-## Output
+### Segment table — `get_impact_segments()`
 
 `model.get_impact_segments()` returns terminal segments sorted by absolute impact, with columns:
 
@@ -245,6 +266,10 @@ Pass `trace=True` or `verbose=True` to `fit()` to record one pre-order step per 
 - `node_id` — tree node identifier (or `merged(...)` for a consolidated segment),
 - `mean` — `total_sum / n_samples`,
 - `pool_share` — `|total_sum|` as a share of the segment's own-sign global pool (`V_global_P` or `V_global_N`).
+
+### Fit trace (optional)
+
+Pass `trace=True` or `verbose=True` to `fit()` to record one pre-order step per visited node in `model.fit_trace_` (`verbose` is an alias for `trace`; there is no extra logging). Each step includes raw and centered diagnostics (`delta_raw`, `delta_centered_excess`, `V_node`, `V_node_centered`), `routing_mode` (always `centered_excess`), per-category thresholds (`tau`, the max of the materiality and noise-floor bars), `delta_pct`, `s_node_p`, `s_node_n`, `total_sum`, global materiality ratios, per-feature candidate gains, category tables, `chosen_feature_index` when splitting, and `stop_reason` when a leaf is created (`materiality`, `max_depth`, `identical_rows`, or `no_split`). When `X` is a DataFrame, trace rows also include `chosen_feature_name`, `routing_labels`, and per-row `category_label` in category tables where applicable.
 
 ## Assumptions and Limitations
 
