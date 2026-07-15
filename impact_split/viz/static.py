@@ -93,6 +93,9 @@ def plot_segments(
                 "n": sum(int(s["n"]) for s in rest),
                 "pool_share": None,
                 "_rolled": True,
+                "is_churn": False,
+                "pos_sum": 0.0,
+                "neg_sum": 0.0,
             }
         )
 
@@ -101,7 +104,12 @@ def plot_segments(
     fig, ax = plt.subplots(figsize=figsize)
 
     values = [float(b["total_sum"] or 0.0) for b in bars]
-    max_abs = max((abs(v) for v in values), default=1.0) or 1.0
+    extents = list(values)
+    for b in bars:
+        if b.get("is_churn"):
+            extents.append(float(b["pos_sum"]))
+            extents.append(-float(b["neg_sum"]))
+    max_abs = max((abs(v) for v in extents), default=1.0) or 1.0
     pad = 0.015 * max_abs
     labels: list[str] = []
     annotation_texts = []
@@ -111,18 +119,44 @@ def plot_segments(
             face, hatch = _ROLLED_FILL, "///"
         else:
             face, hatch = (POSITIVE_COLOR if value >= 0 else NEGATIVE_COLOR), None
-        ax.barh(y, value, height=0.72, color=face, hatch=hatch, edgecolor="white", linewidth=0.8)
+        is_churn = bool(b.get("is_churn"))
+        if is_churn:
+            gross_left = -float(b["neg_sum"])
+            gross_width = float(b["pos_sum"]) + float(b["neg_sum"])
+            ax.barh(
+                y,
+                gross_width,
+                left=gross_left,
+                height=0.72,
+                facecolor="none",
+                hatch="////",
+                edgecolor=NEUTRAL_STROKE,
+                linewidth=0.9,
+                zorder=1,
+            )
+        ax.barh(
+            y, value, height=0.72, color=face, hatch=hatch,
+            edgecolor="white", linewidth=0.8, zorder=2,
+        )
         labels.append(textwrap.fill(str(b["path"]), width=38))
         note = f"n={b['n']:,}"
         if b["pool_share"] is not None:
             note += f" · {fmt_pct(b['pool_share'])} of {'Σy⁺' if value >= 0 else 'Σy⁻'}"
-        offset = pad if value >= 0 else -pad
-        ha = "left" if value >= 0 else "right"
+        anchor = float(b["pos_sum"]) if is_churn else value
+        offset = pad if (value >= 0 or is_churn) else -pad
+        ha = "left" if (value >= 0 or is_churn) else "right"
+        if is_churn:
+            value_label = (
+                f"net {fmt_num(value, sign=True)} (gross +{fmt_num(b['pos_sum'])}"
+                f" / −{fmt_num(b['neg_sum'])})"
+            )
+        else:
+            value_label = fmt_num(value, sign=True)
         annotation_texts.append(
             ax.text(
-                value + offset,
+                anchor + offset,
                 y + 0.16,
-                fmt_num(value, sign=True),
+                value_label,
                 va="center",
                 ha=ha,
                 fontsize=9,
@@ -132,14 +166,14 @@ def plot_segments(
         )
         annotation_texts.append(
             ax.text(
-                value + offset, y - 0.2, note, va="center", ha=ha, fontsize=7.5, color=_MUTED_TEXT
+                anchor + offset, y - 0.2, note, va="center", ha=ha, fontsize=7.5, color=_MUTED_TEXT
             )
         )
 
     ax.set_yticks([len(bars) - 1 - i for i in range(len(bars))], labels=labels, fontsize=8)
     ax.set_xlim(
-        min(0.0, min(values, default=0.0)) - 0.24 * max_abs,
-        max(0.0, max(values, default=0.0)) + 0.24 * max_abs,
+        min(0.0, min(extents, default=0.0)) - 0.24 * max_abs,
+        max(0.0, max(extents, default=0.0)) + 0.24 * max_abs,
     )
     _fit_xlim_to_annotations(fig, ax, annotation_texts)
     ax.axvline(0.0, color=NEUTRAL_STROKE, linewidth=1.0, zorder=0)
@@ -158,14 +192,13 @@ def plot_segments(
         color=_INK,
     )
     conservation = "exact ✓" if meta["conservation_exact"] else "MISMATCH ✗"
-    fig.text(
-        0.01,
-        0.01,
+    footer = (
         f"bars are additive: sum of all segments = total Σy ({conservation}) · "
-        f"blue = positive impact · orange = negative",
-        fontsize=7.5,
-        color=_MUTED_TEXT,
+        f"blue = positive impact · orange = negative"
     )
+    if any(b.get("is_churn") for b in bars):
+        footer += " · hatched band = churn segment's gross ±flows (band is not additive)"
+    fig.text(0.01, 0.01, footer, fontsize=7.5, color=_MUTED_TEXT)
     fig.tight_layout(rect=(0, 0.045, 1, 1))
     if show:
         plt.show()
@@ -245,17 +278,25 @@ def plot_icicle(
             and node["segment_id"] is not None
             and seg_leaf_count.get(node["segment_id"], 1) > 1
         )
+        churn_leaf = bool(node["is_leaf"] and node.get("is_churn"))
+        edge_dark = merged_leaf or churn_leaf
         ax.add_patch(
             Rectangle(
                 (r["x0"], -r["depth"] - 0.94),
                 r["width"],
                 0.88,
                 facecolor=face,
-                edgecolor="#3a3a36" if merged_leaf else "white",
-                linewidth=1.8 if merged_leaf else 1.1,
+                edgecolor="#3a3a36" if edge_dark else "white",
+                linewidth=1.8 if edge_dark else 1.1,
+                linestyle=(0, (3, 2)) if churn_leaf else "solid",
             )
         )
-        label = f"{node['condition']}\n{fmt_num(node['total_sum'], sign=True)}"
+        if churn_leaf:
+            mass = min(float(node["pos_sum"] or 0.0), float(node["neg_sum"] or 0.0))
+            value_line = f"{fmt_num(node['total_sum'], sign=True)} ⇄ ±{fmt_num(mass)}"
+        else:
+            value_line = fmt_num(node["total_sum"], sign=True)
+        label = f"{node['condition']}\n{value_line}"
         longest = max(len(line) for line in label.split("\n"))
         if r["width"] * fig_width_px * 0.86 >= longest * 5.0 and r["width"] >= 0.03:
             ax.text(
@@ -294,7 +335,8 @@ def plot_icicle(
         0.01,
         0.01,
         "each row tiles the one above (children are their parent's rows) · "
-        "dark-outlined leaves merged into one consolidated segment",
+        "dark-outlined leaves merged into one consolidated segment · "
+        "dashed outline = churn leaf (net ⇄ ±offsetting mass)",
         fontsize=7.5,
         color=_MUTED_TEXT,
     )
