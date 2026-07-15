@@ -8,7 +8,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning: [S
 ### Added
 - **Pairwise lookahead rescue** (`lookahead=True`, new constructor param): when a
   material node's marginal category tables all net to ~0 (XOR-style interaction
-  cancellation), a cross-feature pass re-runs the unchanged two-bar sieve on
+  cancellation), a cross-feature pass re-runs the two-bar sieve on
   crossed category pairs and converts the winning pair into an ordinary
   single-feature split. Fires only where v0.1.0 silently gave up
   (`stop_reason="no_split"` with materiality triggers on), so happy-path fits are

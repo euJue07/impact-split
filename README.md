@@ -197,8 +197,8 @@ recovering a rule's *impact mass* even when the tree spreads it across a few
 readable segments.
 
 With the shipped defaults — one fixed configuration, no per-dataset tuning — the
-current release scores **mean 0.962 / floor 0.815** across the 51 scored
-dataset-seeds, beating CART under the same metric on both suites. Full method,
+suite holds at least **mean 0.962 / floor 0.815** (v0.1.0 baseline across 51 scored
+dataset-seeds), and v0.2.0's lookahead rescue improves the synthetic battery without moving the Kaggle suite, beating CART under the same metric on both. Full method,
 per-case results, and known-weakness analysis:
 [`reports/validation-report-v3.md`](reports/validation-report-v3.md).
 

@@ -46,3 +46,12 @@ def test_html_marks_churn() -> None:
     assert "tband" in html_out            # gross-band CSS + tornado renderer
     assert "stroke-dasharray" in html_out # icicle churn outline
     assert "Σy⁺" in html_out              # gross table columns
+    # Data-dependent: only holds when churn exists in the output
+    assert '"is_churn": true' in html_out
+    # Verify the assertion is data-dependent by confirming it does NOT appear
+    # in a churn-free model (strictly non-negative y, so negative pool is 0).
+    rng = np.random.default_rng(0)
+    X = pd.DataFrame({"a": rng.choice(["x", "y"], size=200)})
+    y = pd.Series(np.abs(rng.normal(0.0, 1.0, 200)) + (X["a"] == "x") * 5.0)
+    html_no_churn = ImpactSplitter().fit(X, y).to_html()
+    assert '"is_churn": true' not in html_no_churn
