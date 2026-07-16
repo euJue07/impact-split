@@ -24,6 +24,7 @@ def render_html(payload: dict[str, Any], *, title: str = "impact-split report") 
         ("nodes / leaves", f"{meta['n_nodes']} / {meta['n_leaves']}"),
         ("segments", f"{meta['n_segments']}"),
         ("conservation", conservation),
+        ("churn segments", str(meta["n_churn_segments"])),
     ]
     tiles_html = "".join(
         '<div class="tile"><div class="tile-label">'
@@ -36,7 +37,7 @@ def render_html(payload: dict[str, Any], *, title: str = "impact-split report") 
     params_line = escape(
         f"delta_pct={p['delta_pct']} · noise_z={p['noise_z']} · "
         f"max_depth={p['max_depth']} · consolidate={p['consolidate']} · "
-        f"impact_split v{meta['package_version']}"
+        f"lookahead={p['lookahead']} · impact_split v{meta['package_version']}"
     )
     return _TEMPLATE.substitute(
         title=escape(title), tiles=tiles_html, params=params_line, data=data_json
@@ -86,6 +87,10 @@ h2 { font-size:15px; margin:34px 0 4px; }
 .tbar.pos { background:var(--pos); }
 .tbar.neg { background:var(--neg); }
 .tbar.rolled { background:#c9c9c5; }
+.tband { position:absolute; top:1px; height:14px; border:1px dashed #949494;
+         border-radius:4px; background:repeating-linear-gradient(45deg, transparent,
+         transparent 3px, rgba(148,148,148,0.35) 3px, rgba(148,148,148,0.35) 6px); }
+.churn-mark { color:var(--muted); font-weight:600; }
 .tval { font-variant-numeric:tabular-nums; font-size:12px; font-weight:600; text-align:right; }
 .tnote { color:var(--muted); font-size:11px; }
 table { border-collapse:collapse; width:100%; background:var(--card);
@@ -110,13 +115,16 @@ tr.hl td { background:#f3f0e9; }
 <h2>Impact tree — where the impact concentrates</h2>
 <p class="hint">Cell width ∝ Σ|y| · blue = above overall mean, orange = below ·
 click a cell to zoom into that subtree · dark-outlined leaves were merged into one
-consolidated segment · hover for the full rule path.</p>
+consolidated segment · hover for the full rule path. Dashed-outlined leaves are churn
+(offsetting ±flows both material).</p>
 <div id="breadcrumb"></div>
 <svg id="icicle"></svg>
 
 <h2>Segments ranked by |impact|</h2>
 <p class="hint">Each bar is a consolidated segment's total Σy. Bars are additive —
-together they reconstruct the total exactly. Hover to locate the segment in the tree.</p>
+together they reconstruct the total exactly. Hover to locate the segment in the tree.
+Churn segments (⇄) also show a hatched band spanning their gross ±flows — the band is
+not additive.</p>
 <div id="tornado"></div>
 
 <h2>All segments</h2>
@@ -199,6 +207,10 @@ function nodeTip(n) {
     "n = " + n.n.toLocaleString("en-US") + "   mean = " + fmt(mean),
     "Σy = " + fmt(n.total_sum) + "   Σy⁺ = " + fmt(n.pos_sum) + "   Σy⁻ = " +
       (n.neg_sum ? "-" : "") + fmtMag(n.neg_sum)];
+  if (n.is_churn) {
+    lines.push("churn ⇄ net hides ±" +
+      fmtMag(Math.min(n.pos_sum || 0, n.neg_sum || 0)) + " offsetting mass");
+  }
   if (n.split_feature) lines.push("splits on: " + n.split_feature);
   if (n.segment_id) {
     var s = segById[n.segment_id];
@@ -256,12 +268,15 @@ function renderIcicle() {
     var col = divergingColor((mean - rootMean) / VMAX);
     var seg = n.segment_id ? segById[n.segment_id] : null;
     var merged = seg && seg.node_ids.length > 1;
+    var churn = n.is_leaf && n.is_churn;
+    var dark = merged || churn;
     out += '<rect data-node="' + n.id + '"' +
       (n.segment_id ? ' data-seg="' + n.segment_id + '"' : "") +
       ' x="' + (r.x0 + PAD / 2) + '" y="' + (r.level * ROW_H + PAD / 2) + '"' +
       ' width="' + Math.max(0.6, r.w - PAD) + '" height="' + (ROW_H - PAD) + '"' +
-      ' fill="' + col.css + '" stroke="' + (merged ? "#3a3a36" : "#ffffff") + '"' +
-      ' stroke-width="' + (merged ? 2 : 1) + '" rx="3"></rect>';
+      ' fill="' + col.css + '" stroke="' + (dark ? "#3a3a36" : "#ffffff") + '"' +
+      ' stroke-width="' + (dark ? 2 : 1) + '"' +
+      (churn ? ' stroke-dasharray="6,3"' : "") + ' rx="3"></rect>';
     if (r.w > 76) {
       var maxChars = Math.floor(r.w / 6.4);
       var label = n.condition.length > maxChars
@@ -311,18 +326,22 @@ function renderTornado() {
   var rest = DATA.segments.slice(TOP);
   var rows = shown.map(function (s) {
     return { path: s.path, v: s.total_sum || 0, n: s.n, share: s.pool_share,
-             seg: s.segment_id, rolled: false };
+             seg: s.segment_id, rolled: false, churn: !!s.is_churn,
+             pos: s.pos_sum || 0, neg: s.neg_sum || 0 };
   });
   if (rest.length) {
     rows.push({
       path: "(+" + rest.length + " more segments)",
       v: rest.reduce(function (a, s) { return a + (s.total_sum || 0); }, 0),
       n: rest.reduce(function (a, s) { return a + s.n; }, 0),
-      share: null, seg: null, rolled: true
+      share: null, seg: null, rolled: true, churn: false, pos: 0, neg: 0
     });
   }
   var lo = 0, hi = 0;
-  rows.forEach(function (r) { lo = Math.min(lo, r.v); hi = Math.max(hi, r.v); });
+  rows.forEach(function (r) {
+    lo = Math.min(lo, r.v); hi = Math.max(hi, r.v);
+    if (r.churn) { lo = Math.min(lo, -r.neg); hi = Math.max(hi, r.pos); }
+  });
   var range = (hi - lo) || 1;
   var zeroPct = (0 - lo) / range * 100;
   var out = "";
@@ -332,12 +351,21 @@ function renderTornado() {
     var cls = r.rolled ? "rolled" : (r.v >= 0 ? "pos" : "neg");
     var note = "n=" + r.n.toLocaleString("en-US") +
       (r.share != null ? " · " + pct(r.share) + " of " + (r.v >= 0 ? "Σy⁺" : "Σy⁻") : "");
+    var band = "";
+    if (r.churn) {
+      var bLeft = (-r.neg - lo) / range * 100;
+      var bWidth = (r.pos + r.neg) / range * 100;
+      band = '<div class="tband" style="left:' + bLeft + "%;width:" + bWidth + '%"></div>';
+    }
+    if (r.churn) {
+      note += " · gross +" + fmtMag(r.pos) + "/−" + fmtMag(r.neg);
+    }
     out += '<div class="trow"' + (r.seg ? ' data-seg="' + r.seg + '"' : "") + ">" +
       '<div class="tpath" title="' + esc(r.path) + '">' + esc(r.path) + "</div>" +
-      '<div class="ttrack"><div class="tzero" style="left:' + zeroPct + '%"></div>' +
+      '<div class="ttrack"><div class="tzero" style="left:' + zeroPct + '%"></div>' + band +
       '<div class="tbar ' + cls + '" style="left:' + leftPct + "%;width:" + widthPct +
       '%"></div></div>' +
-      '<div class="tval">' + fmt(r.v) + "</div>" +
+      '<div class="tval">' + (r.churn ? "net " : "") + fmt(r.v) + "</div>" +
       '<div class="tnote">' + note + "</div></div>";
   });
   var host = document.getElementById("tornado");
@@ -350,12 +378,14 @@ function renderTornado() {
 var tableRows = DATA.segments.map(function (s, i) {
   return { rank: i + 1, path: s.path, total_sum: s.total_sum || 0, n: s.n,
            mean: s.mean, pool_share: s.pool_share, leaves: s.node_ids.length,
-           seg: s.segment_id };
+           seg: s.segment_id, pos_sum: s.pos_sum || 0, neg_sum: s.neg_sum || 0,
+           churn: !!s.is_churn };
 });
 var sortKey = "rank", sortDir = 1;
 var COLS = [
-  ["#", "rank"], ["path", "path"], ["Σy", "total_sum"], ["n", "n"],
-  ["mean", "mean"], ["pool share", "pool_share"], ["leaves", "leaves"]
+  ["#", "rank"], ["path", "path"], ["Σy", "total_sum"], ["Σy⁺", "pos_sum"],
+  ["Σy⁻", "neg_sum"], ["n", "n"], ["mean", "mean"], ["pool share", "pool_share"],
+  ["leaves", "leaves"]
 ];
 function renderTable() {
   var thead = document.querySelector("#segtable thead");
@@ -377,8 +407,12 @@ function renderTable() {
       (r.total_sum >= 0 ? "var(--pos)" : "var(--neg)") + '"></span>';
     return '<tr data-seg="' + r.seg + '">' +
       "<td>" + r.rank + "</td>" +
-      '<td class="path">' + chip + esc(r.path) + "</td>" +
+      '<td class="path">' + chip +
+      (r.churn ? '<span class="churn-mark" title="churn: offsetting flows both material">⇄ </span>' : "") +
+      esc(r.path) + "</td>" +
       "<td>" + fmt(r.total_sum) + "</td>" +
+      "<td>" + fmtMag(r.pos_sum) + "</td>" +
+      "<td>" + (r.neg_sum ? "−" : "") + fmtMag(r.neg_sum) + "</td>" +
       "<td>" + r.n.toLocaleString("en-US") + "</td>" +
       "<td>" + fmt(r.mean) + "</td>" +
       "<td>" + (r.pool_share != null

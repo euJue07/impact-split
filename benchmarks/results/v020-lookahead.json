@@ -1,0 +1,363 @@
+{
+  "params": {
+    "delta_pct": 0.01,
+    "min_global_impact_pct": 0.01,
+    "max_depth": 5
+  },
+  "per_case_mean_f1": {
+    "xor_pure": 1.0,
+    "xor_embedded": 1.0
+  },
+  "churn_null_pass_rate": 1.0,
+  "conservation_all_ok": true,
+  "results": [
+    {
+      "case": "xor_pure",
+      "seed": 42,
+      "impact_f1": 1.0,
+      "floor_rule_f1": 1.0,
+      "rule_scores": [
+        {
+          "rule": "promo XOR weekend (+)",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 2,
+          "best_jaccard": 0.5121659353809334,
+          "matched_paths": [
+            "root / promo=yes / daytype=weekday",
+            "root / promo=no / daytype=weekend"
+          ],
+          "uncapped_f1": 1.0,
+          "uncapped_recall": 1.0,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 2
+        },
+        {
+          "rule": "promo XOR weekend (-)",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 2,
+          "best_jaccard": 0.5002005615724028,
+          "matched_paths": [
+            "root / promo=no / daytype=weekday",
+            "root / promo=yes / daytype=weekend"
+          ],
+          "uncapped_f1": 1.0,
+          "uncapped_recall": 1.0,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 2
+        }
+      ],
+      "n_terminal_segments": 4,
+      "null_pass": null,
+      "conservation_ok": true,
+      "extras": {}
+    },
+    {
+      "case": "xor_pure",
+      "seed": 7,
+      "impact_f1": 1.0,
+      "floor_rule_f1": 1.0,
+      "rule_scores": [
+        {
+          "rule": "promo XOR weekend (+)",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 2,
+          "best_jaccard": 0.5147410358565737,
+          "matched_paths": [
+            "root / promo=yes / daytype=weekday",
+            "root / promo=no / daytype=weekend"
+          ],
+          "uncapped_f1": 1.0,
+          "uncapped_recall": 1.0,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 2
+        },
+        {
+          "rule": "promo XOR weekend (-)",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 2,
+          "best_jaccard": 0.5160642570281124,
+          "matched_paths": [
+            "root / promo=no / daytype=weekday",
+            "root / promo=yes / daytype=weekend"
+          ],
+          "uncapped_f1": 1.0,
+          "uncapped_recall": 1.0,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 2
+        }
+      ],
+      "n_terminal_segments": 4,
+      "null_pass": null,
+      "conservation_ok": true,
+      "extras": {}
+    },
+    {
+      "case": "xor_pure",
+      "seed": 2026,
+      "impact_f1": 1.0,
+      "floor_rule_f1": 1.0,
+      "rule_scores": [
+        {
+          "rule": "promo XOR weekend (+)",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 2,
+          "best_jaccard": 0.5005940594059406,
+          "matched_paths": [
+            "root / promo=no / daytype=weekend",
+            "root / promo=yes / daytype=weekday"
+          ],
+          "uncapped_f1": 1.0,
+          "uncapped_recall": 1.0,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 2
+        },
+        {
+          "rule": "promo XOR weekend (-)",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 2,
+          "best_jaccard": 0.5014141414141414,
+          "matched_paths": [
+            "root / promo=yes / daytype=weekend",
+            "root / promo=no / daytype=weekday"
+          ],
+          "uncapped_f1": 1.0,
+          "uncapped_recall": 1.0,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 2
+        }
+      ],
+      "n_terminal_segments": 4,
+      "null_pass": null,
+      "conservation_ok": true,
+      "extras": {}
+    },
+    {
+      "case": "xor_embedded",
+      "seed": 42,
+      "impact_f1": 1.0,
+      "floor_rule_f1": 1.0,
+      "rule_scores": [
+        {
+          "rule": "Visayas uplift",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 1,
+          "best_jaccard": 1.0,
+          "matched_paths": [
+            "root / region=Visayas"
+          ],
+          "uncapped_f1": 1.0,
+          "uncapped_recall": 1.0,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 1
+        },
+        {
+          "rule": "NCR x XOR (+)",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 2,
+          "best_jaccard": 0.5047554347826086,
+          "matched_paths": [
+            "root / region=Luzon, Mindanao, NCR / promo=yes / daytype=weekday / region=NCR",
+            "root / region=Luzon, Mindanao, NCR / promo=no / daytype=weekend / region=NCR"
+          ],
+          "uncapped_f1": 1.0,
+          "uncapped_recall": 1.0,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 2
+        },
+        {
+          "rule": "NCR x XOR (-)",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 2,
+          "best_jaccard": 0.5021582733812949,
+          "matched_paths": [
+            "root / region=Luzon, Mindanao, NCR / promo=no / daytype=weekday / region=NCR",
+            "root / region=Luzon, Mindanao, NCR / promo=yes / daytype=weekend / region=NCR"
+          ],
+          "uncapped_f1": 1.0,
+          "uncapped_recall": 1.0,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 2
+        }
+      ],
+      "n_terminal_segments": 6,
+      "null_pass": null,
+      "conservation_ok": true,
+      "extras": {}
+    },
+    {
+      "case": "xor_embedded",
+      "seed": 7,
+      "impact_f1": 1.0,
+      "floor_rule_f1": 1.0,
+      "rule_scores": [
+        {
+          "rule": "Visayas uplift",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 1,
+          "best_jaccard": 1.0,
+          "matched_paths": [
+            "root / region=Visayas"
+          ],
+          "uncapped_f1": 1.0,
+          "uncapped_recall": 1.0,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 1
+        },
+        {
+          "rule": "NCR x XOR (+)",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 2,
+          "best_jaccard": 0.5251396648044693,
+          "matched_paths": [
+            "root / region=Luzon, Mindanao, NCR / promo=no / daytype=weekend / region=NCR",
+            "root / region=Luzon, Mindanao, NCR / promo=yes / daytype=weekday / region=NCR"
+          ],
+          "uncapped_f1": 1.0,
+          "uncapped_recall": 1.0,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 2
+        },
+        {
+          "rule": "NCR x XOR (-)",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 2,
+          "best_jaccard": 0.5046066619418852,
+          "matched_paths": [
+            "root / region=Luzon, Mindanao, NCR / promo=yes / daytype=weekend / region=NCR",
+            "root / region=Luzon, Mindanao, NCR / promo=no / daytype=weekday / region=NCR"
+          ],
+          "uncapped_f1": 1.0,
+          "uncapped_recall": 1.0,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 2
+        }
+      ],
+      "n_terminal_segments": 6,
+      "null_pass": null,
+      "conservation_ok": true,
+      "extras": {}
+    },
+    {
+      "case": "xor_embedded",
+      "seed": 2026,
+      "impact_f1": 1.0,
+      "floor_rule_f1": 1.0,
+      "rule_scores": [
+        {
+          "rule": "Visayas uplift",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 1,
+          "best_jaccard": 1.0,
+          "matched_paths": [
+            "root / region=Visayas"
+          ],
+          "uncapped_f1": 1.0,
+          "uncapped_recall": 1.0,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 1
+        },
+        {
+          "rule": "NCR x XOR (+)",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 2,
+          "best_jaccard": 0.5171919770773639,
+          "matched_paths": [
+            "root / region=Luzon, Mindanao, NCR / daytype=weekend / promo=no / region=NCR",
+            "root / region=Luzon, Mindanao, NCR / daytype=weekday / promo=yes / region=NCR"
+          ],
+          "uncapped_f1": 1.0,
+          "uncapped_recall": 1.0,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 2
+        },
+        {
+          "rule": "NCR x XOR (-)",
+          "f1": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "n_segments_used": 2,
+          "best_jaccard": 0.5211370262390671,
+          "matched_paths": [
+            "root / region=Luzon, Mindanao, NCR / daytype=weekday / promo=no / region=NCR",
+            "root / region=Luzon, Mindanao, NCR / daytype=weekend / promo=yes / region=NCR"
+          ],
+          "uncapped_f1": 1.0,
+          "uncapped_recall": 1.0,
+          "uncapped_precision": 1.0,
+          "uncapped_n_segments": 2
+        }
+      ],
+      "n_terminal_segments": 6,
+      "null_pass": null,
+      "conservation_ok": true,
+      "extras": {}
+    },
+    {
+      "case": "churn_irreducible",
+      "seed": 42,
+      "impact_f1": NaN,
+      "floor_rule_f1": NaN,
+      "rule_scores": [],
+      "n_terminal_segments": 1,
+      "null_pass": true,
+      "conservation_ok": true,
+      "extras": {
+        "worst_null_segment_share": 0.0
+      }
+    },
+    {
+      "case": "churn_irreducible",
+      "seed": 7,
+      "impact_f1": NaN,
+      "floor_rule_f1": NaN,
+      "rule_scores": [],
+      "n_terminal_segments": 1,
+      "null_pass": true,
+      "conservation_ok": true,
+      "extras": {
+        "worst_null_segment_share": 0.0
+      }
+    },
+    {
+      "case": "churn_irreducible",
+      "seed": 2026,
+      "impact_f1": NaN,
+      "floor_rule_f1": NaN,
+      "rule_scores": [],
+      "n_terminal_segments": 1,
+      "null_pass": true,
+      "conservation_ok": true,
+      "extras": {
+        "worst_null_segment_share": 0.0
+      }
+    }
+  ]
+}

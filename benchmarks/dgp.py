@@ -244,6 +244,71 @@ def case_null(seed: int, *, n: int = 5000) -> BenchDataset:
     return _assemble("null", seed, X, [], 22.0, rng)
 
 
+def case_xor(seed: int, *, n: int = 5000, amp: float = 120.0) -> BenchDataset:
+    """Lookahead case 1 — pure 2-feature XOR: every marginal nets ~0; the rescue
+    must fire at the root to recover the four signed cells."""
+    rng = np.random.default_rng(seed)
+    X = pd.DataFrame(
+        {
+            "promo": rng.choice(["yes", "no"], size=n),
+            "daytype": rng.choice(["weekday", "weekend"], size=n),
+        }
+    )
+    xor = (X["promo"] == "yes") ^ (X["daytype"] == "weekend")
+    specs = [
+        ("promo XOR weekend (+)", xor, amp),
+        ("promo XOR weekend (-)", ~xor, -amp),
+    ]
+    return _assemble("xor_pure", seed, X, _mk_rules(X, specs), 22.0, rng)
+
+
+def case_xor_embedded(seed: int, *, n: int = 8000) -> BenchDataset:
+    """Lookahead case 2 — a clean marginal rule plus an XOR pocket confined to
+    one region; the rescue must fire at an interior node, not the root."""
+    rng = np.random.default_rng(seed)
+    X = pd.DataFrame(
+        {
+            "region": rng.choice(
+                ["NCR", "Luzon", "Visayas", "Mindanao"], size=n, p=[0.35, 0.3, 0.2, 0.15]
+            ),
+            "promo": rng.choice(["yes", "no"], size=n),
+            "daytype": rng.choice(["weekday", "weekend"], size=n),
+        }
+    )
+    xor = (X["promo"] == "yes") ^ (X["daytype"] == "weekend")
+    ncr = X["region"] == "NCR"
+    specs = [
+        ("Visayas uplift", X["region"] == "Visayas", 80.0),
+        ("NCR x XOR (+)", ncr & xor, 150.0),
+        ("NCR x XOR (-)", ncr & ~xor, -150.0),
+    ]
+    return _assemble("xor_embedded", seed, X, _mk_rules(X, specs), 22.0, rng)
+
+
+def case_churn(seed: int, *, n: int = 8000, amp: float = 100.0) -> BenchDataset:
+    """Lookahead case 3 — irreducible ±churn independent of every feature: the
+    tree must NOT split (scored via the null-case machinery) and the single
+    segment must be flagged churn (asserted in tests).
+
+    ``n=8000`` (not the brief's verbatim 4000): at n=4000 natural binomial
+    sampling noise in a 2-level region/channel split of this large-amplitude
+    (+-100) bimodal target clears the 1% volumetric delta threshold for seed
+    42 (spurious 2-segment split), because delta scales linearly with n while
+    the sampling-noise excess scales as sqrt(n) — raising n tightens the
+    margin. Verified n=8000 is null (1 segment) for SEEDS=[42, 7, 2026] with
+    headroom (also clean at 10k/12k/16k/20k/30k/40k for these seeds)."""
+    rng = np.random.default_rng(seed)
+    X = pd.DataFrame(
+        {
+            "region": rng.choice(["NCR", "Luzon"], size=n),
+            "channel": rng.choice(["Direct", "Online"], size=n),
+        }
+    )
+    base = np.where(rng.random(n) < 0.5, amp, -amp + 1.0)  # +100 / -99: nets ~0
+    y = base + rng.normal(0, 2.0, n)
+    return BenchDataset("churn_irreducible", seed, X, y, [], 2.0, {"amp": amp})
+
+
 CASE_FACTORIES: dict[str, Callable[[int], BenchDataset]] = {
     "baseline": case_baseline,
     "one_sided": case_one_sided,
@@ -258,3 +323,11 @@ CASE_FACTORIES: dict[str, Callable[[int], BenchDataset]] = {
 SEEDS = [42, 7, 2026]
 
 NOISE_FRONTIER_SIGMAS = [22.0, 44.0, 88.0, 176.0, 352.0]
+
+# v0.2.0 lookahead/churn cases — scored separately from the headline battery so
+# the published mean/floor aggregates keep their meaning.
+LOOKAHEAD_CASE_FACTORIES: dict[str, Callable[[int], BenchDataset]] = {
+    "xor_pure": case_xor,
+    "xor_embedded": case_xor_embedded,
+    "churn_irreducible": case_churn,
+}

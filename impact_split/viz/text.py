@@ -25,7 +25,8 @@ def render_summary(payload: dict[str, Any], *, top: int = 10, path_width: int = 
         (
             f"rows {meta['n_rows']:,} · features {meta['n_features']} · "
             f"params delta_pct={p['delta_pct']} noise_z={p['noise_z']} "
-            f"max_depth={p['max_depth']} consolidate={p['consolidate']}"
+            f"max_depth={p['max_depth']} consolidate={p['consolidate']} "
+            f"lookahead={p['lookahead']}"
         ),
         (
             f"total Σy {fmt_num(meta['total_sum'], sign=True)}   "
@@ -36,11 +37,18 @@ def render_summary(payload: dict[str, Any], *, top: int = 10, path_width: int = 
             f"depth {meta['physical_depth']} "
             f"(interaction order {meta['interaction_depth']})"
         ),
-        f"segments  {meta['n_segments']}{merged_note} · conservation {conservation}",
+    ]
+
+    churn_note = (
+        f" · {meta['n_churn_segments']} churn ⇄" if meta["n_churn_segments"] else ""
+    )
+    lines.extend([
+        f"segments  {meta['n_segments']}{merged_note}{churn_note} · "
+        f"conservation {conservation}",
         "",
         "Top segments by |impact|",
-        f" {'#':>2}  {'path':<{path_width}}  {'Σy':>14}  {'n':>9}  {'pool share':>16}",
-    ]
+        f" {'#':>2}  {'path':<{path_width}}  {'Σy':>14}  {'n':>9}  {'pool share':>16}  {'gross ⇄':>22}",
+    ])
 
     shown = segments[:top]
     rest = segments[top:]
@@ -53,9 +61,14 @@ def render_summary(payload: dict[str, Any], *, top: int = 10, path_width: int = 
             share = f"{fmt_pct(seg['pool_share'])} of {pool_label}"
         else:
             share = "—"
+        gross = (
+            f"+{fmt_num(seg['pos_sum'])} / -{fmt_num(seg['neg_sum'])}"
+            if seg["is_churn"]
+            else ""
+        )
         lines.append(
             f" {i:>2}  {path:<{path_width}}  {fmt_num(seg['total_sum'], sign=True):>14}"
-            f"  {seg['n']:>9,}  {share:>16}"
+            f"  {seg['n']:>9,}  {share:>16}  {gross:>22}"
         )
     if rest:
         rest_total = sum(float(s["total_sum"] or 0.0) for s in rest)
@@ -63,6 +76,14 @@ def render_summary(payload: dict[str, Any], *, top: int = 10, path_width: int = 
         label = f"(+{len(rest)} more segments)"
         lines.append(
             f" {'…':>2}  {label:<{path_width}}  {fmt_num(rest_total, sign=True):>14}"
-            f"  {rest_n:>9,}  {'':>16}"
+            f"  {rest_n:>9,}  {'':>16}  {'':>22}"
         )
+
+    if meta["n_churn_segments"]:
+        lines.append("")
+        lines.append(
+            " ⇄ churn segment: positive and negative flows are both material — "
+            "the net hides offsetting mass (gross column shows both)."
+        )
+
     return "\n".join(lines)

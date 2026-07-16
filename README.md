@@ -39,6 +39,7 @@ The algorithm builds a ternary tree (Positive / Neutral / Negative) over categor
 
 - centered-excess routing (`D_cat = S_cat - n_cat * mean(y_node)`) so categories are judged by how far they deviate from the node's expected share, never by raw volume,
 - a two-part local sieve: a volume-relative threshold (`delta_pct`) **and** a per-category noise floor (`noise_z`) so neither sub-material nor statistically insignificant categories get routed,
+- a pairwise lookahead rescue that catches XOR-style interaction cancellation (offsetting contributors whose every marginal table nets to ~0) by re-running the same sieve on crossed category pairs — plus a churn flag for offsetting mass that genuinely cannot be split,
 - a gain metric that emphasizes outer-branch impact while penalizing high-cardinality noise,
 - a global stopping threshold (`min_global_impact_pct`) to stop splitting low-materiality nodes,
 - an interaction-order depth cap (`max_depth` counts distinct-feature transitions; same-feature refinements are free),
@@ -75,6 +76,36 @@ where $S_{cat}$ is the category-level sum within the node and $n_{cat}$ is the c
 where $V^{c}_{node}=\sum|y_i-\bar{y}_{node}|$ is the node's excess volume, $z$ is `noise_z` (default 3.0), and $\hat{\sigma}_f = 1.4826\cdot\mathrm{MAD}$ of the candidate feature's within-category residuals. Route P if $D_{cat} > \tau_{cat}$, N if $D_{cat} < -\tau_{cat}$, else Neutral.
 
 **Why it works:** the materiality bar scales with local volume, so sensitivity adapts by depth — and because it is only 1% of node excess volume, effects trapped inside a large neutral catch-all remain detectable. The significance bar is the category's null band: under pure within-category noise, $D_{cat}$ wanders like $\sigma\sqrt{n_{cat}}$, so noise alone cannot clear it — deep nodes stop fragmenting when only noise is left.
+
+#### Act I extension: the pairwise lookahead rescue (v0.2.0)
+
+**Problem:** when the *sign* of $y$ depends on a combination of features
+(XOR-style interaction), every marginal category table nets to ~0 and the sieve
+finds nothing — even though the node's positive and negative flows are both
+material. In v0.1.0 the node silently leafed out (`stop_reason="no_split"`),
+e.g. +10,000 and −9,999 reported as one ~0 segment.
+
+**Rescue:** exactly at that signature (materiality triggers fired, best marginal
+gain 0, interaction cap not reached, `lookahead=True`), the same sieve re-runs
+over **crossed categories** of each feature pair $(f, g)$ — same materiality
+delta, but a multiplicity-corrected significance bar $z_{eff} = \mathrm{noise\_z} + \sqrt{2\ln K}$
+(where $K$ is the pair's present cross-cells), and a cross-cell counts as
+sieve-clearing only with at least 2 rows; same gain metric otherwise. The
+winning pair is realized as an ordinary single-feature split: $f$'s categories
+are partitioned by the sign of their cross-profile row's dot product with the
+max-norm anchor row (categories carrying no sieve-clearing cell stay neutral),
+and the children then split on $g$ through the normal marginal sieve.
+Happy-path fits are unchanged — the rescue only runs where the tree was about
+to give up. Pairs whose crossed cardinality exceeds a safety bound are
+skipped, and 3-way-or-higher cancellation whose pairwise margins all cancel
+remains out of reach — the churn flag below still surfaces it.
+
+**Churn flag:** offsetting mass that no split can separate (identical feature
+rows with ±y, higher-order interactions) is flagged instead of vanishing: a
+segment whose positive and negative gross flows *each* clear
+`min_global_impact_pct` against their global pools is marked `is_churn`, carries
+`pos_sum`/`neg_sum`, ranks by `max(|Σy|, min(Σy⁺, Σy⁻))`, and every renderer
+shows the gross flows (`net +1 (gross +10,000 / −9,999)`).
 
 ### Act II: The Gain Metric (Category-Averaged Impact Divergence)
 
@@ -144,7 +175,7 @@ segment count (Kaggle suite: −26%). Disable with `consolidate=False`.
 
 - Centered-excess routing is the *only* routing mode (since the 2026-07 robustness loop; raw-sum routing was removed because it split on volume rather than effect for one-sided KPIs).
 - `max_depth` caps **interaction order** — the number of distinct-feature transitions along a path. Consecutive splits that refine the same feature's category pool are free and remain legal even at the cap; they narrow a segment rather than add an interaction term.
-- Defaults (`delta_pct=0.01`, `min_global_impact_pct=0.01`, `max_depth=5`, `noise_z=3.0`, `consolidate=True`) were fixed by benchmark loops over an 8-case synthetic battery and 10 semi-synthetic Kaggle datasets (see `reports/validation-report-v3.md`); the same configuration is used for every dataset — no per-dataset tuning.
+- Defaults (`delta_pct=0.01`, `min_global_impact_pct=0.01`, `max_depth=5`, `noise_z=3.0`, `consolidate=True`, `lookahead=True`) were fixed by benchmark loops over an 8-case synthetic battery and 10 semi-synthetic Kaggle datasets (see `reports/validation-report-v3.md`); the same configuration is used for every dataset — no per-dataset tuning; `lookahead=True` was added in v0.2.0 and validated on dedicated XOR/churn cases without moving the headline suite.
 
 ## Validation
 
@@ -166,8 +197,8 @@ recovering a rule's *impact mass* even when the tree spreads it across a few
 readable segments.
 
 With the shipped defaults — one fixed configuration, no per-dataset tuning — the
-current release scores **mean 0.962 / floor 0.815** across the 51 scored
-dataset-seeds, beating CART under the same metric on both suites. Full method,
+suite holds at least **mean 0.962 / floor 0.815** (v0.1.0 baseline across 51 scored
+dataset-seeds), and v0.2.0's lookahead rescue improves the synthetic battery without moving the Kaggle suite, beating CART under the same metric on both. Full method,
 per-case results, and known-weakness analysis:
 [`reports/validation-report-v3.md`](reports/validation-report-v3.md).
 
@@ -232,6 +263,7 @@ model = ImpactSplitter(
     max_depth=5,             # interaction-order cap (same-feature refinements are free)
     noise_z=3.0,             # significance: per-category noise floor in sigma units
     consolidate=True,        # post-fit merge of statistically-equal sibling segments
+    lookahead=True,          # pairwise rescue for XOR-style marginal cancellation
     numeric_binning_strategy="quantiles",  # "quantiles" or "interval"
     numeric_n_bins=10,                     # number of bins for float columns
 )
@@ -245,7 +277,7 @@ If you want the motivation behind each formula (not just usage), read the Story 
 `impact-split` ships five ways to read a fitted model — a text ledger, two matplotlib figures, a self-contained HTML report, and the raw JSON-safe payload behind all of them. Each is also available as a standalone function (`impact_split.viz.text.render_summary`, `impact_split.viz.static.plot_segments` / `plot_icicle`, `impact_split.viz.html.render_html`) if you want to build a custom renderer from `model.to_dict()`.
 
 - **`print(model)` / `model.summary()`** — a designed text report: a ledger header (global positive/negative pools, split/stop counts) followed by the top segments ranked by absolute impact. Cheapest way to sanity-check a fit in a terminal or log.
-- **`model.plot_segments()`** — a tornado chart of the consolidated terminal segments, one horizontal bar per segment, sorted by absolute impact. Bars are additive and diverge from a zero baseline: blue for positive segments, orange for negative, so the reader sees at a glance which segments help and which hurt.
+- **`model.plot_segments()`** — a tornado chart of the consolidated terminal segments, one horizontal bar per segment, sorted by absolute impact. Bars are additive and diverge from a zero baseline: blue for positive segments, orange for negative, so the reader sees at a glance which segments help and which hurt. Churn segments (both gross flows material) additionally show a hatched band spanning −Σy⁻ to +Σy⁺ with a net + gross label.
 
   ![Segment tornado](reports/figures/segments-tornado.png)
 

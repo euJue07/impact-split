@@ -10,7 +10,7 @@ import pandas as pd
 import pytest
 
 from impact_split import ImpactSplitter
-from tests.test_viz_data import fitted
+from tests.test_viz_data import churn_mix_fitted, fitted
 
 
 def test_plot_segments_requires_fit() -> None:
@@ -98,3 +98,20 @@ def test_plot_tree_root_only_model() -> None:
     y = pd.Series(np.zeros(20))
     fig = ImpactSplitter().fit(X, y).plot_tree(show=False)
     assert isinstance(fig, Figure)
+
+
+def test_plot_segments_churn_band_and_gross_label() -> None:
+    fig = churn_mix_fitted().plot_segments(show=False)
+    ax = fig.axes[0]
+    texts = [t.get_text() for t in ax.texts]
+    assert any(t.startswith("net ") and "gross +" in t for t in texts)
+    # the hatched gross band is a real patch (no rolled-up bar in this fixture)
+    hatched = [p for p in ax.patches if p.get_hatch()]
+    assert hatched
+
+
+def test_plot_tree_churn_leaf_dashed_outline() -> None:
+    fig = churn_mix_fitted().plot_tree(show=False)
+    ax = fig.axes[0]
+    dashed = [p for p in ax.patches if p.get_linestyle() not in ("solid", "-")]
+    assert dashed

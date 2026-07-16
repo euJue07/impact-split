@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import math
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
@@ -15,6 +16,10 @@ if TYPE_CHECKING:
 
 # Max decoded category labels per feature in stored segment paths (fit time).
 _PATH_SEGMENT_MAX_LABELS = 8
+
+# Hard memory bound for the lookahead rescue's crossed-category bincount:
+# feature pairs whose (max_f + 1) * (max_g + 1) allocation exceeds this are skipped.
+_LOOKAHEAD_MAX_CROSS = 10_000
 
 
 def _prepare_X_y(
@@ -169,6 +174,7 @@ class ImpactSplitter:
         max_depth: int = 5,
         noise_z: float = 3.0,
         consolidate: bool = True,
+        lookahead: bool = True,
         numeric_binning_strategy: str = "quantiles",
         numeric_n_bins: int = 10,
     ) -> None:
@@ -182,12 +188,15 @@ class ImpactSplitter:
             raise ValueError("noise_z must be >= 0 (0 disables the noise floor).")
         if not isinstance(consolidate, bool):
             raise ValueError("consolidate must be a bool.")
+        if not isinstance(lookahead, bool):
+            raise ValueError("lookahead must be a bool.")
 
         self.delta_pct = delta_pct
         self.min_global_impact_pct = min_global_impact_pct
         self.max_depth = max_depth
         self.noise_z = noise_z
         self.consolidate = consolidate
+        self.lookahead = lookahead
         self.numeric_binning_strategy = numeric_binning_strategy
         self.numeric_n_bins = numeric_n_bins
         self._X: np.ndarray | None = None
@@ -528,12 +537,26 @@ class ImpactSplitter:
 
         trace_entry["candidate_gains"].sort(key=lambda item: -item["gain"])
 
+        rescue_info: dict[str, Any] | None = None
+        needs_rescue = best_decision is None or best_decision.gain == 0.0
+        # Silent-failure signature: a materiality trigger fired (guaranteed —
+        # the materiality leaf returned earlier), yet every marginal category
+        # table nets ~0. Try the pairwise rescue, unless a rescued split
+        # would add an interaction term past the cap.
+        if needs_rescue and self.lookahead and not at_interaction_cap and x_sub.shape[1] >= 2:
+            rescued = self._lookahead_rescue(x_sub, y_centered, delta_centered)
+            if rescued is not None:
+                best_decision, rescue_info = rescued
+
         if best_decision is None or best_decision.gain == 0.0:
             trace_entry["action"] = "leaf"
             trace_entry["stop_reason"] = "max_depth" if at_interaction_cap else "no_split"
             if self._trace_enabled:
                 self.fit_trace_.append(trace_entry)
             return _TreeNode(True, node_id, depth, n_samples, total_sum, path, s_node_p, s_node_n)
+
+        if rescue_info is not None:
+            trace_entry["rescue"] = rescue_info
 
         best_feature_index = best_decision.feature_index
         best_pos_categories = best_decision.pos_categories
@@ -615,6 +638,170 @@ class ImpactSplitter:
             children=children,
         )
 
+    def _lookahead_rescue(
+        self,
+        x_sub: np.ndarray,
+        y_centered: np.ndarray,
+        delta_centered: float,
+    ) -> tuple[_SplitDecision, dict[str, Any]] | None:
+        """Cross-feature sieve for XOR-style cancellation.
+
+        Runs only at would-be no_split material nodes. For each feature pair,
+        sums ``y_centered`` over crossed categories and applies the unchanged
+        two-bar sieve (volume delta + MAD noise floor) plus the unchanged
+        category-averaged gain to the cross-cells. The winning pair is realized
+        as an ordinary single-feature split via ``_lookahead_partition`` so all
+        downstream machinery (conditions, consolidation, conservation) is
+        untouched.
+        """
+        n_samples = int(y_centered.shape[0])
+        n_features = int(x_sub.shape[1])
+        best: _SplitDecision | None = None
+        best_gain = 0.0
+        best_info: dict[str, Any] | None = None
+        pairs_evaluated = 0
+        pairs_skipped = 0
+
+        for f in range(n_features):
+            codes_f = x_sub[:, f]
+            max_f = int(codes_f.max(initial=0))
+            for g in range(f + 1, n_features):
+                codes_g = x_sub[:, g]
+                max_g = int(codes_g.max(initial=0))
+                size = (max_f + 1) * (max_g + 1)
+                if size > _LOOKAHEAD_MAX_CROSS:
+                    pairs_skipped += 1
+                    continue
+                h = codes_f * (max_g + 1) + codes_g
+                cross_signal = np.bincount(h, weights=y_centered, minlength=size)
+                cross_counts = np.bincount(h, minlength=size)
+                present = np.flatnonzero(cross_counts)
+                if present.size <= 1:
+                    continue
+                pairs_evaluated += 1
+
+                present_signal = cross_signal[present]
+                present_counts = cross_counts[present]
+                if self.noise_z > 0:
+                    cross_means = np.zeros(size, dtype=float)
+                    nz = cross_counts > 0
+                    cross_means[nz] = cross_signal[nz] / cross_counts[nz]
+                    resid = y_centered - cross_means[h]
+                    med = float(np.median(resid))
+                    sigma = 1.4826 * float(np.median(np.abs(resid - med)))
+                    # Multiplicity correction: the rescue searches K = present.size
+                    # crossed cells simultaneously (unlike the marginal sieve's F
+                    # single-feature categories), and K can run into the hundreds
+                    # or thousands on real high-cardinality features (e.g. Kaggle
+                    # Genre x Publisher, task-8-report.md). Under a null with K
+                    # cells, the max |cell excess| wanders like sigma*sqrt(n) *
+                    # sqrt(2*ln(K)) (extreme-value bound), so the per-cell z must
+                    # carry that sqrt(2*ln(K)) term on top of the configured
+                    # noise_z buffer. K=4 XOR crosses barely move (sqrt(2*ln4)
+                    # ~1.7); K~500-cell crosses get an honest, much higher bar.
+                    z_eff = self.noise_z + math.sqrt(2.0 * math.log(present.size))
+                    tau = np.maximum(delta_centered, z_eff * sigma * np.sqrt(present_counts))
+                else:
+                    tau = np.full(present.shape[0], delta_centered)
+
+                # Singleton cells carry no verifiable signal (one observation,
+                # no within-cell noise estimate); requiring n_cell >= 2 stops
+                # near-singleton cherry-picking that the multiplicity
+                # correction can't reach at small K.
+                pos_mask = (present_signal > tau) & (present_counts >= 2)
+                neg_mask = (present_signal < -tau) & (present_counts >= 2)
+                k_p = int(pos_mask.sum())
+                k_n = int(neg_mask.sum())
+                s_p = float(present_signal[pos_mask].sum())
+                s_n = float(present_signal[neg_mask].sum())
+                gain = (abs(s_p) / k_p if k_p else 0.0) + (abs(s_n) / k_n if k_n else 0.0)
+                if gain == 0.0 or gain <= best_gain:
+                    continue
+
+                sig_cells = present[pos_mask | neg_mask]
+                profile = cross_signal.reshape(max_f + 1, max_g + 1)
+                decision = self._lookahead_partition(
+                    f, codes_f, profile, sig_cells // (max_g + 1), gain, n_samples
+                )
+                if decision is None:
+                    decision = self._lookahead_partition(
+                        g, codes_g, profile.T, sig_cells % (max_g + 1), gain, n_samples
+                    )
+                if decision is None:
+                    continue
+                best_gain = gain
+                best = decision
+                best_info = {
+                    "pair": [f, g],
+                    "pair_names": [
+                        self._feature_display_name(f),
+                        self._feature_display_name(g),
+                    ],
+                    "split_feature_index": decision.feature_index,
+                    "gain": gain,
+                    "k_P": k_p,
+                    "k_N": k_n,
+                    "partition": {
+                        "positive": decision.pos_categories.tolist(),
+                        "negative": decision.neg_categories.tolist(),
+                        "neutral": decision.neu_categories.tolist(),
+                    },
+                }
+
+        if best is None or best_info is None:
+            return None
+        best_info["pairs_evaluated"] = pairs_evaluated
+        best_info["pairs_skipped_cardinality"] = pairs_skipped
+        return best, best_info
+
+    def _lookahead_partition(
+        self,
+        feature_index: int,
+        col_vals: np.ndarray,
+        profile: np.ndarray,
+        sig_rows: np.ndarray,
+        gain: float,
+        n_samples: int,
+    ) -> _SplitDecision | None:
+        """Convert a winning cross-table into a single-feature split on ``feature_index``.
+
+        Categories whose profile row holds no sieve-clearing cross-cell carry no
+        signal (the spec's "near-zero row norm") and route neutral; the rest are
+        partitioned by the sign of their profile row's dot product with the
+        max-norm anchor row. Returns None when the induced split is degenerate
+        (either signed group empty, or one branch holds every row).
+        """
+        present_rows = np.flatnonzero(np.bincount(col_vals, minlength=profile.shape[0]))
+        carries = np.isin(present_rows, sig_rows)
+        active = present_rows[carries]
+        if active.size < 2:
+            return None
+        norms = np.linalg.norm(profile[active], axis=1)
+        anchor_row = profile[active[int(np.argmax(norms))]]
+        dots = profile[active] @ anchor_row
+        pos = active[dots > 0]
+        neg = active[dots < 0]
+        neu = np.concatenate([present_rows[~carries], active[dots == 0]])
+        if pos.size == 0 or neg.size == 0:
+            return None
+        row_p = np.isin(col_vals, pos)
+        row_n = np.isin(col_vals, neg)
+        row_u = ~(row_p | row_n)
+        if (
+            int(row_p.sum()) == n_samples
+            or int(row_n.sum()) == n_samples
+            or int(row_u.sum()) == n_samples
+        ):
+            return None
+        return _SplitDecision(
+            gain=gain,
+            feature_index=int(feature_index),
+            pos_categories=np.sort(pos).astype(np.int64, copy=False),
+            neg_categories=np.sort(neg).astype(np.int64, copy=False),
+            neu_categories=np.sort(neu).astype(np.int64, copy=False),
+            mode="lookahead_rescue",
+        )
+
     def _render_conditions_path(self, conditions: dict[int, frozenset[int]]) -> str:
         """Conjunction path (``f=a, b & g=c``) for a consolidated segment."""
         parts = [
@@ -661,6 +848,30 @@ class ImpactSplitter:
         rec(self._tree, {}, np.ones(n, dtype=bool))
         return out
 
+    def _finalize_segments(self, segs: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        """Attach gross flows + churn flag from row masks, then drop fit-only fields.
+
+        A segment is churn when its positive AND negative gross flows each clear
+        ``min_global_impact_pct`` against their global pools — the net then hides
+        offsetting material mass.
+        """
+        assert self._y is not None
+        y = self._y
+        for s in segs:
+            ym = y[s["mask"]]
+            pos = float(ym[ym > 0].sum())
+            neg = float(np.abs(ym[ym < 0]).sum())
+            s["pos_sum"] = pos
+            s["neg_sum"] = neg
+            ratio_p = pos / self._v_global_p if self._v_global_p > 0 else 0.0
+            ratio_n = neg / self._v_global_n if self._v_global_n > 0 else 0.0
+            s["is_churn"] = bool(
+                ratio_p > self.min_global_impact_pct and ratio_n > self.min_global_impact_pct
+            )
+            s.pop("mask", None)
+            s.pop("mean", None)
+        return segs
+
     def _consolidate_segments(self) -> list[dict[str, Any]]:
         """Merge terminal segments that fragmentation split without statistical cause.
 
@@ -675,9 +886,7 @@ class ImpactSplitter:
         assert self._y is not None and self._X is not None
         segs = self._leaf_segments()
         if not self.consolidate or len(segs) <= 1:
-            for s in segs:
-                s.pop("mask", None)
-            return segs
+            return self._finalize_segments(segs)
 
         X = self._X
         y = self._y
@@ -755,10 +964,7 @@ class ImpactSplitter:
             segs = [s for k, s in enumerate(segs) if k not in (i, j)]
             segs.append(merged)
 
-        for s in segs:
-            s.pop("mask", None)
-            s.pop("mean", None)
-        return segs
+        return self._finalize_segments(segs)
 
     def get_impact_segments(self) -> pd.DataFrame:
         """Return terminal segments sorted by absolute total impact.
@@ -819,7 +1025,7 @@ class ImpactSplitter:
                 f"ImpactSplitter(delta_pct={self.delta_pct}, "
                 f"min_global_impact_pct={self.min_global_impact_pct}, "
                 f"max_depth={self.max_depth}, noise_z={self.noise_z}, "
-                f"consolidate={self.consolidate})"
+                f"consolidate={self.consolidate}, lookahead={self.lookahead})"
             )
         return self.summary()
 
