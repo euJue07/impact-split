@@ -112,8 +112,30 @@ def fit_replicate(
     return rep
 
 
-def _accumulate_importance(rep, cols, gain_shares, gain_avail) -> None:
-    return None
+def _accumulate_importance(
+    rep: Any,
+    cols: np.ndarray,
+    gain_shares: dict[int, float],
+    gain_avail: dict[int, int],
+) -> None:
+    per_feature: dict[int, float] = {}
+
+    def walk(node: Any) -> None:
+        if node is None or node.is_leaf or not node.children:
+            return
+        if node.split_gain:
+            orig = int(cols[node.feature_index])
+            per_feature[orig] = per_feature.get(orig, 0.0) + float(node.split_gain)
+        for ch in node.children.values():
+            walk(ch)
+
+    walk(rep._tree)
+    total = sum(per_feature.values())
+    for c in cols:
+        gain_avail[int(c)] = gain_avail.get(int(c), 0) + 1
+    if total > 0:
+        for f, g in per_feature.items():
+            gain_shares[f] = gain_shares.get(f, 0.0) + g / total
 
 
 def _collect_shadow_candidates(
@@ -122,8 +144,23 @@ def _collect_shadow_candidates(
     return None
 
 
-def _finalize_importance(model, gain_shares, gain_avail) -> list[dict[str, Any]]:
-    return []
+def _finalize_importance(
+    model: Any,
+    gain_shares: dict[int, float],
+    gain_avail: dict[int, int],
+) -> list[dict[str, Any]]:
+    out = []
+    for f, n_avail in gain_avail.items():
+        out.append(
+            {
+                "feature_index": f,
+                "feature": model._feature_display_name(f),
+                "importance": gain_shares.get(f, 0.0) / n_avail if n_avail else 0.0,
+                "n_trees": n_avail,
+            }
+        )
+    out.sort(key=lambda r: (-r["importance"], r["feature_index"]))
+    return out
 
 
 def _finalize_shadows(

@@ -104,3 +104,19 @@ def test_run_ensemble_deterministic():
     kw = dict(n_replicates=8, shadow_replicates=4, feature_subsample=0.5,
               match_threshold=0.5, shadow_min_stability=0.2, seed=99)
     assert run_ensemble(model, **kw) == run_ensemble(model, **kw)
+
+
+def test_importance_ranks_planted_feature_first():
+    from impact_split.ensemble import run_ensemble
+
+    model, _, _ = _planted_model()
+    report = run_ensemble(
+        model, n_replicates=15, shadow_replicates=10, feature_subsample=0.5,
+        match_threshold=0.5, shadow_min_stability=0.2, seed=5,
+    )
+    imp = report["importance"]
+    assert imp and imp[0]["feature_index"] == 0  # feature a carries the effect
+    assert imp[0]["importance"] > 0
+    assert all(imp[k]["importance"] >= imp[k + 1]["importance"] for k in range(len(imp) - 1))
+    # availability: feature 0 was available in all 15 bootstrap trees at least
+    assert imp[0]["n_trees"] >= 15
