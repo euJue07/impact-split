@@ -75,3 +75,32 @@ def test_fit_replicate_deterministic_and_remappable():
     from impact_split.ensemble import jaccard
 
     assert max(jaccard(planted, m) for m in masks) > 0.8
+
+
+def test_run_ensemble_stability_and_ci_on_planted_effect():
+    from impact_split.ensemble import run_ensemble
+
+    model, X, y = _planted_model()
+    report = run_ensemble(
+        model, n_replicates=30, shadow_replicates=0, feature_subsample=None,
+        match_threshold=0.5, shadow_min_stability=0.2, seed=11,
+    )
+    assert len(report["segments"]) == len(model.segments_)
+    planted_total = float(y[X[:, 0] == 0].sum())
+    idx = max(
+        range(len(model.segments_)),
+        key=lambda i: abs(float(model.segments_[i]["total_sum"])),
+    )
+    st = report["segments"][idx]
+    assert st["stability"] >= 0.8 and not st["fragile"]
+    assert st["ci_low"] is not None and st["ci_low"] < planted_total < st["ci_high"]
+    assert report["config"]["n_replicates"] == 30
+
+
+def test_run_ensemble_deterministic():
+    from impact_split.ensemble import run_ensemble
+
+    model, _, _ = _planted_model()
+    kw = dict(n_replicates=8, shadow_replicates=4, feature_subsample=0.5,
+              match_threshold=0.5, shadow_min_stability=0.2, seed=99)
+    assert run_ensemble(model, **kw) == run_ensemble(model, **kw)

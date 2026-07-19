@@ -8,6 +8,7 @@ are forced out (shadow segments). No prediction averaging — ever.
 
 from __future__ import annotations
 
+import math
 from typing import Any
 
 import numpy as np
@@ -109,3 +110,126 @@ def fit_replicate(
     rep = ImpactSplitter(**_clone_params(model))
     rep.fit(model._X[idx][:, cols], model._y[idx])
     return rep
+
+
+def _accumulate_importance(rep, cols, gain_shares, gain_avail) -> None:
+    return None
+
+
+def _collect_shadow_candidates(
+    model, X, cols, rep_segs, rep_masks, matched_rep, block, replicate_serial, pool
+) -> None:
+    return None
+
+
+def _finalize_importance(model, gain_shares, gain_avail) -> list[dict[str, Any]]:
+    return []
+
+
+def _finalize_shadows(
+    model, pool, match_threshold, shadow_min_stability, block_sizes
+) -> list[dict[str, Any]]:
+    return []
+
+
+def run_ensemble(
+    model: Any,
+    *,
+    n_replicates: int,
+    shadow_replicates: int,
+    feature_subsample: float | None,
+    match_threshold: float,
+    shadow_min_stability: float,
+    seed: int | None,
+) -> dict[str, Any]:
+    """Fit the two-block forest and assemble the annotation report.
+
+    Bootstrap block drives stability/CI; the feature-subsampled shadow block
+    drives discovery. Kept separate so dominant-feature segments aren't
+    penalized for being unfindable in trees that never saw their feature.
+    """
+    assert model._X is not None and model._y is not None
+    X = model._X
+    n_features = X.shape[1]
+    rng = np.random.default_rng(seed)
+
+    ref_masks = [mask_from_conditions(s["conditions"], X) for s in model.segments_]
+    ref_signs = [1 if float(s["total_sum"]) >= 0 else -1 for s in model.segments_]
+    n_ref = len(ref_masks)
+    n_matched = [0] * n_ref
+    ci_samples: list[list[float]] = [[] for _ in range(n_ref)]
+    shadow_pool: list[dict[str, Any]] = []
+    gain_shares: dict[int, float] = {}
+    gain_avail: dict[int, int] = {}
+
+    shadow_on = (
+        shadow_replicates > 0 and feature_subsample is not None and n_features >= 2
+    )
+    blocks: list[tuple[str, int]] = [("bootstrap", n_replicates)]
+    if shadow_on:
+        blocks.append(("shadow", shadow_replicates))
+
+    replicate_serial = 0
+    for block, count in blocks:
+        for _ in range(count):
+            if block == "shadow":
+                k = max(1, math.ceil(feature_subsample * n_features))
+                cols = np.sort(rng.choice(n_features, size=k, replace=False))
+            else:
+                cols = np.arange(n_features)
+            rep = fit_replicate(model, rng, cols)
+            _accumulate_importance(rep, cols, gain_shares, gain_avail)
+
+            rep_masks, rep_signs, rep_segs = [], [], []
+            for s in rep.segments_:
+                rep_masks.append(mask_from_conditions(s["conditions"], X, col_map=cols))
+                rep_signs.append(1 if float(s["total_sum"]) >= 0 else -1)
+                rep_segs.append(s)
+            matches = greedy_match(
+                ref_masks, ref_signs, rep_masks, rep_signs, match_threshold
+            )
+            matched_rep = {j for _, j, _ in matches}
+            if block == "bootstrap":
+                for i, j, _ in matches:
+                    n_matched[i] += 1
+                    ci_samples[i].append(float(rep_segs[j]["total_sum"]))
+            _collect_shadow_candidates(
+                model, X, cols, rep_segs, rep_masks, matched_rep,
+                block, replicate_serial, shadow_pool,
+            )
+            replicate_serial += 1
+
+    seg_stats: list[dict[str, Any]] = []
+    for i in range(n_ref):
+        stability = n_matched[i] / n_replicates if n_replicates else 0.0
+        if len(ci_samples[i]) >= CI_MIN_MATCHES:
+            lo, hi = np.percentile(ci_samples[i], CI_PERCENTILES)
+            ci_low, ci_high = float(lo), float(hi)
+        else:
+            ci_low = ci_high = None
+        seg_stats.append(
+            {
+                "stability": stability,
+                "n_matched": n_matched[i],
+                "ci_low": ci_low,
+                "ci_high": ci_high,
+                "fragile": stability < FRAGILE_STABILITY,
+            }
+        )
+
+    return {
+        "config": {
+            "n_replicates": int(n_replicates),
+            "shadow_replicates": int(shadow_replicates if shadow_on else 0),
+            "feature_subsample": feature_subsample if shadow_on else None,
+            "match_threshold": float(match_threshold),
+            "shadow_min_stability": float(shadow_min_stability),
+            "seed": seed,
+        },
+        "segments": seg_stats,
+        "importance": _finalize_importance(model, gain_shares, gain_avail),
+        "shadows": _finalize_shadows(
+            model, shadow_pool, match_threshold, shadow_min_stability,
+            {"bootstrap": n_replicates, "shadow": shadow_replicates if shadow_on else 0},
+        ),
+    }
