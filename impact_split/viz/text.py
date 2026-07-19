@@ -53,6 +53,8 @@ def render_summary(payload: dict[str, Any], *, top: int = 10, path_width: int = 
         f"{'gross ⇄':>22}{ens_header}",
     ])
 
+    ens_missing_extra = f"  {'—':>10}  {'—':>28}"
+
     shown = segments[:top]
     rest = segments[top:]
     for i, seg in enumerate(shown, start=1):
@@ -77,7 +79,7 @@ def render_summary(payload: dict[str, Any], *, top: int = 10, path_width: int = 
         if ens:
             st = ens["segments"].get(str(seg.get("segment_id")))
             if st is None:
-                row_extra = f"  {'—':>10}  {'—':>28}"
+                row_extra = ens_missing_extra
             else:
                 stab = fmt_pct(st["stability"]) + (" †" if st["fragile"] else "")
                 ci = (
@@ -91,7 +93,7 @@ def render_summary(payload: dict[str, Any], *, top: int = 10, path_width: int = 
         rest_total = sum(float(s["total_sum"] or 0.0) for s in rest)
         rest_n = sum(int(s["n"]) for s in rest)
         label = f"(+{len(rest)} more segments)"
-        rest_extra = f"  {'—':>10}  {'—':>28}" if ens else ""
+        rest_extra = ens_missing_extra if ens else ""
         lines.append(
             f" {'…':>2}  {label:<{path_width}}  {fmt_num(rest_total, sign=True):>14}"
             f"  {rest_n:>9,}  {'':>16}  {'':>22}{rest_extra}"
