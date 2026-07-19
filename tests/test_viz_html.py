@@ -7,7 +7,7 @@ import pandas as pd
 import pytest
 
 from impact_split import ImpactSplitter
-from tests.test_viz_data import churn_mix_fitted, fitted
+from tests.test_viz_data import churn_mix_fitted, demo_frame, fitted
 
 
 def test_to_html_requires_fit() -> None:
@@ -65,10 +65,12 @@ def test_html_unchanged_without_ensemble_and_annotated_with() -> None:
     # testable surface (same convention as test_html_marks_churn's is_churn
     # check) is the embedded JSON: no "ensemble" key at all until ensemble_report
     # runs, then the full config/segments/importance/shadows block appears.
-    model = fitted()
+    # Build X/y directly (fitted()'s own convention) rather than reaching into
+    # the model's private _X/_y so ensemble_report gets the exact training data.
+    X, y = demo_frame()
+    model = ImpactSplitter().fit(X, y)
     before = model.to_html()
     assert '"ensemble"' not in before
-    X, y = model._X, model._y
     model.ensemble_report(X, y, n_replicates=12, shadow_replicates=0, seed=3)
     after = model.to_html()
     assert '"ensemble"' in after
@@ -81,15 +83,43 @@ def test_html_unchanged_without_ensemble_and_annotated_with() -> None:
 
 
 def test_html_ensemble_importance_and_whiskers() -> None:
+    """Data-dependent assertions on the embedded JSON, not JS/CSS source text.
+
+    "Shadow drivers"/"Ensemble importance"/"twhisk"/"n_trees" (as bare strings)
+    are baked unconditionally into _TEMPLATE and would pass even if
+    ensemble_report were never called -- so every assertion here targets a
+    JSON fragment that can only appear once real ensemble data is serialized.
+    """
     from tests.test_ensemble import _masked_driver_data
 
     model, X, y = _masked_driver_data()
+    baseline = model.to_html()
+    assert '"ensemble"' not in baseline
+
     model.ensemble_report(
         X, y, n_replicates=10, shadow_replicates=30, feature_subsample=0.5,
         match_threshold=0.5, shadow_min_stability=0.2, seed=13,
     )
+    assert model.ensemble_["shadows"], "fixture must produce real shadows"
+    assert model.ensemble_["importance"], "fixture must produce real importance rows"
     html_out = model.to_html()
-    assert "Shadow drivers" in html_out
-    assert "Ensemble importance" in html_out
-    assert "twhisk" in html_out
-    assert "n_trees" in html_out
+
+    # Real shadows serialize actual field values -- an empty shadows list would
+    # instead produce the literal "shadows": [] seen in the sibling test above.
+    assert '"shadows": []' not in html_out
+    assert '"block": "shadow"' in html_out
+    assert '"recurrence":' in html_out
+
+    # Segment-level stability/CI annotations landed in the payload.
+    assert '"stability":' in html_out
+    assert '"ci_low":' in html_out
+
+    # "feature_index" is a JSON-only key -- the template's JS never reads it
+    # (only .feature/.importance/.n_trees), so it can only come from a real
+    # serialized importance row.
+    assert '"feature_index":' in html_out
+
+    # "n_trees" itself is ambiguous (it's also the always-present <th> label),
+    # but real importance rows add one more occurrence per row on top of that
+    # baseline -- a strict count increase is genuinely data-dependent.
+    assert html_out.count("n_trees") > baseline.count("n_trees")

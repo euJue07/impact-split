@@ -344,11 +344,11 @@ function renderTornado() {
   rows.forEach(function (r) {
     lo = Math.min(lo, r.v); hi = Math.max(hi, r.v);
     if (r.churn) { lo = Math.min(lo, -r.neg); hi = Math.max(hi, r.pos); }
-    if (ens && r.seg) {
-      var stDom = ens.segments[r.seg];
-      if (stDom && stDom.ci_low !== null) {
-        lo = Math.min(lo, stDom.ci_low); hi = Math.max(hi, stDom.ci_high);
-      }
+    // cache the ensemble lookup on the row once -- reused below when drawing
+    // the whisker so each row hits ens.segments[r.seg] only a single time.
+    r.ci = (ens && r.seg) ? ens.segments[r.seg] : null;
+    if (r.ci && r.ci.ci_low !== null) {
+      lo = Math.min(lo, r.ci.ci_low); hi = Math.max(hi, r.ci.ci_high);
     }
   });
   var range = (hi - lo) || 1;
@@ -370,17 +370,14 @@ function renderTornado() {
       note += " · gross +" + fmtMag(r.pos) + "/−" + fmtMag(r.neg);
     }
     var whisker = "";
-    if (ens && r.seg) {
-      var st = ens.segments[r.seg];
-      if (st && st.ci_low !== null) {
-        var wLeft = (st.ci_low - lo) / range * 100;
-        var wRight = (st.ci_high - lo) / range * 100;
-        whisker = '<div class="twhisk" style="left:' + wLeft + "%;width:" +
-          (wRight - wLeft) + '%"></div>' +
-          '<div class="twhisk-cap" style="left:' + wLeft + '%"></div>' +
-          '<div class="twhisk-cap" style="left:' + wRight + '%"></div>';
-        note += " · CI [" + fmt(st.ci_low) + ", " + fmt(st.ci_high) + "]";
-      }
+    if (r.ci && r.ci.ci_low !== null) {
+      var wLeft = (r.ci.ci_low - lo) / range * 100;
+      var wRight = (r.ci.ci_high - lo) / range * 100;
+      whisker = '<div class="twhisk" style="left:' + wLeft + "%;width:" +
+        (wRight - wLeft) + '%"></div>' +
+        '<div class="twhisk-cap" style="left:' + wLeft + '%"></div>' +
+        '<div class="twhisk-cap" style="left:' + wRight + '%"></div>';
+      note += " · CI [" + fmt(r.ci.ci_low) + ", " + fmt(r.ci.ci_high) + "]";
     }
     out += '<div class="trow"' + (r.seg ? ' data-seg="' + r.seg + '"' : "") + ">" +
       '<div class="tpath" title="' + esc(r.path) + '">' + esc(r.path) + "</div>" +
