@@ -261,7 +261,7 @@ meets the bar (48/51 dataset-seeds >= 0.85, mean +0.003 over cycle 3, segments
 
 **Hypothesis.** promoting shadow segments into the scored findings can beat the published battery status quo 0.9836/0.8846.
 
-**Sweep configuration** (6 configs × 24 datasets × ~100–150 replicates each; fs = fragment-shadow threshold, reps = shadow replicate count):
+**Sweep configuration** (6 configs × 24 datasets × ~100–150 replicates each; fs = feature_subsample (feature subsampling fraction per shadow replicate), reps = shadow replicate count):
 
 ```
 fs    reps  part_mean  all_mean  all_floor  lowJ_mean  lowJ_floor   d_mean   d_floor  shadows  used  gate
@@ -275,7 +275,7 @@ fs    reps  part_mean  all_mean  all_floor  lowJ_mean  lowJ_floor   d_mean   d_f
 
 Gate: pre-registered pass threshold = mean +0.003 on low-overlap score OR floor +0.010 on low-overlap score, null clean.
 
-**Outcome.** No config passed the gate. Low-overlap mean deltas range from −0.0109 (fs=0.4) to 0.0000 (fs=0.8); none reach the +0.003 improvement threshold. Floor meets baseline only at fs=0.6/0.8 (delta 0.0000), falling short on fs=0.4 (delta −0.0399). Sanity check: every part_mean = 0.9836 exactly (matches published baseline). Null-case integrity: clean across all 6 configs (no NULL-FAIL flags).
+**Outcome.** No config passed the gate. Low-overlap mean deltas range from −0.0109 (fs=0.4) to 0.0000 (fs=0.8); none reach the +0.003 improvement threshold. Floor meets baseline only at fs=0.6/0.8 (delta 0.0000), falling short on fs=0.4 (delta −0.0399). Sanity check: every part_mean = 0.9836 exactly (matches published baseline). Null-case integrity: clean across all 6 configs (no NULL-FAIL flags). Caveat: with many shadows the scorer's greedy top-6 window can be crowded (fs=0.4/0.6 rows are not strict upper bounds); the crowding-free fs=0.8 rows are the clean measurement, and they show zero gain.
 
 **Per-case observation.** On the floor case (noise_2x), the best config (fs=0.8 reps=50) surfaced 7–10 shadows across seeds but the greedy union used none — the loss remains statistical dilution within the broad segments, not a masking failure. The union found all high-precision rules; raising the shadow promotion bar cannot recover the collapsed F1.
 

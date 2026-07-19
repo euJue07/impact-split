@@ -2,11 +2,10 @@
 
 from __future__ import annotations
 
-import numpy as np
-import pandas as pd
-
 from benchmarks.dgp import BenchDataset, Rule
 from benchmarks.scoring import score_dataset
+import numpy as np
+import pandas as pd
 
 
 def _dataset_with_fragmented_rule(n_fragments: int) -> tuple[BenchDataset, list]:
@@ -84,7 +83,7 @@ def test_ceiling_cell_deterministic_and_scores_shadows():
     assert a == b
     assert not math.isnan(a.f1_all)
     assert a.f1_partition > 0
-    # adding candidates can never hurt a greedy accept-if-improves union
+    # pinned behavior on this case: no pool crowding, so shadows don't hurt
     assert a.f1_all >= a.f1_partition - 1e-12
     assert a.f1_low_overlap >= a.f1_partition - 1e-12
     assert a.null_clean is None

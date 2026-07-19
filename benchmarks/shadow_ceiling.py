@@ -2,8 +2,11 @@
 
 Scores each battery case with the partition's terminal segments PLUS every
 accepted shadow handed to the unchanged scorer as extra candidates. The
-greedy accept-if-F1-improves union picks only what helps, so the score is
-the ceiling of any future promotion rule.
+union is greedy over a top-6 candidate window, so with many shadows a broad
+shadow can crowd out partition segments (visible as f1_all < f1_partition);
+the score is an upper bound on promotion value only in the absence of that
+crowding — at high feature_subsample the pool is small and the measurement
+is clean.
 
 Decision gate (pre-registered in the 2026-07-19 spec): a config shows real
 headroom iff (mean >= 0.9836 + 0.003 or floor >= 0.8846 + 0.010) evaluated
@@ -118,7 +121,7 @@ def main() -> None:
         "   d_mean   d_floor  shadows  used  gate"
     )
     print(header)
-    results: list[tuple[float, float, int, list[CellResult]]] = []
+    results: list[tuple[bool, float, float, int, list[CellResult]]] = []
     for fs in FEATURE_SUBSAMPLES:
         for sr in SHADOW_REPLICATES:
             cells: list[CellResult] = []
