@@ -327,9 +327,9 @@ def test_ensemble_report_requires_fit_and_matching_data():
 
 def test_ensemble_report_stores_and_fit_resets():
     model, X, y = _small_fit()
-    report = model.ensemble_report(X, y, n_replicates=3, shadow_replicates=0, seed=0)
+    report = model.ensemble_report(X, y, n_replicates=3, shadow_replicates=5, seed=0)
     assert model.ensemble_ is report
-    # single-feature data: shadow block silently disabled
+    # single-feature data: shadow block auto-disabled despite a nonzero request
     assert model.ensemble_["config"]["shadow_replicates"] == 0
     model.fit(X, y)
     assert model.ensemble_ is None

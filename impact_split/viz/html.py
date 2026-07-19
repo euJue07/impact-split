@@ -450,6 +450,7 @@ function renderTable() {
   thead.querySelectorAll("th").forEach(function (th) {
     th.addEventListener("click", function () {
       var key = th.getAttribute("data-key");
+      if (!key) return; // ensemble th's carry no data-key -- not sortable
       if (key === sortKey) { sortDir = -sortDir; } else { sortKey = key; sortDir = key === "path" ? 1 : -1; }
       renderTable();
     });

@@ -32,8 +32,10 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning: [S
   across stability thresholds) — no default changed as a result.
 
 ### Guarantees
-- Byte-identical `to_dict()` / `summary()` / plot / HTML output to v0.2.x when
-  `ensemble_report()` has not been run.
+- Byte-identical `to_dict()` / `summary()` / plot output to v0.2.x when
+  `ensemble_report()` has not been run. `to_html()` renders identically (same
+  figures, same table) but is *not* byte-identical — the template now ships
+  inert ensemble CSS/JS, active only once a report is present.
 - `ensemble_report()` never averages predictions or alters the fitted tree —
   it only measures and annotates.
 - Deterministic under a fixed `seed`.

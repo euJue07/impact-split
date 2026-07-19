@@ -312,8 +312,16 @@ each segment's Σy) and feature-subsampled replicates (**shadow segments**:
 material regions that only appear when dominant features are forced out) — plus
 an availability-weighted **ensemble feature importance**. Annotations flow into
 `summary()`, `plot_segments()`, `plot_tree()`, and `to_html()` automatically;
-without a report every output is byte-identical to v0.2.x. No prediction
-averaging: the forest measures the ledger, it never replaces it.
+without a report, `to_dict()` / `summary()` / the plots are byte-identical to
+v0.2.x, and `to_html()` renders identically (the template gains inert
+ensemble CSS/JS that only activates once a report is present, so its bytes
+differ but the rendered output does not). No prediction averaging: the
+forest measures the ledger, it never replaces it.
+
+The segment CI is computed over the refits in which the segment re-emerged
+(matched replicates only), so it must be read jointly with stability — for
+fragile segments the band is conditioned on rediscovery and can understate
+uncertainty.
 
 ```python
 model.fit(X, y)
