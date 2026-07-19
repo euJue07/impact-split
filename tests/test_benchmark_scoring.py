@@ -60,3 +60,13 @@ def test_uncapped_equals_capped_when_rule_fits_in_cap() -> None:
     assert rs.n_segments_used == 2
     assert rs.uncapped_n_segments == 2
     assert np.isclose(rs.uncapped_f1, rs.f1)
+
+
+def test_ensemble_filter_scores_one_case():
+    from benchmarks.dgp import case_baseline
+    from benchmarks.ensemble_filter import score_case_at_taus
+
+    ds = case_baseline(0)
+    rows = score_case_at_taus(ds, n_replicates=5, seed=0)
+    assert set(rows) == {0.0, 0.3, 0.5, 0.7}
+    assert all(0.0 <= v <= 1.0 for v in rows.values())
