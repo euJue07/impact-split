@@ -4,7 +4,7 @@ build-backend = "flit_core.buildapi"
 
 [project]
 name = "impact_split"
-version = "0.2.0"
+version = "0.3.0"
 description = "A tree based approach to determine the driver of a KPI"
 authors = [
   { name = "Juedi Myro Eugenio" },
