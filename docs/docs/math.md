@@ -267,14 +267,17 @@ Its numbers are worth reading, because on this data the materiality bar alone
 would have split on noise. With $y \sim \mathcal{N}(0,1)$ over 2,000 rows,
 $V^{c}_{root} = \sum_i \lvert y_i - \bar{y}\rvert \approx 2000\cdot\mathbb{E}\lvert
 Z\rvert \approx 1{,}600$, so the materiality bar is $0.01 \times 1600 \approx 16$.
-Each of the 12 categories (3 features × 4 levels) holds about 500 rows, and a
-do-nothing category's excess wanders on the scale $\sigma\sqrt{500} \approx 22$
-— *larger than the materiality bar*. On the test's actual seed 5 of the 12
-categories exceed 16 in absolute excess, and one feature carries both a $+20.1$
-and a $-24.5$ category: a materiality-only sieve would route them to opposite
-branches and return a split of pure noise. What forces abstention is the
-significance bar, $\tau = 3\hat{\sigma}_f\sqrt{500} \approx 68$, which no
-category comes close to. So this test is direct evidence for the $\sigma\sqrt{n}$
+Each of the 12 categories (3 features × 4 levels) holds about 500 rows out of
+2,000, so $f = n_{cat}/n_{node} \approx 1/4$ and, by §3.1, a do-nothing
+category's excess wanders on the *corrected* null scale
+$\sigma\sqrt{500\,(1-\tfrac14)} = \sigma\sqrt{375} \approx 19.4$ — still
+*larger than the materiality bar* of 16. (The shipped significance bar
+conservatively uses the uncorrected $\sqrt{n_{cat}} = \sqrt{500} \approx 22.4$,
+per §3.1.) On the test's actual seed 5 of the 12 categories exceed 16 in
+absolute excess, and one feature carries both a $+20.1$ and a $-24.5$ category:
+a materiality-only sieve would route them to opposite branches and return a
+split of pure noise. What forces abstention is the significance bar,
+$\tau = 3\hat{\sigma}_f\sqrt{500} \approx 68$, which no category comes close to. So this test is direct evidence for the $\sigma\sqrt{n}$
 term specifically, not merely an end-to-end null check.
 
 *Scope note:* what the test does not do is vary $n_{cat}$, so the $\sqrt{n_{cat}}$
@@ -338,8 +341,9 @@ z_{eff} = \mathrm{noise\_z} + \sqrt{2\ln K},
 
 where $K$ is the number of **present** cross-cells (empty cells are not tests
 and do not count against the budget). The additive form is deliberate and
-conservative: $\sqrt{2\ln K}$ centres the null maximum, and `noise_z` is then
-retained as a buffer *on top of* that centre rather than being replaced by it.
+conservative: $\sqrt{2\ln K}$ upper-bounds the expectation of the null maximum,
+and `noise_z` is then retained as a buffer *on top of* that bound rather than
+being replaced by it.
 The growth is gentle, which is the desired behaviour — a genuine 2×2 XOR pays
 $\sqrt{2\ln 4} \approx 1.67$, while a 100-cell cross pays
 $\sqrt{2\ln 100} \approx 3.03$ and a 500-cell cross $\approx 3.53$. Small honest
@@ -352,17 +356,17 @@ not one of them.
    cell statistics here are not exactly normal — the scale is MAD-based (§3.2),
    so the standardisation is only approximate on non-Gaussian or heavy-tailed
    residuals.
-2. **Expectation, not tail.** $\sqrt{2\ln K}$ bounds the *expected* value of the
-   null maximum. It therefore locates the centre of the null max, not a quantile
-   of it, and does not by itself control family-wise error at any stated
-   $\alpha$. A tail version of the same argument would carry roughly
-   $\sqrt{2\ln(K/\alpha)}$ instead.
+2. **Expectation, not tail.** $\sqrt{2\ln K}$ upper-bounds the *expected* value
+   of the null maximum. It therefore bounds the location of the null max from
+   above, not a quantile of it, and does not by itself control family-wise error
+   at any stated $\alpha$. A tail version of the same argument would carry
+   roughly $\sqrt{2\ln(K/\alpha)}$ instead.
 
 So $z_{eff}$ is a calibrated heuristic in the right functional form, not an exact
 family-wise error guarantee. Gap 2 is the reason the form is additive rather
 than a replacement, as noted above: `noise_z` rides on top of $\sqrt{2\ln K}$
-because the multiplicity term supplies a centre and something has to stand in
-for the missing quantile. And the correction is used only to *raise* a bar that
+because the multiplicity term supplies only an upper bound on that centre and
+something has to stand in for the missing quantile. And the correction is used only to *raise* a bar that
 would otherwise be uncorrected, at a node where the tree was about to give up —
 so an over-strict bar costs a missed interaction, never a false one.
 
@@ -427,19 +431,27 @@ criterion does not merely have a slight preference for high cardinality: its
 column that indexes the rows. This is the same pathology that information gain
 has on ID columns, arriving through a different route.
 
-**Two defenses, and the first one is not $1/k$.** Full shattering never actually
-happens in the shipped code, and the reason is the materiality bar rather than
-the gain metric. With one row per category, each category's residual against its
-own mean is identically zero, so $\mathrm{MAD} = 0$ and $\hat{\sigma}_f = 0$ —
-the §3.2 mechanism — which collapses the significance bar and leaves
-$\tau_{cat} = \mathrm{delta\_pct}\cdot V^{c}_{node} > 0$. A row therefore routes
-only if $\lvert y^{c}_i\rvert > 0.01\cdot V^{c}_{node}$: one row carrying a
-hundredth of the node's entire excess. Almost no row does, so the singleton
-categories fall to the neutral branch, and if *every* row lands there the
-candidate trips the degenerate-split guard of §5.2 and is discarded without
-being scored against any other feature at all. The materiality bar, not the gain
-metric, is the first line of defense against shattering; $1/k$ never has to
-adjudicate the fully-shattered case because that case does not reach it.
+**Two defenses, and which one binds depends on node size.** With one row per
+category, each category's residual against its own mean is identically zero, so
+$\mathrm{MAD} = 0$ and $\hat{\sigma}_f = 0$ — the §3.2 mechanism — which
+collapses the significance bar and leaves
+$\tau_{cat} = \mathrm{delta\_pct}\cdot V^{c}_{node} > 0$. A singleton row
+therefore routes only if $\lvert y^{c}_i\rvert > 0.01\cdot V^{c}_{node}$: one row
+carrying a hundredth of the node's entire excess. That bar scales with the
+node's size, so it blocks shattering only where the node is large. Writing
+$V^{c}_{node} \approx n_{node}\cdot\mathbb{E}\lvert y^c\rvert$, the bar is about
+$0.01\,n_{node}$ average-magnitude units, prohibitive once
+$n_{node} \gg 1/\mathrm{delta\_pct} \approx 100$ rows at the default — but there
+is no `min_samples` guard, and with `max_depth=5` nodes of a few dozen rows are
+ordinary. Below that size the materiality bar admits most singletons, they *are*
+routed, the shattering candidate *is* scored, and $1/k$ is the operative
+defense. A concrete node ($n = 30$, $y = (+1,-1)$ repeated, a unique-ID feature
+beside an honest 2-level one) makes it explicit: the ID column routes all 30
+rows ($k_P = k_N = 15$) and scores $Gain = 2.0$, while the honest column scores
+$Gain = 30.0$ and wins — the ID column loses **because of $1/k$**, exactly the
+adjudication that this section justifies. Only when the node is large enough for
+the materiality bar to reject the singletons first does $1/k$ not have to
+adjudicate. Both defenses are real; which one binds is a function of $n_{node}$.
 
 What $1/k$ removes is the *criterion's* reward for cardinality among whatever
 does clear that bar — a nuisance column with moderate cardinality, where cells
@@ -637,13 +649,20 @@ reconciliation step: `conservation_exact` is
 tolerance (`pytest.approx(abs=1e-9·…)`, `np.isclose`, `rtol=1e-6`). The
 structural argument is what licenses that choice. Because conservation holds
 identically over the reals, the only thing a numerical check can find is
-accumulated rounding — a quantity bounded by machine epsilon times the summation
-depth, which cannot drift, cannot compound across merge iterations, and cannot
-grow into a real discrepancy. Had conservation been merely *approximately* true
-by construction, a 1e-9 relative tolerance would be an unjustified guess about
-how far off it is allowed to be; here it is a rounding guard on an exact
-identity, and a failure of it would indicate overlapping masks rather than
-arithmetic drift.
+accumulated rounding. For pairwise summation that error is bounded by roughly
+$u\cdot\log_2(n)\cdot\sum_i\lvert y_i\rvert$ — machine epsilon $u$ times the
+summation depth, but scaled by the *gross* magnitude $\sum\lvert y_i\rvert$, not
+the net total. The shipped check normalises by $\max(1,\lvert\text{total\_sum}\rvert)$,
+the *net* sum, so the two agree comfortably whenever the net total is an ordinary
+fraction of the gross — which is the common case. The one regime where a genuine
+partition can trip a 1e-9 relative tolerance is $\lvert\Sigma y\rvert \ll
+\sum\lvert y_i\rvert$: the churn structure of §6 and the zero-centered targets of
+§2, pushed to the extreme where the net is vanishing relative to the gross. There
+the guard is measuring rounding against a near-zero denominator, and a failure
+then means the tolerance was too tight for that data, not that the masks overlap.
+Away from that corner, a failure does indicate overlapping masks rather than
+arithmetic drift; the structural identity is what makes even the corner a
+tolerance question rather than a conservation defect.
 
 ### 7.2 Null-safety
 
