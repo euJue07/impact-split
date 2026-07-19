@@ -110,6 +110,8 @@ def plot_segments(
             return None
         return ens["segments"].get(str(b.get("segment_id")))
 
+    stats_by_bar = {id(b): ens_stats(b) for b in bars}
+
     values = [float(b["total_sum"] or 0.0) for b in bars]
     extents = list(values)
     for b in bars:
@@ -117,7 +119,7 @@ def plot_segments(
             extents.append(float(b["pos_sum"]))
             extents.append(-float(b["neg_sum"]))
     for b in bars:
-        st = ens_stats(b)
+        st = stats_by_bar[id(b)]
         if st and st["ci_low"] is not None:
             extents.append(float(st["ci_low"]))
             extents.append(float(st["ci_high"]))
@@ -154,7 +156,7 @@ def plot_segments(
         note = f"n={b['n']:,}"
         if b["pool_share"] is not None:
             note += f" · {fmt_pct(b['pool_share'])} of {'Σy⁺' if value >= 0 else 'Σy⁻'}"
-        st = ens_stats(b)
+        st = stats_by_bar[id(b)]
         if st:
             note += f" · stab {fmt_pct(st['stability'])}"
             if st["fragile"]:
@@ -221,10 +223,14 @@ def plot_segments(
     )
     if any(b.get("is_churn") for b in bars):
         footer += " · hatched band = churn segment's gross ±flows (band is not additive)"
-    if ens:
-        footer += " · black whisker = bootstrap 5–95% CI · stab = re-emergence rate (⚠ <50%)"
     fig.text(0.01, 0.01, footer, fontsize=7.5, color=_MUTED_TEXT)
-    fig.tight_layout(rect=(0, 0.045, 1, 1))
+    if ens:
+        fig.text(
+            0.01, 0.035,
+            "black whisker = bootstrap 5–95% CI · stab = re-emergence rate (⚠ <50%)",
+            fontsize=7.5, color=_MUTED_TEXT,
+        )
+    fig.tight_layout(rect=(0, 0.07, 1, 1) if ens else (0, 0.045, 1, 1))
     if show:
         plt.show()
     return fig
