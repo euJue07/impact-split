@@ -167,7 +167,7 @@ def build_payload(model: ImpactSplitter) -> dict[str, Any]:
         else [f"f{i}" for i in range(n_features)]
     )
 
-    return {
+    payload: dict[str, Any] = {
         "meta": {
             "package_version": _package_version(),
             "params": {
@@ -195,3 +195,25 @@ def build_payload(model: ImpactSplitter) -> dict[str, Any]:
         "tree": nodes,
         "segments": segments,
     }
+
+    ens = getattr(model, "ensemble_", None)
+    if ens is not None:
+        order = {id(s): i for i, s in enumerate(model.segments_)}
+        per_seg: dict[str, Any] = {}
+        for rank, seg in enumerate(seg_sorted):
+            st = ens["segments"][order[id(seg)]]
+            per_seg[f"s{rank}"] = {
+                "stability": safe_float(st["stability"]),
+                "n_matched": int(st["n_matched"]),
+                "ci_low": safe_float(st["ci_low"]),
+                "ci_high": safe_float(st["ci_high"]),
+                "fragile": bool(st["fragile"]),
+            }
+        payload["ensemble"] = {
+            "config": dict(ens["config"]),
+            "segments": per_seg,
+            "importance": [dict(r) for r in ens["importance"]],
+            "shadows": [dict(s) for s in ens["shadows"]],
+        }
+
+    return payload

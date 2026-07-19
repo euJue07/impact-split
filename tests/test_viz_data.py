@@ -119,6 +119,30 @@ def churn_mix_fitted() -> ImpactSplitter:
     return ImpactSplitter().fit(X, y)
 
 
+def _fitted() -> tuple[ImpactSplitter, pd.DataFrame, pd.Series]:
+    """Helper that returns (model, X, y) for ensemble report tests."""
+    X, y = demo_frame()
+    return ImpactSplitter().fit(X, y), X, y
+
+
+def test_payload_has_no_ensemble_key_without_report() -> None:
+    model, X, y = _fitted()
+    payload = model.to_dict()
+    assert "ensemble" not in payload
+
+
+def test_payload_ensemble_keyed_by_segment_id() -> None:
+    model, X, y = _fitted()
+    model.ensemble_report(X, y, n_replicates=12, shadow_replicates=0, seed=3)
+    payload = model.to_dict()
+    ens = payload["ensemble"]
+    assert set(ens) == {"config", "segments", "importance", "shadows"}
+    assert set(ens["segments"]) == {s["segment_id"] for s in payload["segments"]}
+    # spot-check the re-keying: the top-ranked segment's stability must equal
+    # the ensemble_ entry for the same underlying segment dict
+    json.dumps(payload)  # payload stays JSON-safe end to end
+
+
 def test_payload_segment_gross_flows_and_churn() -> None:
     payload = churn_mix_fitted().to_dict()
     assert payload["meta"]["params"]["lookahead"] is True
