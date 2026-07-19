@@ -12,6 +12,7 @@ def render_summary(payload: dict[str, Any], *, top: int = 10, path_width: int = 
     meta = payload["meta"]
     segments = payload["segments"]
     p = meta["params"]
+    ens = payload.get("ensemble")
 
     conservation = "exact ✓" if meta["conservation_exact"] else "MISMATCH ✗"
     merged_note = (
@@ -42,12 +43,14 @@ def render_summary(payload: dict[str, Any], *, top: int = 10, path_width: int = 
     churn_note = (
         f" · {meta['n_churn_segments']} churn ⇄" if meta["n_churn_segments"] else ""
     )
+    ens_header = f"  {'stability':>10}  {'Σy 5–95%':>28}" if ens else ""
     lines.extend([
         f"segments  {meta['n_segments']}{merged_note}{churn_note} · "
         f"conservation {conservation}",
         "",
         "Top segments by |impact|",
-        f" {'#':>2}  {'path':<{path_width}}  {'Σy':>14}  {'n':>9}  {'pool share':>16}  {'gross ⇄':>22}",
+        f" {'#':>2}  {'path':<{path_width}}  {'Σy':>14}  {'n':>9}  {'pool share':>16}  "
+        f"{'gross ⇄':>22}{ens_header}",
     ])
 
     shown = segments[:top]
@@ -66,17 +69,32 @@ def render_summary(payload: dict[str, Any], *, top: int = 10, path_width: int = 
             if seg["is_churn"]
             else ""
         )
-        lines.append(
+        row = (
             f" {i:>2}  {path:<{path_width}}  {fmt_num(seg['total_sum'], sign=True):>14}"
             f"  {seg['n']:>9,}  {share:>16}  {gross:>22}"
         )
+        row_extra = ""
+        if ens:
+            st = ens["segments"].get(str(seg.get("segment_id")))
+            if st is None:
+                row_extra = f"  {'—':>10}  {'—':>28}"
+            else:
+                stab = fmt_pct(st["stability"]) + (" †" if st["fragile"] else "")
+                ci = (
+                    f"[{fmt_num(st['ci_low'], sign=True)}, {fmt_num(st['ci_high'], sign=True)}]"
+                    if st["ci_low"] is not None
+                    else "—"
+                )
+                row_extra = f"  {stab:>10}  {ci:>28}"
+        lines.append(row + row_extra)
     if rest:
         rest_total = sum(float(s["total_sum"] or 0.0) for s in rest)
         rest_n = sum(int(s["n"]) for s in rest)
         label = f"(+{len(rest)} more segments)"
+        rest_extra = f"  {'—':>10}  {'—':>28}" if ens else ""
         lines.append(
             f" {'…':>2}  {label:<{path_width}}  {fmt_num(rest_total, sign=True):>14}"
-            f"  {rest_n:>9,}  {'':>16}  {'':>22}"
+            f"  {rest_n:>9,}  {'':>16}  {'':>22}{rest_extra}"
         )
 
     if meta["n_churn_segments"]:
@@ -85,5 +103,21 @@ def render_summary(payload: dict[str, Any], *, top: int = 10, path_width: int = 
             " ⇄ churn segment: positive and negative flows are both material — "
             "the net hides offsetting mass (gross column shows both)."
         )
+
+    if ens:
+        if any(s["fragile"] for s in ens["segments"].values()):
+            lines.append("")
+            lines.append(
+                " † fragile: segment re-emerged in <50% of bootstrap refits."
+            )
+        if ens["shadows"]:
+            lines.append("")
+            lines.append("Shadow drivers (material regions the main tree does not report)")
+            for sh in ens["shadows"][:top]:
+                lines.append(
+                    f"  · {sh['path']}  Σy≈{fmt_num(sh['mean_impact'], sign=True)}"
+                    f" · recurrence {fmt_pct(sh['recurrence'])}"
+                    f" · via {', '.join(sh['features'])}"
+                )
 
     return "\n".join(lines)

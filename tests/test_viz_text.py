@@ -5,7 +5,7 @@ import pandas as pd
 import pytest
 
 from impact_split import ImpactSplitter
-from tests.test_viz_data import churn_mix_fitted, fitted
+from tests.test_viz_data import _fitted, churn_mix_fitted, fitted
 
 
 def test_summary_requires_fit() -> None:
@@ -47,6 +47,18 @@ def test_summary_flags_churn_segments() -> None:
     assert "gross ⇄" in text          # table column header
     assert " / -" in text             # gross column rendered for the churn row
     assert "offsetting mass" in text  # footnote
+
+
+def test_summary_unchanged_without_ensemble_and_annotated_with() -> None:
+    model, X, y = _fitted()
+    before = model.summary()
+    model.ensemble_report(X, y, n_replicates=12, shadow_replicates=0, seed=3)
+    after = model.summary()
+    assert "stability" in after and "stability" not in before
+    assert "Σy 5–95%" in after
+    # shadow section only when shadows exist
+    if model.ensemble_["shadows"]:
+        assert "Shadow drivers" in after
 
 
 def test_summary_without_churn_has_no_footnote() -> None:
