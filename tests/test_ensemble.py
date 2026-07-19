@@ -170,3 +170,49 @@ def test_importance_ranks_planted_feature_first():
     assert all(imp[k]["importance"] >= imp[k + 1]["importance"] for k in range(len(imp) - 1))
     # availability: feature 0 was available in all 15 bootstrap trees at least
     assert imp[0]["n_trees"] >= 15
+
+
+def test_shadow_records_carry_reconstructable_conditions():
+    from impact_split.ensemble import jaccard, mask_from_conditions, run_ensemble
+
+    model, X, y = _masked_driver_data()
+    report = run_ensemble(
+        model, n_replicates=10, shadow_replicates=30, feature_subsample=0.5,
+        match_threshold=0.5, shadow_min_stability=0.2, seed=13,
+    )
+    assert report["shadows"], "precondition: shadows must surface on this DGP"
+    for sh in report["shadows"]:
+        conds = sh["conditions"]
+        assert conds, "shadow conditions must be non-empty"
+        assert all(isinstance(f, int) and not isinstance(f, bool) for f in conds)
+        for codes in conds.values():
+            assert isinstance(codes, list) and codes == sorted(codes)
+            assert all(isinstance(c, int) and not isinstance(c, bool) for c in codes)
+        mask = mask_from_conditions(conds, model._X)
+        assert mask.any()
+        # reconstructed mask agrees with the reported impact's sign
+        assert np.sign(model._y[mask].sum()) == np.sign(sh["mean_impact"])
+    # the masked driver is b == 0 (feature index 1); the winning shadow's
+    # reconstructed mask must be essentially that planted region
+    hit = next(sh for sh in report["shadows"] if "f1" in sh["features"])
+    planted = model._X[:, 1] == 0
+    assert jaccard(mask_from_conditions(hit["conditions"], model._X), planted) >= 0.8
+
+
+def test_shadow_conditions_survive_payload_json_roundtrip():
+    import json
+
+    from impact_split.ensemble import mask_from_conditions
+
+    model, X, y = _masked_driver_data()
+    model.ensemble_report(
+        X, y, n_replicates=10, shadow_replicates=30, feature_subsample=0.5, seed=13,
+    )
+    payload = model.to_dict()
+    shadows = payload["ensemble"]["shadows"]
+    assert shadows and all("conditions" in sh for sh in shadows)
+    loaded = json.loads(json.dumps(payload, allow_nan=False))
+    for sh in loaded["ensemble"]["shadows"]:
+        # JSON stringifies int keys; mask_from_conditions must still work
+        mask = mask_from_conditions(sh["conditions"], model._X)
+        assert mask.any()

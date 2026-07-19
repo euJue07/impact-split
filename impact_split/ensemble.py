@@ -244,6 +244,10 @@ def _finalize_shadows(
             out.append(
                 {
                     "path": model._render_conditions_path(rep["conditions"]),
+                    "conditions": {
+                        int(f): sorted(int(c) for c in codes)
+                        for f, codes in rep["conditions"].items()
+                    },
                     "features": [
                         model._feature_display_name(f) for f in sorted(rep["conditions"])
                     ],
