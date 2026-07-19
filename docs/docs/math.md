@@ -172,9 +172,23 @@ $\hat{\sigma}_f$ is too large for the quiet categories and too small for the
 loud ones.
 
 One structural dependence is always present and is *not* a defect:
-$\sum_{cat} D_{cat} = 0$ by construction (§2), so the per-category statistics
-are mildly negatively dependent. This makes the band slightly conservative, not
-anti-conservative.
+$\sum_{cat} D_{cat} = 0$ by construction (§2), so the per-category statistics are
+negatively dependent, and the size of that effect is computable. Because
+$\bar{y}_{node}$ is the node's own sample mean, $D_{cat}$ can be written as a
+linear form in the node's rows with weight $1 - n_{cat}/n_{node}$ inside the
+category and $-n_{cat}/n_{node}$ outside it. For i.i.d. rows this gives
+
+```math
+\mathrm{Var}(D_{cat}) = n_{cat}\,\sigma^2\Big(1 - \tfrac{n_{cat}}{n_{node}}\Big)
+```
+
+so the shipped bar $\sigma\sqrt{n_{cat}}$ overstates the true null standard
+deviation by a factor $\big(1 - n_{cat}/n_{node}\big)^{-1/2}$. That is 5% for a
+category holding a tenth of the node, **41% for a category holding half of it**,
+and unbounded as $n_{cat} \to n_{node}$. The direction is conservative — the bar
+is too high, never too low — but "slight" is the wrong word for a category that
+dominates its node, and this is worth knowing when reading a near-miss at a
+node with few categories.
 
 ### 3.2 The robust scale $\hat{\sigma}_f = 1.4826 \cdot \mathrm{MAD}$
 
@@ -196,8 +210,12 @@ would inflate $\hat{\sigma}_f$, raise the bar, and hide itself.
 
 The constant $1.4826 \approx 1/\Phi^{-1}(0.75)$ makes the MAD a consistent
 estimator of $\sigma$ **for Gaussian noise** — for $\varepsilon \sim
-\mathcal{N}(0,\sigma^2)$, $\mathbb{E}[\mathrm{MAD}] \to \sigma\Phi^{-1}(0.75)
-\approx 0.6745\sigma$, and dividing by that gives back $\sigma$. The MAD is
+\mathcal{N}(0,\sigma^2)$ the population MAD is exactly $\sigma\Phi^{-1}(0.75)
+\approx 0.6745\sigma$, and the sample MAD converges to it in probability,
+$\mathrm{MAD}_n \xrightarrow{\;p\;} 0.6745\sigma$, so dividing by that constant
+gives back $\sigma$ in the limit. (Consistency is the right claim here, not
+unbiasedness: at finite $n$, $\mathbb{E}[\mathrm{MAD}_n]$ is not exactly the
+population value.) The MAD is
 chosen over the sample standard deviation because it has a breakdown point of
 50%: on a KPI where a handful of rows carry outsized values — which is the norm
 for revenue and claims — a few extremes would inflate an SD-based bar enough to
@@ -241,13 +259,29 @@ thousands of dollars. `max()` is scale-equivariant; the product is not.
 **Enforced by:** `tests/test_impact_splitter.py::test_no_split_when_all_category_sums_within_delta`
 (materiality bar alone can veto every category and force `stop_reason="no_split"`),
 `tests/test_consolidation.py::test_consolidation_is_null_safe` (2,000 rows of pure
-Gaussian noise over 3 features: the sieve abstains entirely and returns a single
-root segment).
+Gaussian noise over 3 four-level features: the sieve abstains entirely and returns
+a single root segment).
 
-*Scope note:* no unit test isolates the $\sqrt{n_{cat}}$ scaling of the
-significance bar on its own. The end-to-end evidence that the two-bar sieve
-controls false positives is the benchmark null case (`benchmarks/dgp.py::case_null`),
-recorded as "Null FP-control 3/3" in
+**The null-safe test shows the significance bar is load-bearing, not decorative.**
+Its numbers are worth reading, because on this data the materiality bar alone
+would have split on noise. With $y \sim \mathcal{N}(0,1)$ over 2,000 rows,
+$V^{c}_{root} = \sum_i \lvert y_i - \bar{y}\rvert \approx 2000\cdot\mathbb{E}\lvert
+Z\rvert \approx 1{,}600$, so the materiality bar is $0.01 \times 1600 \approx 16$.
+Each of the 12 categories (3 features × 4 levels) holds about 500 rows, and a
+do-nothing category's excess wanders on the scale $\sigma\sqrt{500} \approx 22$
+— *larger than the materiality bar*. On the test's actual seed 5 of the 12
+categories exceed 16 in absolute excess, and one feature carries both a $+20.1$
+and a $-24.5$ category: a materiality-only sieve would route them to opposite
+branches and return a split of pure noise. What forces abstention is the
+significance bar, $\tau = 3\hat{\sigma}_f\sqrt{500} \approx 68$, which no
+category comes close to. So this test is direct evidence for the $\sigma\sqrt{n}$
+term specifically, not merely an end-to-end null check.
+
+*Scope note:* what the test does not do is vary $n_{cat}$, so the $\sqrt{n_{cat}}$
+*scaling* — as opposed to the presence of a $\sigma\sqrt{n}$-sized bar at one
+node size — is still not isolated by any unit test. The end-to-end evidence that
+the two-bar sieve controls false positives across configurations is the benchmark
+null case (`benchmarks/dgp.py::case_null`), recorded as "Null FP-control 3/3" in
 [`reports/validation-report-v3.md`](../../reports/validation-report-v3.md) §1.
 
 ---
@@ -272,19 +306,29 @@ rate — so a rescue that "finds an interaction" is, at large $K$, mostly findin
 the maximum of a lot of noise.
 
 **The correction.** The relevant statistic is not any one cell but the *maximum*
-over cells. For $K$ i.i.d. standard normals $Z_1,\dots,Z_K$, the classical
+over cells. For $K$ standard normals $Z_1,\dots,Z_K$, the classical
 extreme-value bound gives
 
 ```math
 \mathbb{E}\Big[\max_{1\le j\le K} Z_j\Big] \le \sqrt{2\ln K}
 ```
 
-which follows from the standard Chernoff argument: for any $t>0$,
-$\mathbb{E}[\max_j Z_j] \le \frac{1}{t}\ln\big(\sum_j \mathbb{E}[e^{tZ_j}]\big)
-= \frac{\ln K}{t} + \frac{t}{2}$, minimised at $t = \sqrt{2\ln K}$ to give
-$\sqrt{2\ln K}$. In words: searching $K$ cells buys you roughly $\sqrt{2\ln K}$
-standard deviations of apparent signal for free. The per-cell $z$ must therefore
-carry that term:
+which follows from the standard MGF argument: for any $t>0$, Jensen gives
+$e^{t\,\mathbb{E}[\max_j Z_j]} \le \mathbb{E}[e^{t\max_j Z_j}] =
+\mathbb{E}[\max_j e^{tZ_j}] \le \sum_j \mathbb{E}[e^{tZ_j}] = K e^{t^2/2}$, so
+$\mathbb{E}[\max_j Z_j] \le \frac{\ln K}{t} + \frac{t}{2}$, minimised at
+$t = \sqrt{2\ln K}$ to give $\sqrt{2\ln K}$. In words: searching $K$ cells buys
+you roughly $\sqrt{2\ln K}$ standard deviations of apparent signal for free.
+
+Note what that argument does *not* use. The step $\mathbb{E}[\max_j e^{tZ_j}]
+\le \sum_j \mathbb{E}[e^{tZ_j}]$ is a bound on a maximum by a sum, and
+$\mathbb{E}[e^{tZ_j}] = e^{t^2/2}$ is a statement about each $Z_j$ on its own.
+Only standard-normal **marginals** are required; the bound holds under arbitrary
+dependence among the $Z_j$. This matters here, because the cross-cells are
+manifestly dependent — they partition the node's rows and the centering of §2
+constrains their sums — and that dependence costs the bound nothing.
+
+The per-cell $z$ must therefore carry that term:
 
 ```math
 z_{eff} = \mathrm{noise\_z} + \sqrt{2\ln K},
@@ -301,14 +345,26 @@ $\sqrt{2\ln 4} \approx 1.67$, while a 100-cell cross pays
 $\sqrt{2\ln 100} \approx 3.03$ and a 500-cell cross $\approx 3.53$. Small honest
 interactions are barely taxed; wide fishing expeditions are taxed heavily.
 
-**Assumptions, stated.** The bound is for independent standard normals. The
-cross-cells here are neither exactly independent (they partition the node's
-rows, and the centering of §2 constrains their sums) nor exactly normal (the MAD
-scale, §3.2). So $z_{eff}$ is a calibrated heuristic in the right functional
-form, not an exact family-wise error guarantee. It is used only to *raise* a bar
-that would otherwise be uncorrected, and the rescue itself only runs where the
-tree was about to give up — so an over-strict bar costs a missed interaction,
-never a false one.
+**Assumptions, stated.** Two genuine gaps remain, and cross-cell dependence is
+not one of them.
+
+1. **Non-normality.** The bound is stated for standard-normal marginals, and the
+   cell statistics here are not exactly normal — the scale is MAD-based (§3.2),
+   so the standardisation is only approximate on non-Gaussian or heavy-tailed
+   residuals.
+2. **Expectation, not tail.** $\sqrt{2\ln K}$ bounds the *expected* value of the
+   null maximum. It therefore locates the centre of the null max, not a quantile
+   of it, and does not by itself control family-wise error at any stated
+   $\alpha$. A tail version of the same argument would carry roughly
+   $\sqrt{2\ln(K/\alpha)}$ instead.
+
+So $z_{eff}$ is a calibrated heuristic in the right functional form, not an exact
+family-wise error guarantee. Gap 2 is the reason the form is additive rather
+than a replacement, as noted above: `noise_z` rides on top of $\sqrt{2\ln K}$
+because the multiplicity term supplies a centre and something has to stand in
+for the missing quantile. And the correction is used only to *raise* a bar that
+would otherwise be uncorrected, at a node where the tree was about to give up —
+so an over-strict bar costs a missed interaction, never a false one.
 
 **Why singleton cells are excluded.** A cell with $n_{cell} = 1$ contributes one
 observation. It supplies no within-cell noise estimate, and its "excess" is a
@@ -351,27 +407,57 @@ to pull it.
 Consider the undivided criterion $\lvert S_P\rvert + \lvert S_N\rvert$ and a
 high-cardinality nuisance column — Customer ID, ZIP code, transaction ID, store
 ID with 50 levels. Such a column has one structural advantage over every real
-feature: it can place *each* row's excess into its own category. In the limit of
-a unique ID per row, the routing assigns every positive-excess row to P and every
-negative-excess row to N, so
+feature: it can place *each* row's excess into its own category, and a category
+holding one row has nothing to average away.
+
+$V^c_{node}$ is the ceiling on that criterion. Each category contributes
+$\lvert D_{cat}\rvert = \lvert\sum_{i \in cat} y^c_i\rvert \le \sum_{i \in cat}
+\lvert y^c_i\rvert$ by the triangle inequality, and the routed categories are
+disjoint, so
 
 ```math
-\lvert S_P\rvert + \lvert S_N\rvert \;\longrightarrow\; \sum_i \lvert y^c_i \rvert = V^c_{node}
+\lvert S_P\rvert + \lvert S_N\rvert \;\le\; \sum_{cat}\lvert D_{cat}\rvert \;\le\; \sum_i \lvert y^c_i \rvert = V^c_{node}
 ```
 
-which is the **maximum attainable value of the undivided criterion**. No genuine
-feature can beat it, because no genuine feature can separate the node's excess
-mass more completely than a column that indexes the rows. An undivided criterion
-does not merely have a slight preference for high cardinality; it is maximised
-by pure shattering. This is the same pathology that information gain has on ID
-columns, arriving through a different route.
+with equality exactly when every category is sign-pure internally and every row
+is routed to an outer branch — which is what shattering into singletons would
+deliver, since a singleton category is trivially sign-pure. So the undivided
+criterion does not merely have a slight preference for high cardinality: its
+**supremum** is attained by pure shattering, and no genuine feature can beat a
+column that indexes the rows. This is the same pathology that information gain
+has on ID columns, arriving through a different route.
 
-Dividing by $k$ turns the score into a mean, and the mean of the shattered split
-is $V^c_{node}/k$ — it *decreases* as the column shatters harder. A feature with
-two meaningful categories carrying the same mass scores $\sim V^c_{node}/2$; a
-50-level nuisance column scores roughly $1/25$ of that. The penalty is therefore
-not a tuned regularisation term with a coefficient to choose but a direct
-consequence of scoring the average rather than the total.
+**Two defenses, and the first one is not $1/k$.** Full shattering never actually
+happens in the shipped code, and the reason is the materiality bar rather than
+the gain metric. With one row per category, each category's residual against its
+own mean is identically zero, so $\mathrm{MAD} = 0$ and $\hat{\sigma}_f = 0$ —
+the §3.2 mechanism — which collapses the significance bar and leaves
+$\tau_{cat} = \mathrm{delta\_pct}\cdot V^{c}_{node} > 0$. A row therefore routes
+only if $\lvert y^{c}_i\rvert > 0.01\cdot V^{c}_{node}$: one row carrying a
+hundredth of the node's entire excess. Almost no row does, so the singleton
+categories fall to the neutral branch, and if *every* row lands there the
+candidate trips the degenerate-split guard of §5.2 and is discarded without
+being scored against any other feature at all. The materiality bar, not the gain
+metric, is the first line of defense against shattering; $1/k$ never has to
+adjudicate the fully-shattered case because that case does not reach it.
+
+What $1/k$ removes is the *criterion's* reward for cardinality among whatever
+does clear that bar — a nuisance column with moderate cardinality, where cells
+are big enough to be material but numerous enough to slice the node finely.
+Dividing by $k$ turns each branch's score into a mean over the categories that
+branch actually routed, so a column that spreads the same mass over more
+categories scores lower. Two levels of comparison, with $k_P$ and $k_N$ read
+throughout as the **per-branch** category counts:
+
+- A balanced 2-category feature routes one category each way, $k_P = k_N = 1$
+  and $\lvert S_P\rvert = \lvert S_N\rvert = V^c_{node}/2$, so
+  $Gain = V^c_{node}/2 + V^c_{node}/2 = V^c_{node}$.
+- A 50-level column splitting sign-purely down the middle has $k_P = k_N = 25$
+  and the same branch masses, so $Gain = 2\cdot(V^c_{node}/2)/25 = V^c_{node}/25$.
+
+The nuisance column scores $1/25$ of the honest one on identical separated mass.
+The penalty is therefore not a tuned regularisation term with a coefficient to
+choose but a direct consequence of scoring the average rather than the total.
 
 There is a second, non-statistical reason for the same choice, and it is the
 one that matters to the intended user: a split into 50 categories is not
@@ -530,12 +616,34 @@ segments have disjoint row masks $M_1 \cap M_2 = \varnothing$. For disjoint sets
 ```
 
 identically — the merged sum *is* the sum of the parts, and the merged count is
-the sum of the counts, by the definition of a disjoint union. No floating-point
-tolerance is involved and no accumulation of error is possible across
-iterations, because each merge is again a disjoint union of a partition's
-blocks. The implementation adds `total_sum` and `n_samples` directly and unions
-the masks; conservation would only be at risk if leaf masks could overlap, which
-is what the partition test verifies.
+the sum of the counts, by the definition of a disjoint union. Each merge is
+again a disjoint union of a partition's blocks, so the argument survives
+iteration to fixpoint unchanged. The implementation adds `total_sum` and
+`n_samples` directly and unions the masks; conservation would only be at risk if
+leaf masks could overlap, which is what the partition test verifies.
+
+**Where the float64 caveat actually lives.** The identity above is exact in
+$\mathbb{R}$, and that is a real claim, but it is not the claim that the shipped
+numbers agree bit-for-bit. A leaf's `total_sum` is `float(y_sub.sum())` over that
+leaf's rows (`impact_split/splitter.py`), and floating-point addition is not
+associative, so summing the leaf totals re-rounds along a different tree of
+partial sums than `np.sum` over all rows does. The two results can differ in the
+last bits. Counts are integers and are exact; only the sums carry this.
+
+That is why the library's check is a relative assertion rather than a
+reconciliation step: `conservation_exact` is
+`abs(seg_total - total_sum) <= 1e-9 * max(1.0, abs(total_sum))`
+(`impact_split/viz/data.py`), and the tests cited below likewise assert to
+tolerance (`pytest.approx(abs=1e-9·…)`, `np.isclose`, `rtol=1e-6`). The
+structural argument is what licenses that choice. Because conservation holds
+identically over the reals, the only thing a numerical check can find is
+accumulated rounding — a quantity bounded by machine epsilon times the summation
+depth, which cannot drift, cannot compound across merge iterations, and cannot
+grow into a real discrepancy. Had conservation been merely *approximately* true
+by construction, a 1e-9 relative tolerance would be an unjustified guess about
+how far off it is allowed to be; here it is a rounding guard on an exact
+identity, and a failure of it would indicate overlapping masks rather than
+arithmetic drift.
 
 ### 7.2 Null-safety
 
@@ -610,11 +718,26 @@ mask and $n_M = \lvert M \rvert$, the candidate must satisfy
 \Big\lvert \textstyle\sum_{i \in M} y_i - n_M\,\bar{y} \Big\rvert \;>\; \max\big(\mathrm{delta\_pct}\cdot V^{c}_{root},\ \mathrm{noise\_z}\cdot\hat{\sigma}_{full}\cdot\sqrt{n_M}\big)
 ```
 
-which is exactly the §3 two-bar test — centered excess against materiality and a
-$\sigma\sqrt{n}$ null band — evaluated at the root rather than inside a
-replicate. A candidate must additionally be materially large against a global
-pool (§6) and must recur across replicates above `shadow_min_stability` before
-it is reported. Discovery is thus allowed to be noisy; the *report* is not.
+which is the same **two-bar form** as §3 — centered excess against materiality
+and a $\sigma\sqrt{n}$ null band — evaluated at the root rather than inside a
+replicate, but with a **root-level scale** rather than §3.2's per-feature one.
+The difference is worth naming precisely, because it is the one place the page
+would otherwise overstate the match. §3.2's $\hat{\sigma}_f$ is the MAD of
+residuals taken against each *category's own* mean; the gate's
+$\hat{\sigma}_{full}$ is `1.4826 * median(|yc - median(yc)|)`
+(`impact_split/ensemble.py`), which centres only on the global median and
+removes no group means — precisely the estimator §3.2 argues against for the
+splitter.
+
+The direction of that discrepancy is safe here. Leaving genuine between-group
+structure in the residuals inflates $\hat{\sigma}_{full}$, which raises the bar,
+so the gate errs **strict**: it can refuse a real shadow, not admit a spurious
+one. That is the correct way to be wrong for a gate whose whole purpose is
+specificity — and it is the opposite of the splitter's situation in §3.2, where
+an inflated scale would let a real effect hide itself. A candidate must
+additionally be materially large against a global pool (§6) and must recur
+across replicates above `shadow_min_stability` before it is reported. Discovery
+is thus allowed to be noisy; the *report* is not.
 
 **Enforced by:** `tests/test_ensemble.py::test_run_ensemble_stability_and_ci_on_planted_effect`
 (a planted effect scores stability ≥ 0.8, is not fragile, and its CI brackets
@@ -654,11 +777,22 @@ rules, run at three seeds and scored by impact-weighted F1. One fixed
 configuration is used for every dataset, with no per-dataset tuning — which is
 the property that makes the defaults meaningful as defaults rather than as a
 fit to the benchmark. The floor loop's Phase 0 additionally ran a 27-config
-hyperparameter sweep and found that no configuration in the grid fixed the
-remaining floor cases, which is evidence that the shipped values sit on a
-plateau rather than a knife edge — and equally, evidence that these are tuning
-outcomes rather than theoretical optima. Method, per-case results, the sweep,
-and the known-weakness analysis:
+hyperparameter sweep, and what it establishes should be stated exactly. No
+configuration in the grid fixed the remaining floor cases: the best sweep
+configuration reached a floor-case minimum of 0.806, short of the 0.85 bar
+([`reports/validation-report-v3.md`](../../reports/validation-report-v3.md) §1).
+The conclusion drawn was that the deficit was **structural rather than a
+hyperparameter level** — which is what motivated consolidation, and what
+consolidation then fixed.
+
+Note what this does *not* show. Against the then-shipped floor of 0.781, that
+best grid configuration was about 0.025 *better* on the floor metric, so the
+sweep does not establish that the shipped defaults are a local optimum, and this
+page will not claim they sit on a plateau rather than a knife edge. The sweep
+speaks to the ceiling of hyperparameter tuning on those cases, not to the shape
+of the objective around the shipped point. It is, if anything, further evidence
+that these are tuning outcomes rather than theoretical optima. Method, per-case
+results, the sweep, and the known-weakness analysis:
 [`reports/validation-report-v3.md`](../../reports/validation-report-v3.md).
 
 `noise_z = 3.0` sits between the two categories and is worth naming separately.
