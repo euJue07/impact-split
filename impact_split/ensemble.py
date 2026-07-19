@@ -139,9 +139,53 @@ def _accumulate_importance(
 
 
 def _collect_shadow_candidates(
-    model, X, cols, rep_segs, rep_masks, matched_rep, block, replicate_serial, pool
+    model: Any,
+    X: np.ndarray,
+    cols: np.ndarray,
+    rep_segs: list[dict[str, Any]],
+    rep_masks: list[np.ndarray],
+    matched_rep: set[int],
+    block: str,
+    replicate_serial: int,
+    pool: list[dict[str, Any]],
 ) -> None:
-    return None
+    assert model._y is not None
+    y = model._y
+    y_mean = float(y.mean())
+    yc = y - y_mean
+    delta_root = model.delta_pct * float(np.abs(yc).sum())
+    sigma_full = 1.4826 * float(np.median(np.abs(yc - np.median(yc))))
+    for j, (seg, mask) in enumerate(zip(rep_segs, rep_masks, strict=True)):
+        if j in matched_rep or not seg["conditions"]:
+            continue
+        ym = y[mask]
+        pos = float(ym[ym > 0].sum())
+        neg = float(np.abs(ym[ym < 0]).sum())
+        material = (
+            model._v_global_p > 0 and pos / model._v_global_p > model.min_global_impact_pct
+        ) or (
+            model._v_global_n > 0 and neg / model._v_global_n > model.min_global_impact_pct
+        )
+        if not material:
+            continue
+        # Bootstrap resampling lets replicate trees clear the sieve on nuisance
+        # splits whose full-data excess is noise; a shadow must also look like a
+        # split the root would have accepted on the full data.
+        n_m = int(np.count_nonzero(mask))
+        excess = float(ym.sum()) - n_m * y_mean
+        if abs(excess) <= max(delta_root, model.noise_z * sigma_full * math.sqrt(n_m)):
+            continue
+        pool.append(
+            {
+                "mask": mask,
+                "total_sum": float(seg["total_sum"]),
+                "conditions": {
+                    int(cols[f]): codes for f, codes in seg["conditions"].items()
+                },
+                "block": block,
+                "replicate": replicate_serial,
+            }
+        )
 
 
 def _finalize_importance(
@@ -164,9 +208,55 @@ def _finalize_importance(
 
 
 def _finalize_shadows(
-    model, pool, match_threshold, shadow_min_stability, block_sizes
+    model: Any,
+    pool: list[dict[str, Any]],
+    match_threshold: float,
+    shadow_min_stability: float,
+    block_sizes: dict[str, int],
 ) -> list[dict[str, Any]]:
-    return []
+    out: list[dict[str, Any]] = []
+    for block, size in block_sizes.items():
+        if size <= 0:
+            continue
+        cands = sorted(
+            (c for c in pool if c["block"] == block),
+            key=lambda c: -abs(c["total_sum"]),
+        )
+        unassigned = list(range(len(cands)))
+        while unassigned:
+            seed_i = unassigned[0]
+            members = [
+                k for k in unassigned
+                if jaccard(cands[seed_i]["mask"], cands[k]["mask"]) >= match_threshold
+            ]
+            unassigned = [k for k in unassigned if k not in members]
+            recurrence = len({cands[k]["replicate"] for k in members}) / size
+            if recurrence < shadow_min_stability:
+                continue
+
+            def mean_jac(k: int, cands: list[dict[str, Any]] = cands, members: list[int] = members) -> float:
+                return float(
+                    np.mean([jaccard(cands[k]["mask"], cands[m]["mask"]) for m in members])
+                )
+
+            rep_i = max(members, key=lambda k: (mean_jac(k), abs(cands[k]["total_sum"])))
+            rep = cands[rep_i]
+            out.append(
+                {
+                    "path": model._render_conditions_path(rep["conditions"]),
+                    "features": [
+                        model._feature_display_name(f) for f in sorted(rep["conditions"])
+                    ],
+                    "recurrence": recurrence,
+                    "mean_impact": float(
+                        np.mean([cands[k]["total_sum"] for k in members])
+                    ),
+                    "n_members": len(members),
+                    "block": block,
+                }
+            )
+    out.sort(key=lambda s: -(s["recurrence"] * abs(s["mean_impact"])))
+    return out
 
 
 def run_ensemble(

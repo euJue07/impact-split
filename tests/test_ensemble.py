@@ -106,6 +106,56 @@ def test_run_ensemble_deterministic():
     assert run_ensemble(model, **kw) == run_ensemble(model, **kw)
 
 
+def _masked_driver_data(seed=7, n=4000):
+    # a and b independent; both plant real positive effects. max_depth=1 caps the
+    # single tree at ONE interaction term, so the greedy tree spends it on the
+    # stronger feature a and never reports b==0 -- the definition of masking here.
+    rng = np.random.default_rng(seed)
+    a = rng.integers(0, 3, n)
+    b = rng.integers(0, 3, n)
+    y = (
+        np.where(a == 0, 100.0, 0.0)
+        + np.where(b == 0, 60.0, 0.0)
+        + rng.normal(0, 4, n)
+    )
+    X = np.column_stack([a, b]).astype(np.int64)
+    return ImpactSplitter(max_depth=1).fit(X, y), X, y
+
+
+def test_shadow_block_recovers_masked_driver():
+    from impact_split.ensemble import run_ensemble
+
+    model, X, _ = _masked_driver_data()
+    # sanity: reference tree only used feature a
+    assert all(0 in s["conditions"] and 1 not in s["conditions"]
+               for s in model.segments_ if s["conditions"])
+    report = run_ensemble(
+        model, n_replicates=10, shadow_replicates=30, feature_subsample=0.5,
+        match_threshold=0.5, shadow_min_stability=0.2, seed=13,
+    )
+    hits = [sh for sh in report["shadows"] if "f1" in sh["features"]]
+    assert hits, f"expected a shadow on feature f1, got {report['shadows']}"
+    assert hits[0]["block"] == "shadow"
+    assert hits[0]["mean_impact"] > 0
+
+
+def test_no_shadow_on_control_without_secondary_effect():
+    from impact_split.ensemble import run_ensemble
+
+    rng = np.random.default_rng(21)
+    n = 4000
+    a = rng.integers(0, 3, n)
+    b = rng.integers(0, 3, n)  # pure nuisance
+    y = np.where(a == 0, 100.0, 0.0) + rng.normal(0, 4, n)
+    X = np.column_stack([a, b]).astype(np.int64)
+    model = ImpactSplitter(max_depth=1).fit(X, y)
+    report = run_ensemble(
+        model, n_replicates=10, shadow_replicates=30, feature_subsample=0.5,
+        match_threshold=0.5, shadow_min_stability=0.2, seed=13,
+    )
+    assert not [sh for sh in report["shadows"] if "f1" in sh["features"]]
+
+
 def test_importance_ranks_planted_feature_first():
     from impact_split.ensemble import run_ensemble
 
