@@ -103,12 +103,24 @@ def plot_segments(
         figsize = (11.0, max(3.2, 0.62 * len(bars) + 1.8))
     fig, ax = plt.subplots(figsize=figsize)
 
+    ens = payload.get("ensemble")
+
+    def ens_stats(b: dict[str, Any]) -> dict[str, Any] | None:
+        if not ens or b.get("_rolled"):
+            return None
+        return ens["segments"].get(str(b.get("segment_id")))
+
     values = [float(b["total_sum"] or 0.0) for b in bars]
     extents = list(values)
     for b in bars:
         if b.get("is_churn"):
             extents.append(float(b["pos_sum"]))
             extents.append(-float(b["neg_sum"]))
+    for b in bars:
+        st = ens_stats(b)
+        if st and st["ci_low"] is not None:
+            extents.append(float(st["ci_low"]))
+            extents.append(float(st["ci_high"]))
     max_abs = max((abs(v) for v in extents), default=1.0) or 1.0
     pad = 0.015 * max_abs
     labels: list[str] = []
@@ -142,6 +154,17 @@ def plot_segments(
         note = f"n={b['n']:,}"
         if b["pool_share"] is not None:
             note += f" · {fmt_pct(b['pool_share'])} of {'Σy⁺' if value >= 0 else 'Σy⁻'}"
+        st = ens_stats(b)
+        if st:
+            note += f" · stab {fmt_pct(st['stability'])}"
+            if st["fragile"]:
+                note += " ⚠"
+            if st["ci_low"] is not None:
+                lo, hi = float(st["ci_low"]), float(st["ci_high"])
+                ax.plot([lo, hi], [y, y], color=_INK, linewidth=1.3, zorder=4)
+                for cx in (lo, hi):
+                    ax.plot([cx, cx], [y - 0.12, y + 0.12], color=_INK,
+                            linewidth=1.3, zorder=4)
         anchor = float(b["pos_sum"]) if is_churn else value
         offset = pad if (value >= 0 or is_churn) else -pad
         ha = "left" if (value >= 0 or is_churn) else "right"
@@ -198,6 +221,8 @@ def plot_segments(
     )
     if any(b.get("is_churn") for b in bars):
         footer += " · hatched band = churn segment's gross ±flows (band is not additive)"
+    if ens:
+        footer += " · black whisker = bootstrap 5–95% CI · stab = re-emergence rate (⚠ <50%)"
     fig.text(0.01, 0.01, footer, fontsize=7.5, color=_MUTED_TEXT)
     fig.tight_layout(rect=(0, 0.045, 1, 1))
     if show:
@@ -250,6 +275,7 @@ def plot_icicle(
     from matplotlib.patches import Rectangle
 
     meta = payload["meta"]
+    ens = payload.get("ensemble")
     rects = layout_icicle(payload)
     depth_max = max(r["depth"] for r in rects)
     if figsize is None:
@@ -297,6 +323,10 @@ def plot_icicle(
         else:
             value_line = fmt_num(node["total_sum"], sign=True)
         label = f"{node['condition']}\n{value_line}"
+        if ens and node["is_leaf"] and node.get("segment_id"):
+            st = ens["segments"].get(str(node["segment_id"]))
+            if st:
+                label += f"\n⟳{fmt_pct(st['stability'])}"
         longest = max(len(line) for line in label.split("\n"))
         if r["width"] * fig_width_px * 0.86 >= longest * 5.0 and r["width"] >= 0.03:
             ax.text(
