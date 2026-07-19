@@ -10,7 +10,7 @@ import pandas as pd
 import pytest
 
 from impact_split import ImpactSplitter
-from tests.test_viz_data import churn_mix_fitted, fitted
+from tests.test_viz_data import _fitted, churn_mix_fitted, fitted
 
 
 def test_plot_segments_requires_fit() -> None:
@@ -115,3 +115,19 @@ def test_plot_tree_churn_leaf_dashed_outline() -> None:
     ax = fig.axes[0]
     dashed = [p for p in ax.patches if p.get_linestyle() not in ("solid", "-")]
     assert dashed
+
+
+def test_tornado_draws_ci_whiskers_with_ensemble() -> None:
+    model, X, y = _fitted()
+    model.ensemble_report(X, y, n_replicates=12, shadow_replicates=0, seed=3)
+    fig = model.plot_segments(show=False)
+    texts = [t.get_text() for ax in fig.axes for t in ax.texts]
+    assert any("stab" in t for t in texts)
+
+
+def test_icicle_leaf_stability_with_ensemble() -> None:
+    model, X, y = _fitted()
+    model.ensemble_report(X, y, n_replicates=12, shadow_replicates=0, seed=3)
+    fig = model.plot_tree(show=False)
+    texts = [t.get_text() for ax in fig.axes for t in ax.texts]
+    assert any("⟳" in t for t in texts)

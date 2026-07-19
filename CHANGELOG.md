@@ -3,6 +3,46 @@
 All notable changes to this project are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning: [SemVer](https://semver.org/).
 
+## [0.3.0] - Unreleased
+
+### Added
+- **`ImpactSplitter.ensemble_report(X, y, ...)`** (new public method, populates
+  `model.ensemble_`): a Random-Forest-inspired forest of perturbed refits that
+  *annotates* the single fitted tree without ever replacing it — no prediction
+  averaging. Two blocks: row-bootstrap replicates give each segment a
+  **stability** score and a 5–95% bootstrap **CI** on Σy; feature-subsampled
+  replicates surface **shadow segments** — material regions that only appear
+  once dominant features are forced out. Shadow candidates must additionally
+  clear the same materiality + noise-floor sieve on the *full* data (a
+  root-sieve significance gate added as a spec amendment during Task 6, to
+  keep bootstrap-only noise from posing as a shadow finding). A third summary,
+  availability-weighted **ensemble feature importance**, is derived from the
+  same replicate pool. New module `impact_split/ensemble.py`.
+- Payload: `to_dict()` gains a single `"ensemble"` key carrying the report
+  (absent when no report has been run).
+- `summary()` gains stability/CI columns on the segment ledger and a shadow
+  drivers section.
+- `plot_segments()` and `plot_tree()` gain CI whiskers and stability
+  annotations.
+- `to_html()` gains stability/CI columns, CI whiskers, and Shadow drivers /
+  Ensemble importance sections.
+- `benchmarks/ensemble_filter.py` — offline diagnostic scoring stability-
+  filtered ledgers against the synthetic battery. Result: filtering made no
+  measurable difference (mean impact-F1 0.9836 → 0.9835, floor 0.8846 flat
+  across stability thresholds) — no default changed as a result.
+
+### Guarantees
+- Byte-identical `to_dict()` / `summary()` / plot output to v0.2.x when
+  `ensemble_report()` has not been run. `to_html()` renders identically (same
+  figures, same table) but is *not* byte-identical — the template now ships
+  inert ensemble CSS/JS, active only once a report is present.
+- `ensemble_report()` never averages predictions or alters the fitted tree —
+  it only measures and annotates.
+- Deterministic under a fixed `seed`.
+
+### Internal
+- `_TreeNode` gains `split_gain` (internal; feeds ensemble importance).
+
 ## [0.2.0] - Unreleased
 
 ### Added

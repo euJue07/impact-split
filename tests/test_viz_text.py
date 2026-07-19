@@ -5,7 +5,8 @@ import pandas as pd
 import pytest
 
 from impact_split import ImpactSplitter
-from tests.test_viz_data import churn_mix_fitted, fitted
+from impact_split.viz.text import render_summary
+from tests.test_viz_data import _fitted, churn_mix_fitted, fitted
 
 
 def test_summary_requires_fit() -> None:
@@ -47,6 +48,94 @@ def test_summary_flags_churn_segments() -> None:
     assert "gross ⇄" in text          # table column header
     assert " / -" in text             # gross column rendered for the churn row
     assert "offsetting mass" in text  # footnote
+
+
+def test_summary_unchanged_without_ensemble_and_annotated_with() -> None:
+    model, X, y = _fitted()
+    before = model.summary()
+    model.ensemble_report(X, y, n_replicates=12, shadow_replicates=0, seed=3)
+    after = model.summary()
+    assert "stability" in after and "stability" not in before
+    assert "Σy 5–95%" in after
+    # shadow section only when shadows exist
+    if model.ensemble_["shadows"]:
+        assert "Shadow drivers" in after
+
+
+def test_render_summary_ensemble_formatting_branches() -> None:
+    """Synthetic payload exercising every ensemble-annotation branch directly
+    (stable+CI, fragile+no-CI, missing-from-map, shadow section) without
+    depending on shadow_replicates>0 producing real shadows in a live run."""
+    model = fitted()
+    payload = model.to_dict()
+    seg_ids = [s["segment_id"] for s in payload["segments"]]
+    assert len(seg_ids) >= 3, "fixture must produce >=3 segments for this test"
+    s0, s1, s2 = seg_ids[0], seg_ids[1], seg_ids[2]
+
+    payload["ensemble"] = {
+        "config": {},
+        "segments": {
+            s0: {
+                "stability": 0.9,
+                "n_matched": 9,
+                "ci_low": 1.5,
+                "ci_high": 3.5,
+                "fragile": False,
+            },
+            s1: {
+                "stability": 0.3,
+                "n_matched": 3,
+                "ci_low": None,
+                "ci_high": None,
+                "fragile": True,
+            },
+            # s2 intentionally omitted -> exercises the "segment absent from
+            # the ensemble map" em-dash fallback branch.
+        },
+        "importance": [],
+        "shadows": [
+            {
+                "path": "shadow-test / synthetic=1",
+                "features": ["a", "b"],
+                "recurrence": 0.4,
+                "mean_impact": 123.0,
+                "n_members": 3,
+                "block": "shadow",
+            }
+        ],
+    }
+
+    text = render_summary(payload)
+    lines = text.splitlines()
+    header_idx = lines.index("Top segments by |impact|")
+    # header_idx+1 is the column-header row; data rows follow in payload order.
+    row_lines = lines[header_idx + 2 : header_idx + 2 + len(seg_ids)]
+
+    # s0: stable, real CI -> formatted stability + bracketed CI, no dagger.
+    row0 = row_lines[0]
+    assert "90.0%" in row0
+    assert "[+1.50, +3.50]" in row0
+    assert "†" not in row0
+    assert row0.count("—") == 0
+
+    # s1: fragile, no CI -> dagger marker + a single em-dash for the CI column.
+    row1 = row_lines[1]
+    assert "30.0% †" in row1
+    assert row1.count("—") == 1
+
+    # s2: absent from the ensemble map -> em-dash fallback in BOTH columns.
+    row2 = row_lines[2]
+    assert row2.count("—") == 2
+
+    # fragile footnote appears (only s1 is fragile).
+    assert " † fragile: segment re-emerged in <50% of bootstrap refits." in text
+
+    # shadow drivers section.
+    assert "Shadow drivers" in text
+    shadow_line = next(line for line in lines if "shadow-test / synthetic=1" in line)
+    assert "Σy≈+123.00" in shadow_line
+    assert "recurrence 40.0%" in shadow_line
+    assert "via a, b" in shadow_line
 
 
 def test_summary_without_churn_has_no_footnote() -> None:

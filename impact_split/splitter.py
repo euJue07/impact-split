@@ -152,6 +152,7 @@ class _TreeNode:
     feature_index: int | None = None
     routing: dict[str, list[int]] | None = None
     children: dict[str, _TreeNode] | None = None
+    split_gain: float | None = None
 
 
 @dataclass
@@ -211,6 +212,7 @@ class ImpactSplitter:
         self.category_maps_: tuple[np.ndarray, ...] | None = None
         self.numeric_bin_edges_: dict[int, np.ndarray] = {}
         self.segments_: list[dict[str, Any]] = []
+        self.ensemble_: dict[str, Any] | None = None
 
     def fit(
         self,
@@ -247,6 +249,7 @@ class ImpactSplitter:
         self._v_global_p = float(y_arr[y_arr > 0].sum())
         self._v_global_n = float(np.abs(y_arr[y_arr < 0]).sum())
         self._tree = None
+        self.ensemble_ = None
         self.fit_trace_ = []
         self._trace_enabled = trace
         self._node_counter = 0
@@ -636,6 +639,7 @@ class ImpactSplitter:
                 "neutral": best_neu_categories.tolist(),
             },
             children=children,
+            split_gain=float(best_decision.gain),
         )
 
     def _lookahead_rescue(
@@ -1012,6 +1016,57 @@ class ImpactSplitter:
         from impact_split.viz.data import build_payload
 
         return build_payload(self)
+
+    def ensemble_report(
+        self,
+        X: np.ndarray | pd.DataFrame,
+        y: np.ndarray | pd.Series,
+        *,
+        n_replicates: int = 100,
+        shadow_replicates: int = 50,
+        feature_subsample: float | None = 0.6,
+        match_threshold: float = 0.5,
+        shadow_min_stability: float = 0.2,
+        seed: int | None = None,
+    ) -> dict[str, Any]:
+        """Bootstrap/feature-subsample forest annotating this fitted tree.
+
+        Stability and CIs come from row-bootstrap refits only; the
+        feature-subsampled block exists to surface material regions the
+        greedy tree can't report (shadow segments). The forest reuses the
+        fit-time encoded matrix, so X/y must be the training data.
+        """
+        from impact_split.ensemble import run_ensemble
+
+        if self._tree is None or self._X is None or self._y is None:
+            raise RuntimeError("Call fit() before ensemble_report().")
+        if tuple(np.shape(X)) != self._X.shape or np.shape(y)[0] != self._y.shape[0]:
+            raise ValueError("ensemble_report expects the same X/y the model was fit on.")
+        if isinstance(n_replicates, bool) or not isinstance(n_replicates, int) or n_replicates < 1:
+            raise ValueError("n_replicates must be an integer >= 1.")
+        if (
+            isinstance(shadow_replicates, bool)
+            or not isinstance(shadow_replicates, int)
+            or shadow_replicates < 0
+        ):
+            raise ValueError("shadow_replicates must be an integer >= 0.")
+        if feature_subsample is not None and not (0.0 < feature_subsample <= 1.0):
+            raise ValueError("feature_subsample must be None or in (0, 1].")
+        if not (0.0 < match_threshold <= 1.0):
+            raise ValueError("match_threshold must be in (0, 1].")
+        if not (0.0 <= shadow_min_stability <= 1.0):
+            raise ValueError("shadow_min_stability must be in [0, 1].")
+
+        self.ensemble_ = run_ensemble(
+            self,
+            n_replicates=n_replicates,
+            shadow_replicates=shadow_replicates,
+            feature_subsample=feature_subsample,
+            match_threshold=match_threshold,
+            shadow_min_stability=shadow_min_stability,
+            seed=seed,
+        )
+        return self.ensemble_
 
     def summary(self, *, top: int = 10) -> str:
         """Designed text report: ledger header + top segments table (returns, never prints)."""

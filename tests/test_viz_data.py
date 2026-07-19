@@ -119,6 +119,40 @@ def churn_mix_fitted() -> ImpactSplitter:
     return ImpactSplitter().fit(X, y)
 
 
+def _fitted() -> tuple[ImpactSplitter, pd.DataFrame, pd.Series]:
+    """Helper that returns (model, X, y) for ensemble report tests."""
+    X, y = demo_frame()
+    return ImpactSplitter().fit(X, y), X, y
+
+
+def test_payload_has_no_ensemble_key_without_report() -> None:
+    model, X, y = _fitted()
+    payload = model.to_dict()
+    assert "ensemble" not in payload
+
+
+def test_payload_ensemble_keyed_by_segment_id() -> None:
+    model, X, y = _fitted()
+    model.ensemble_report(X, y, n_replicates=12, shadow_replicates=0, seed=3)
+    payload = model.to_dict()
+    ens = payload["ensemble"]
+    assert set(ens) == {"config", "segments", "importance", "shadows"}
+    assert set(ens["segments"]) == {s["segment_id"] for s in payload["segments"]}
+    # real re-keying check: each payload segment's stats must come from the
+    # ensemble_ entry of the SAME underlying segment (matched by path), not
+    # merely share a key namespace
+    stats_by_path = {
+        seg["path"]: model.ensemble_["segments"][i]
+        for i, seg in enumerate(model.segments_)
+    }
+    for seg in payload["segments"]:
+        st = ens["segments"][seg["segment_id"]]
+        expected = stats_by_path[seg["path"]]
+        assert st["stability"] == pytest.approx(expected["stability"])
+        assert st["n_matched"] == expected["n_matched"]
+    json.dumps(payload, allow_nan=False)  # payload stays JSON-safe end to end
+
+
 def test_payload_segment_gross_flows_and_churn() -> None:
     payload = churn_mix_fitted().to_dict()
     assert payload["meta"]["params"]["lookahead"] is True

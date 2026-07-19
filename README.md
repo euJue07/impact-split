@@ -303,6 +303,32 @@ If you want the motivation behind each formula (not just usage), read the Story 
 
 Pass `trace=True` or `verbose=True` to `fit()` to record one pre-order step per visited node in `model.fit_trace_` (`verbose` is an alias for `trace`; there is no extra logging). Each step includes raw and centered diagnostics (`delta_raw`, `delta_centered_excess`, `V_node`, `V_node_centered`), `routing_mode` (always `centered_excess`), per-category thresholds (`tau`, the max of the materiality and noise-floor bars), `delta_pct`, `s_node_p`, `s_node_n`, `total_sum`, global materiality ratios, per-feature candidate gains, category tables, `chosen_feature_index` when splitting, and `stop_reason` when a leaf is created (`materiality`, `max_depth`, `identical_rows`, or `no_split`). When `X` is a DataFrame, trace rows also include `chosen_feature_name`, `routing_labels`, and per-row `category_label` in category tables where applicable.
 
+## Ensemble annotations (v0.3.0)
+
+The single tree stays the answer; a Random-Forest-inspired forest of perturbed
+refits annotates it. `splitter.ensemble_report(X, y, seed=0)` fits two blocks —
+row-bootstrap replicates (segment **stability** and a 5–95% bootstrap **CI** on
+each segment's Σy) and feature-subsampled replicates (**shadow segments**:
+material regions that only appear when dominant features are forced out) — plus
+an availability-weighted **ensemble feature importance**. Annotations flow into
+`summary()`, `plot_segments()`, `plot_tree()`, and `to_html()` automatically;
+without a report, `to_dict()` / `summary()` / the plots are byte-identical to
+v0.2.x, and `to_html()` renders identically (the template gains inert
+ensemble CSS/JS that only activates once a report is present, so its bytes
+differ but the rendered output does not). No prediction averaging: the
+forest measures the ledger, it never replaces it.
+
+The segment CI is computed over the refits in which the segment re-emerged
+(matched replicates only), so it must be read jointly with stability — for
+fragile segments the band is conditioned on rediscovery and can understate
+uncertainty.
+
+```python
+model.fit(X, y)
+model.ensemble_report(X, y, seed=0)   # ~100 refits; O(replicates × fit cost)
+print(model.summary())                 # stability + CI columns, shadow drivers
+```
+
 ## Assumptions and Limitations
 
 - `fit(X, y)` accepts:
