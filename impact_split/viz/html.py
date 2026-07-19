@@ -90,6 +90,8 @@ h2 { font-size:15px; margin:34px 0 4px; }
 .tband { position:absolute; top:1px; height:14px; border:1px dashed #949494;
          border-radius:4px; background:repeating-linear-gradient(45deg, transparent,
          transparent 3px, rgba(148,148,148,0.35) 3px, rgba(148,148,148,0.35) 6px); }
+.twhisk { position:absolute; top:7.25px; height:1.5px; background:#1a1a17; }
+.twhisk-cap { position:absolute; top:4px; width:1.5px; height:8px; background:#1a1a17; }
 .churn-mark { color:var(--muted); font-weight:600; }
 .tval { font-variant-numeric:tabular-nums; font-size:12px; font-weight:600; text-align:right; }
 .tnote { color:var(--muted); font-size:11px; }
@@ -143,6 +145,7 @@ DATA.tree.forEach(function (n) {
 });
 var ROOT = DATA.tree[0];
 var segById = {}; DATA.segments.forEach(function (s) { segById[s.segment_id] = s; });
+var ens = DATA.ensemble || null;
 
 function esc(s) {
   return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;")
@@ -341,6 +344,12 @@ function renderTornado() {
   rows.forEach(function (r) {
     lo = Math.min(lo, r.v); hi = Math.max(hi, r.v);
     if (r.churn) { lo = Math.min(lo, -r.neg); hi = Math.max(hi, r.pos); }
+    if (ens && r.seg) {
+      var stDom = ens.segments[r.seg];
+      if (stDom && stDom.ci_low !== null) {
+        lo = Math.min(lo, stDom.ci_low); hi = Math.max(hi, stDom.ci_high);
+      }
+    }
   });
   var range = (hi - lo) || 1;
   var zeroPct = (0 - lo) / range * 100;
@@ -360,11 +369,24 @@ function renderTornado() {
     if (r.churn) {
       note += " · gross +" + fmtMag(r.pos) + "/−" + fmtMag(r.neg);
     }
+    var whisker = "";
+    if (ens && r.seg) {
+      var st = ens.segments[r.seg];
+      if (st && st.ci_low !== null) {
+        var wLeft = (st.ci_low - lo) / range * 100;
+        var wRight = (st.ci_high - lo) / range * 100;
+        whisker = '<div class="twhisk" style="left:' + wLeft + "%;width:" +
+          (wRight - wLeft) + '%"></div>' +
+          '<div class="twhisk-cap" style="left:' + wLeft + '%"></div>' +
+          '<div class="twhisk-cap" style="left:' + wRight + '%"></div>';
+        note += " · CI [" + fmt(st.ci_low) + ", " + fmt(st.ci_high) + "]";
+      }
+    }
     out += '<div class="trow"' + (r.seg ? ' data-seg="' + r.seg + '"' : "") + ">" +
       '<div class="tpath" title="' + esc(r.path) + '">' + esc(r.path) + "</div>" +
       '<div class="ttrack"><div class="tzero" style="left:' + zeroPct + '%"></div>' + band +
       '<div class="tbar ' + cls + '" style="left:' + leftPct + "%;width:" + widthPct +
-      '%"></div></div>' +
+      '%"></div>' + whisker + '</div>' +
       '<div class="tval">' + (r.churn ? "net " : "") + fmt(r.v) + "</div>" +
       '<div class="tnote">' + note + "</div></div>";
   });
@@ -390,11 +412,12 @@ var COLS = [
 function renderTable() {
   var thead = document.querySelector("#segtable thead");
   var tbody = document.querySelector("#segtable tbody");
+  var ensHead = ens ? "<th>stability</th><th>Σy 5–95%</th>" : "";
   thead.innerHTML = "<tr>" + COLS.map(function (c) {
     var mark = c[1] === sortKey ? (sortDir > 0 ? " ▲" : " ▼") : "";
     return '<th class="' + (c[1] === "path" ? "path" : "") + '" data-key="' + c[1] + '">' +
       esc(c[0]) + mark + "</th>";
-  }).join("") + "</tr>";
+  }).join("") + ensHead + "</tr>";
   var rows = tableRows.slice().sort(function (a, b) {
     var av = a[sortKey], bv = b[sortKey];
     if (av == null) return 1;
@@ -405,6 +428,14 @@ function renderTable() {
   tbody.innerHTML = rows.map(function (r) {
     var chip = '<span class="chip" style="background:' +
       (r.total_sum >= 0 ? "var(--pos)" : "var(--neg)") + '"></span>';
+    var ensCells = "";
+    if (ens) {
+      var st = ens.segments[r.seg];
+      var stab = st ? pct(st.stability) + (st.fragile ? " †" : "") : "—";
+      var ci = st && st.ci_low !== null
+        ? "[" + fmt(st.ci_low) + ", " + fmt(st.ci_high) + "]" : "—";
+      ensCells = "<td>" + esc(stab) + "</td><td>" + esc(ci) + "</td>";
+    }
     return '<tr data-seg="' + r.seg + '">' +
       "<td>" + r.rank + "</td>" +
       '<td class="path">' + chip +
@@ -417,7 +448,7 @@ function renderTable() {
       "<td>" + fmt(r.mean) + "</td>" +
       "<td>" + (r.pool_share != null
         ? pct(r.pool_share) + " of " + (r.total_sum >= 0 ? "Σy⁺" : "Σy⁻") : "—") + "</td>" +
-      "<td>" + r.leaves + "</td></tr>";
+      "<td>" + r.leaves + "</td>" + ensCells + "</tr>";
   }).join("");
   thead.querySelectorAll("th").forEach(function (th) {
     th.addEventListener("click", function () {
@@ -431,10 +462,54 @@ function renderTable() {
   });
 }
 
+function renderEnsembleExtras() {
+  if (!ens) return;
+  var out = "";
+  var anyFragile = Object.keys(ens.segments).some(function (k) {
+    return ens.segments[k].fragile;
+  });
+  if (anyFragile) {
+    out += '<p class="hint">† fragile: segment re-emerged in less than 50% of ' +
+      "bootstrap refits.</p>";
+  }
+  if (ens.shadows.length) {
+    out += "<h2>Shadow drivers</h2>" +
+      '<p class="hint">material regions the main tree does not report — found by ' +
+      "feature-subsampled refits</p>" +
+      '<table><thead><tr><th class="path">path</th><th>Σy</th><th>recurrence</th>' +
+      '<th class="path">features</th><th class="path">block</th></tr></thead><tbody>' +
+      ens.shadows.map(function (sh) {
+        return "<tr>" +
+          '<td class="path">' + esc(sh.path) + "</td>" +
+          "<td>" + fmt(sh.mean_impact) + "</td>" +
+          "<td>" + pct(sh.recurrence) + "</td>" +
+          '<td class="path">' + esc(sh.features.join(", ")) + "</td>" +
+          '<td class="path">' + esc(sh.block) + "</td></tr>";
+      }).join("") +
+      "</tbody></table>";
+  }
+  if (ens.importance.length) {
+    out += "<h2>Ensemble importance</h2>" +
+      '<table><thead><tr><th class="path">feature</th><th>importance</th>' +
+      "<th>n_trees</th></tr></thead><tbody>" +
+      ens.importance.map(function (r) {
+        return "<tr>" +
+          '<td class="path">' + esc(r.feature) + "</td>" +
+          "<td>" + r.importance.toFixed(4) + "</td>" +
+          "<td>" + r.n_trees.toLocaleString("en-US") + "</td></tr>";
+      }).join("") +
+      "</tbody></table>";
+  }
+  if (out) {
+    document.getElementById("tooltip").insertAdjacentHTML("beforebegin", out);
+  }
+}
+
 renderIcicle();
 renderBreadcrumb();
 renderTornado();
 renderTable();
+renderEnsembleExtras();
 </script>
 </body>
 </html>

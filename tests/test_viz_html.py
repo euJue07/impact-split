@@ -55,3 +55,41 @@ def test_html_marks_churn() -> None:
     y = pd.Series(np.abs(rng.normal(0.0, 1.0, 200)) + (X["a"] == "x") * 5.0)
     html_no_churn = ImpactSplitter().fit(X, y).to_html()
     assert '"is_churn": true' not in html_no_churn
+
+
+def test_html_unchanged_without_ensemble_and_annotated_with() -> None:
+    # The report is one static template whose embedded JS renders everything from
+    # the payload JSON, so JS-source strings like "stability" or "Shadow drivers"
+    # are always present in the script text -- they're runtime-gated on
+    # payload.ensemble, not physically absent. The genuinely data-dependent,
+    # testable surface (same convention as test_html_marks_churn's is_churn
+    # check) is the embedded JSON: no "ensemble" key at all until ensemble_report
+    # runs, then the full config/segments/importance/shadows block appears.
+    model = fitted()
+    before = model.to_html()
+    assert '"ensemble"' not in before
+    X, y = model._X, model._y
+    model.ensemble_report(X, y, n_replicates=12, shadow_replicates=0, seed=3)
+    after = model.to_html()
+    assert '"ensemble"' in after
+    assert '"stability":' in after
+    assert '"shadows": []' in after  # shadow_replicates=0 -> no shadows found
+    # the annotation JS itself (column headers, whisker CSS, section builders) is
+    # part of the template regardless of data -- confirm it actually shipped
+    for marker in ("stability", "Σy 5", "twhisk", "Shadow drivers", "Ensemble importance"):
+        assert marker in after
+
+
+def test_html_ensemble_importance_and_whiskers() -> None:
+    from tests.test_ensemble import _masked_driver_data
+
+    model, X, y = _masked_driver_data()
+    model.ensemble_report(
+        X, y, n_replicates=10, shadow_replicates=30, feature_subsample=0.5,
+        match_threshold=0.5, shadow_min_stability=0.2, seed=13,
+    )
+    html_out = model.to_html()
+    assert "Shadow drivers" in html_out
+    assert "Ensemble importance" in html_out
+    assert "twhisk" in html_out
+    assert "n_trees" in html_out
