@@ -254,3 +254,29 @@ mechanisms bound any locally-computable improvement. Per the pre-registered exit
 these three cases close as **explained and accepted**; everything else
 meets the bar (48/51 dataset-seeds >= 0.85, mean +0.003 over cycle 3, segments
 -26%, CART beaten on both suites).
+
+---
+
+# Loop 3 — shadow-ceiling Phase 0 (2026-07-19)
+
+**Hypothesis.** promoting shadow segments into the scored findings can beat the published battery status quo 0.9836/0.8846.
+
+**Sweep configuration** (6 configs × 24 datasets × ~100–150 replicates each; fs = fragment-shadow threshold, reps = shadow replicate count):
+
+```
+fs    reps  part_mean  all_mean  all_floor  lowJ_mean  lowJ_floor   d_mean   d_floor  shadows  used  gate
+0.4     50  0.9836     0.9727    0.8447     0.9727     0.8447    -0.0109  -0.0399      212     2  -
+0.4    100  0.9836     0.9727    0.8447     0.9727     0.8447    -0.0109  -0.0399      203     2  -
+0.6     50  0.9836     0.9799    0.8846     0.9799     0.8846    -0.0037  -0.0000      218     2  -
+0.6    100  0.9836     0.9788    0.8846     0.9788     0.8846    -0.0048  -0.0000      216     2  -
+0.8     50  0.9836     0.9836    0.8846     0.9836     0.8846    +0.0000  -0.0000      129     1  -
+0.8    100  0.9836     0.9836    0.8846     0.9836     0.8846    +0.0000  -0.0000      129     1  -
+```
+
+Gate: pre-registered pass threshold = mean +0.003 on low-overlap score OR floor +0.010 on low-overlap score, null clean.
+
+**Outcome.** No config passed the gate. All low-overlap mean deltas are ≤ −0.0037 (below threshold). Floor meets baseline only at fs=0.6/0.8 (delta 0.0000), falling short on fs=0.4 (delta −0.0399). Sanity check: every part_mean = 0.9836 exactly (matches published baseline). Null-case integrity: clean across all 6 configs (no NULL-FAIL flags).
+
+**Per-case observation.** On the floor case (noise_2x), the best config (fs=0.8 reps=50) surfaced 7–10 shadows across seeds but the greedy union used none — the loss remains statistical dilution within the broad segments, not a masking failure. The union found all high-precision rules; raising the shadow promotion bar cannot recover the collapsed F1.
+
+**Verdict.** shadow promotion cannot beat the status quo on this battery — Phase 1 not pursued.
