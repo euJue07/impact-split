@@ -5,7 +5,7 @@ site is **not yet hosted** — build and preview it locally with the steps below
 Once deployed it will live at
 [https://eujue07.github.io/impact-split/](https://eujue07.github.io/impact-split/).
 
-Sources live in [`docs/docs/`](docs/docs/) with configuration in [`mkdocs.yml`](mkdocs.yml).
+Sources live in [`docs/docs/`](docs/) with configuration in [`mkdocs.yml`](mkdocs.yml).
 
 ## Prerequisites
 
