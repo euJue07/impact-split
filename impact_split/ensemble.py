@@ -8,6 +8,8 @@ are forced out (shadow segments). No prediction averaging — ever.
 
 from __future__ import annotations
 
+from typing import Any
+
 import numpy as np
 
 # A ledger segment is fragile when it re-emerges in fewer than half the
@@ -75,3 +77,35 @@ def greedy_match(
         used_rep.add(j)
         out.append((i, j, jac))
     return out
+
+
+def _clone_params(model: Any) -> dict[str, Any]:
+    """Extract constructor parameters from a fitted ImpactSplitter."""
+    return {
+        "delta_pct": model.delta_pct,
+        "min_global_impact_pct": model.min_global_impact_pct,
+        "max_depth": model.max_depth,
+        "noise_z": model.noise_z,
+        "consolidate": model.consolidate,
+        "lookahead": model.lookahead,
+        "numeric_binning_strategy": model.numeric_binning_strategy,
+        "numeric_n_bins": model.numeric_n_bins,
+    }
+
+
+def fit_replicate(
+    model: Any, rng: np.random.Generator, cols: np.ndarray
+) -> Any:
+    """Fit one perturbed refit: bootstrap rows of the parent's pre-encoded matrix.
+
+    Binning/encoding happened once at parent fit time, so replicates share the
+    parent's code space — their masks and conditions are directly comparable.
+    """
+    from impact_split.splitter import ImpactSplitter
+
+    assert model._X is not None and model._y is not None
+    n = model._X.shape[0]
+    idx = rng.integers(0, n, size=n)
+    rep = ImpactSplitter(**_clone_params(model))
+    rep.fit(model._X[idx][:, cols], model._y[idx])
+    return rep
