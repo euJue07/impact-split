@@ -152,6 +152,7 @@ class _TreeNode:
     feature_index: int | None = None
     routing: dict[str, list[int]] | None = None
     children: dict[str, _TreeNode] | None = None
+    split_gain: float | None = None
 
 
 @dataclass
@@ -636,6 +637,7 @@ class ImpactSplitter:
                 "neutral": best_neu_categories.tolist(),
             },
             children=children,
+            split_gain=float(best_decision.gain),
         )
 
     def _lookahead_rescue(

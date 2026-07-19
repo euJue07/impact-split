@@ -283,3 +283,20 @@ def test_dataframe_fit_stores_maps_and_paths_use_column_names() -> None:
     assert cat_row["category_label"] == "East"
 
 
+def test_internal_nodes_store_split_gain():
+    rng = np.random.default_rng(3)
+    n = 1200
+    a = rng.integers(0, 3, n)
+    y = np.where(a == 0, 80.0, 0.0) + rng.normal(0, 2, n)
+    X = a.reshape(-1, 1).astype(np.int64)
+    model = ImpactSplitter().fit(X, y)
+
+    def walk(node):
+        if node.is_leaf or not node.children:
+            assert node.split_gain is None
+            return
+        assert node.split_gain is not None and node.split_gain > 0
+        for ch in node.children.values():
+            walk(ch)
+
+    walk(model._tree)
