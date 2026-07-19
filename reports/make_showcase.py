@@ -16,17 +16,38 @@ Planted rules (ground truth, used only to make the demo legible — the fit
 sees the outcome column alone):
   * region=West & channel=Online   -> +55 per row
   * segment=Enterprise             -> -35 per row
+  * tenure_months                  -> no planted effect (see below)
   * everything else                -> mean 0, noise sigma 18
 
-Two DGP knobs were tuned away from the first draft after inspecting real
+``tenure_months`` is the demo's only numeric (float) column and its only
+genuinely non-driver feature: it is drawn independently of ``y`` on purpose
+(see ``build_demo`` for why it is drawn *after* ``y``), and it never clears
+the per-node noise floor at any point in the tree — confirmed against
+``fit(..., trace=True)``'s ``fit_trace_``, its feature index never even
+enters a node's ``candidate_gains``. So none of the six reported segments
+mention it: this is the tree *correctly and completely ignoring* an
+irrelevant numeric column, not a hand-tuned absence. It also exercises the
+one code path the other three categorical columns cannot: float-column
+binning (``numeric_binning_strategy`` / ``numeric_n_bins`` ->
+``model.numeric_bin_edges_``, all documented in the README) still runs at
+fit time and still populates ``numeric_bin_edges_``, even though no segment
+path ends up naming the column.
+
+Three DGP knobs were tuned away from the first draft after inspecting real
 output (as Step 6 of the plan requires): effect sizes were raised from an
 initial 40/-25 (with sigma 30) to 55/-35 (with sigma 18) because the weaker
 draft buried the true drivers under sampling noise — 5 of 6 reported
-segments came back flagged as noise churn, including the top one. A
-``tenure_months`` numeric column was tried and dropped: it carries no
-planted effect, so its only visible effect was a spurious micro-split
-("tenure_months=12 (+50 more)" on 7 rows) that added clutter without adding
-narrative value.
+segments came back flagged as noise churn, including the top one. Separately,
+an earlier attempt at ``tenure_months`` used ``rng.integers(...)`` with no
+cast (an integer-dtype column, which is *not* a float dtype) — it was
+silently factorized as ~59 individual categories instead of binned,
+producing an unreadable "tenure_months=1, 2, 3, ... (+50 more)" branch
+label on a material segment. Casting it to float routes it through the real
+binning path instead, and the showcase model additionally sets
+``numeric_n_bins=4`` (below the library's default of 10) so that even if a
+future re-tune of the effect sizes above did cause a node to split on
+tenure, the label would stay a small number of coarse, quantile-width
+ranges rather than an unreadable list.
 
 Usage:  python reports/make_showcase.py
 """
@@ -53,10 +74,15 @@ N_ROWS = 6_000
 NOISE_SIGMA = 18.0
 WEST_ONLINE_EFFECT = 55.0
 ENTERPRISE_EFFECT = -35.0
+# Coarser than the library default (10) so that any node the tree does split
+# on tenure shows a small number of readable, quantile-width ranges instead
+# of a long branch-value list. tenure_months carries no planted effect (see
+# the module docstring), so this only affects label readability, not signal.
+NUMERIC_N_BINS = 4
 
 
 def build_demo() -> tuple[pd.DataFrame, np.ndarray]:
-    """A synthetic profit book with two planted drivers and no interaction between them.
+    """A synthetic profit book with two planted drivers and one non-driver numeric column.
 
     See the module docstring for the planted rules and why this demo does not
     reuse ``benchmarks.dgp.case_baseline``.
@@ -74,12 +100,17 @@ def build_demo() -> tuple[pd.DataFrame, np.ndarray]:
         (frame["region"] == "West") & (frame["channel"] == "Online"), WEST_ONLINE_EFFECT, 0.0
     )
     y += np.where(frame["segment"] == "Enterprise", ENTERPRISE_EFFECT, 0.0)
+    # Drawn last, after y, so this non-driver column cannot perturb the noise
+    # realization above. Float dtype is load-bearing: it is what routes this
+    # column through numeric binning (numeric_binning_strategy / numeric_n_bins)
+    # instead of being factorized as one category per distinct month.
+    frame["tenure_months"] = rng.integers(1, 60, N_ROWS).astype(float)
     return frame, y
 
 
 def _fitted() -> ImpactSplitter:
     frame, y = build_demo()
-    return ImpactSplitter().fit(frame, y)
+    return ImpactSplitter(numeric_n_bins=NUMERIC_N_BINS).fit(frame, y)
 
 
 def render_summary_text() -> str:
@@ -111,7 +142,7 @@ def render_segments_markdown() -> str:
 
 def render_ensemble_text() -> str:
     frame, y = build_demo()
-    model = ImpactSplitter().fit(frame, y)
+    model = ImpactSplitter(numeric_n_bins=NUMERIC_N_BINS).fit(frame, y)
     model.ensemble_report(frame, y, seed=SEED)
     return model.summary()
 

@@ -1,6 +1,6 @@
 ImpactSplitter — fit summary
 ============================
-rows 6,000 · features 3 · params delta_pct=0.01 noise_z=3.0 max_depth=5 consolidate=True lookahead=True
+rows 6,000 · features 4 · params delta_pct=0.01 noise_z=3.0 max_depth=5 consolidate=True lookahead=True
 total Σy -40,431   (Σy⁺ 50,521 · Σy⁻ -90,952)
 tree      11 nodes · 6 leaves · depth 3 (interaction order 3)
 segments  6 · 2 churn ⇄ · conservation exact ✓
