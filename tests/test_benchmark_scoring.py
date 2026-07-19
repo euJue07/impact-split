@@ -70,3 +70,35 @@ def test_ensemble_filter_scores_one_case():
     rows = score_case_at_taus(ds, n_replicates=5, seed=0)
     assert set(rows) == {0.0, 0.3, 0.5, 0.7}
     assert all(0.0 <= v <= 1.0 for v in rows.values())
+
+
+def test_ceiling_cell_deterministic_and_scores_shadows():
+    import math
+
+    from benchmarks.dgp import case_baseline
+    from benchmarks.shadow_ceiling import ceiling_cell
+
+    kw = dict(feature_subsample=0.5, shadow_replicates=8, n_replicates=8, seed=42)
+    a = ceiling_cell(case_baseline(42), **kw)
+    b = ceiling_cell(case_baseline(42), **kw)
+    assert a == b
+    assert not math.isnan(a.f1_all)
+    assert a.f1_partition > 0
+    # adding candidates can never hurt a greedy accept-if-improves union
+    assert a.f1_all >= a.f1_partition - 1e-12
+    assert a.f1_low_overlap >= a.f1_partition - 1e-12
+    assert a.null_clean is None
+
+
+def test_ceiling_cell_null_case_reports_guardrail():
+    import math
+
+    from benchmarks.dgp import case_null
+    from benchmarks.shadow_ceiling import ceiling_cell
+
+    cell = ceiling_cell(
+        case_null(42), feature_subsample=0.5, shadow_replicates=8,
+        n_replicates=8, seed=42,
+    )
+    assert cell.null_clean is not None
+    assert math.isnan(cell.f1_all) and math.isnan(cell.f1_low_overlap)
