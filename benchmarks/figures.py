@@ -125,7 +125,9 @@ def plot_vs_cart(outdir: Path = FIGURES_DIR) -> Path:
     ax.set_yticklabels([c.replace("kaggle_", "") for c in cases], fontsize=8)
     ax.set_xlim(0, 1.08)
     ax.set_xlabel("impact-weighted F1 (mean over 3 seeds)", fontsize=8, color=_MUTED_TEXT)
-    ax.legend(frameon=False, fontsize=8, loc="lower right")
+    # Anchored outside the axes (top-right margin) so it never sits on top of a
+    # bar — every row, including the noise_2x loss, must stay fully visible.
+    ax.legend(frameon=False, fontsize=8, loc="upper left", bbox_to_anchor=(1.005, 1.0))
     _style(ax)
     ax.set_title(
         "Planted-rule recovery vs CART — one fixed configuration, no per-dataset tuning",
@@ -161,8 +163,11 @@ def plot_distribution(outdir: Path = FIGURES_DIR) -> Path:
         color=[POSITIVE_COLOR if s >= FLOOR_BAR else NEGATIVE_COLOR for s in scores],
     )
     ax.axhline(FLOOR_BAR, color=NEGATIVE_COLOR, linewidth=1.1, linestyle="--", zorder=2)
+    # Placed past the ascending elbow (all points here are >=0.95, well clear of
+    # the floor line) instead of at the crowded left edge, where the label used
+    # to render through the x=3 point (score ~0.861).
     ax.text(
-        0.4,
+        20,
         FLOOR_BAR + 0.006,
         f"pre-registered floor bar {FLOOR_BAR:.2f}",
         fontsize=7.5,
