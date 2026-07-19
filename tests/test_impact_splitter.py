@@ -300,3 +300,36 @@ def test_internal_nodes_store_split_gain():
             walk(ch)
 
     walk(model._tree)
+
+
+def _small_fit():
+    rng = np.random.default_rng(1)
+    n = 800
+    a = rng.integers(0, 3, n)
+    y = np.where(a == 0, 50.0, 0.0) + rng.normal(0, 2, n)
+    X = a.reshape(-1, 1).astype(np.int64)
+    return ImpactSplitter().fit(X, y), X, y
+
+
+def test_ensemble_report_requires_fit_and_matching_data():
+    model, X, y = _small_fit()
+    with pytest.raises(RuntimeError):
+        ImpactSplitter().ensemble_report(X, y, n_replicates=2)
+    with pytest.raises(ValueError):
+        model.ensemble_report(X[:100], y[:100], n_replicates=2)
+    with pytest.raises(ValueError):
+        model.ensemble_report(X, y, n_replicates=0)
+    with pytest.raises(ValueError):
+        model.ensemble_report(X, y, n_replicates=2, match_threshold=0.0)
+    with pytest.raises(ValueError):
+        model.ensemble_report(X, y, n_replicates=2, feature_subsample=1.5)
+
+
+def test_ensemble_report_stores_and_fit_resets():
+    model, X, y = _small_fit()
+    report = model.ensemble_report(X, y, n_replicates=3, shadow_replicates=0, seed=0)
+    assert model.ensemble_ is report
+    # single-feature data: shadow block silently disabled
+    assert model.ensemble_["config"]["shadow_replicates"] == 0
+    model.fit(X, y)
+    assert model.ensemble_ is None
