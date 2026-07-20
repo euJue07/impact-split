@@ -164,15 +164,20 @@ $\varepsilon_i = y_i - \bar{y}_{node}$. Then
 D_{cat} = \sum_{i \in cat} \varepsilon_i
 ```
 
-is a **sum** of $n_{cat}$ residuals, not an average. Under the null, assume the
-residuals are (i) mean-zero, (ii) mutually independent within the category, and
-(iii) share a common finite variance $\sigma^2$. Then
+is a **sum** of $n_{cat}$ residuals, not an average.
+
+**Proposition 3.1 (null scale of a category sum).** Assume, under the null of
+no category effect: **(A2)** $\mathbb{E}[\varepsilon_i] = 0$; **(A3)** the
+$\varepsilon_i$ are mutually independent within the category; **(A4)**
+$\mathrm{Var}(\varepsilon_i) = \sigma^2 < \infty$, common across rows. Then
 
 ```math
 \mathrm{Var}(D_{cat}) = \sum_{i \in cat}\mathrm{Var}(\varepsilon_i) = n_{cat}\,\sigma^2
 \qquad\Longrightarrow\qquad
-\mathrm{SD}(D_{cat}) = \sigma\sqrt{n_{cat}}
+\mathrm{SD}(D_{cat}) = \sigma\sqrt{n_{cat}}.
 ```
+
+*Proof.* Variance of a sum of independent terms is the sum of variances. ∎
 
 So the natural scale of a *do-nothing* category grows like $\sqrt{n_{cat}}$. A
 fixed threshold would be wrong in both directions: too permissive for large
@@ -205,6 +210,8 @@ $\bar{y}_{node}$ is the node's own sample mean, $D_{cat}$ can be written as a
 linear form in the node's rows with weight $1 - n_{cat}/n_{node}$ inside the
 category and $-n_{cat}/n_{node}$ outside it. For i.i.d. rows this gives
 
+**Proposition 3.2 (exact null variance under mean estimation).**
+
 ```math
 \mathrm{Var}(D_{cat}) = n_{cat}\,\sigma^2\Big(1 - \tfrac{n_{cat}}{n_{node}}\Big)
 ```
@@ -216,6 +223,22 @@ and unbounded as $n_{cat} \to n_{node}$. The direction is conservative — the b
 is too high, never too low — but "slight" is the wrong word for a category that
 dominates its node, and this is worth knowing when reading a near-miss at a
 node with few categories.
+
+> **Exact form (not implemented).** The shipped significance bar uses
+> $\hat{\sigma}_f\sqrt{n_{cat}}$; Proposition 3.2 says the exact null standard
+> deviation is
+>
+> ```math
+> \mathrm{SD}(D_{cat}) = \sigma\sqrt{n_{cat}\Big(1 - \tfrac{n_{cat}}{n_{node}}\Big)}
+> ```
+>
+> — the same $(1-f)$ finite-population correction that appears in the variance
+> of a sample mean under simple random sampling without replacement (Cochran
+> 1977), with $f = n_{cat}/n_{node}$ the category's share of its node. An
+> algorithm pass that adopts it would multiply the shipped bar by
+> $\sqrt{1-f}$, tightening it most exactly where the current bar is most
+> conservative: categories that dominate their node. Nothing else in the sieve
+> changes.
 
 ### 3.2 The robust scale $\hat{\sigma}_f = 1.4826 \cdot \mathrm{MAD}$
 
@@ -240,15 +263,22 @@ estimator of $\sigma$ **for Gaussian noise** — for $\varepsilon \sim
 \mathcal{N}(0,\sigma^2)$ the population MAD is exactly $\sigma\Phi^{-1}(0.75)
 \approx 0.6745\sigma$, and the sample MAD converges to it in probability,
 $\mathrm{MAD}_n \xrightarrow{\;p\;} 0.6745\sigma$, so dividing by that constant
-gives back $\sigma$ in the limit. (Consistency is the right claim here, not
-unbiasedness: at finite $n$, $\mathbb{E}[\mathrm{MAD}_n]$ is not exactly the
-population value.) The MAD is
-chosen over the sample standard deviation because it has a breakdown point of
-50%: on a KPI where a handful of rows carry outsized values — which is the norm
-for revenue and claims — a few extremes would inflate an SD-based bar enough to
-suppress every real finding. The price is honest to state: under non-Gaussian
+gives back $\sigma$ in the limit (Rousseeuw & Croux 1993). (Consistency is the
+right claim here, not unbiasedness: at finite $n$, $\mathbb{E}[\mathrm{MAD}_n]$
+is not exactly the population value.) The MAD is chosen over the sample
+standard deviation because it has a breakdown point of 50% (Hampel 1974;
+Huber 1981): on a KPI where a handful of rows carry outsized values — which is
+the norm for revenue and claims — a few extremes would inflate an SD-based bar
+enough to suppress every real finding. The price is honest to state: under non-Gaussian
 noise the 1.4826 calibration no longer holds exactly, so `noise_z=3.0` is "three
 robust scale units", not a certified 3-sigma Gaussian tail probability.
+
+The MAD's known cost is efficiency: at the Gaussian its asymptotic relative
+efficiency is only about 37%, and Rousseeuw & Croux (1993) construct
+higher-efficiency robust scales ($S_n$, $Q_n$) with the same 50% breakdown.
+Those are the natural upgrades if the significance bar ever proves too noisy
+at small $n$; the library ships the MAD for its simplicity and its
+zero-configuration robustness, not because it is optimal.
 
 Two edge cases follow directly from the definition and are visible in the code
 path. If more than half the residuals are identical, $\mathrm{MAD} = 0$, the
@@ -266,10 +296,17 @@ The two bars encode two **separately necessary** conditions:
 - *significance* — the effect must be big enough that noise alone would not
   produce it.
 
-A finding that fails either one should not be routed. For two necessary
-thresholds on the same quantity, the admissible region is the intersection
-$\{D > a\} \cap \{D > b\} = \{D > \max(a,b)\}$ — so `max()` *is* the conjunction,
-not an approximation of it. Whichever bar is binding at that node does the work:
+A finding that fails either one should not be routed. Formally this is an
+**intersection–union test** (Berger 1982): the null hypothesis is a *union* —
+"the effect is immaterial **or** it is within noise" — and the alternative is
+the *intersection* of "material" and "significant". Berger's result is that if
+each component condition is tested at level $\alpha$, the rule *reject only if
+every component rejects* has level at most $\alpha$ overall — an IUT needs
+**no** multiplicity correction, unlike the union-of-rejections situation in
+§4. For two one-sided thresholds on the same statistic the intersection is
+$\{D > a\} \cap \{D > b\} = \{D > \max(a,b)\}$ — so `max()` *is* the
+conjunction, not an approximation of it, and inherits the component level.
+Whichever bar is binding at that node does the work:
 in a large shallow node the materiality bar dominates; in a deep, small node 1%
 of a small excess volume falls below the noise band and the significance bar
 takes over, which is what stops deep fragmentation.
