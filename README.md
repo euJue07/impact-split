@@ -121,7 +121,7 @@ Dividing by the per-branch category count `k` is what stops a high-cardinality f
 
 After fitting, [post-fit consolidation](docs/docs/math.md#7-consolidation) merges terminal segments that differ on one feature's category set and are statistically indistinguishable, so a single coherent segment is not reported as dozens of identical fragments.
 
-**Derived vs. tuned.** The *forms* above — the `√n` null band, the `1/k` penalty, the `√(2 ln K)` multiplicity correction, the robust MAD scale, the pooled-scale merge test — follow from stated assumptions. The *levels* (`delta_pct=0.01`, `min_global_impact_pct=0.01`, `max_depth=5`, `noise_z=3.0`) were fixed empirically by benchmark loops, not derived, and [the math page says so plainly](docs/docs/math.md#9-the-constants-that-were-not-derived). One fixed configuration is used for every dataset — no per-dataset tuning.
+**Derived vs. tuned.** The *forms* above — the `√n` null band, the `1/k` penalty, the `√(2 ln K)` multiplicity correction, the robust MAD scale, the pooled-scale merge test — follow from stated assumptions. The *levels* are not derived: `delta_pct=0.01`, `min_global_impact_pct=0.01`, and `max_depth=5` were fixed empirically by benchmark loops, while `noise_z=3.0` is a conventional significance default rather than a calibrated value — [the math page draws this line explicitly](docs/docs/math.md#9-the-constants-that-were-not-derived). One fixed configuration is used for every dataset — no per-dataset tuning.
 
 ## What is guaranteed
 
@@ -139,9 +139,9 @@ These properties are not asserted — they are enforced by the test suite. Each 
 
 ## What was measured
 
-`impact-split` is validated on a **planted-rule-recovery** benchmark: an 8-case synthetic battery and 10 semi-synthetic Kaggle datasets, each with known driver rules, run at three seeds — **51 scored dataset-seeds**. The metric is **impact-weighted F1**: per planted rule, the harmonic mean of how much of the rule's total impact the matched segments capture (recall) and how cleanly they isolate it (precision). With one fixed configuration and no per-dataset tuning, the suite holds **mean 0.9646 / floor 0.8154**, with exact conservation everywhere and null false-positive control 3/3.
+`impact-split` is validated on a **planted-rule-recovery** benchmark: an 8-case synthetic battery and 10 semi-synthetic Kaggle datasets, each with known driver rules, run at three seeds — **51 scored dataset-seeds**. The metric is **impact-weighted F1**: per planted rule, the harmonic mean of how much of the rule's total impact the matched segments capture (recall) and how cleanly they isolate it (precision). With one fixed configuration and no per-dataset tuning, the suite holds **mean 0.9646 / floor 0.8154** at the current v0.2.0/v0.3.0 defaults, with exact conservation everywhere and null false-positive control 3/3. (The linked validation report predates the lookahead work and quotes the v0.1.0 headline of 0.962 at the same 0.8154 floor; only the mean has moved since.)
 
-Against a depth-matched CART reference under the same metric, impact-split wins **37 of 51** dataset-seeds:
+Against a depth-matched CART reference under the same metric, impact-split wins **37 of the 51 dataset-seeds** (6 ties, 8 losses). Averaged per case, the picture is:
 
 ![Planted-rule recovery vs CART](reports/figures/validation-vs-cart.png)
 
