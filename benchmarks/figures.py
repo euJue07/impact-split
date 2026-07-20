@@ -38,10 +38,10 @@ FLOOR_BAR = 0.85
 
 #: Development cycles in order, with the label shown on the progression chart.
 PROGRESSION: list[tuple[str, str]] = [
-    ("cycle0", "cycle 0\nfirst draft"),
-    ("cycle1", "cycle 1"),
-    ("cycle2", "cycle 2"),
-    ("cycle3", "cycle 3\ncentered excess"),
+    ("cycle0", "cycle 0\nraw-sum draft"),
+    ("cycle1", "cycle 1\ncentered excess"),
+    ("cycle2", "cycle 2\nnoise floor"),
+    ("cycle3", "cycle 3\ndelta + interaction cap"),
     ("cycle4", "cycle 4\nconsolidation"),
     ("v020-post3", "v0.2.0\nlookahead"),
 ]

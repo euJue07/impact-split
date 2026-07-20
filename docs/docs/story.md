@@ -80,7 +80,7 @@ $\sigma\sqrt{n_{cat}}$, so noise alone cannot clear it and deep nodes stop
 fragmenting once only noise is left. The $\sqrt{n}$ scaling, the robust
 MAD scale, and the reason `max()` is the conjunction of two necessary conditions
 (rather than a sum or a product) are derived in
-[math.md §2](math.md#2-centered-excess-separating-effect-from-volume) and
+[math.md §2](math.md#2-centered-excess--separating-effect-from-volume) and
 [math.md §3](math.md#3-the-two-bar-threshold).
 
 ### Act II — the gain metric
