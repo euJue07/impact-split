@@ -32,7 +32,7 @@ explicitly.
 | $k_P,\ k_N$ | number of categories routed to each outer branch |
 | $V_{global\_P},\ V_{global\_N}$ | global positive / negative pools, defined in §6 |
 
-**Additive (extensive) KPI.** The method assumes $y$ is a quantity whose *sum*
+**Assumption (A1) — additive (extensive) KPI.** The method assumes $y$ is a quantity whose *sum*
 over a set of rows is the meaningful aggregate for that set: profit, revenue,
 margin, cost, hours, claim amount, churned dollars. Formally, the method needs
 the target to be defined for any row subset $A$ as $Y(A) = \sum_{i \in A} y_i$
@@ -60,6 +60,21 @@ The features $X$ are categorical throughout; float columns are binned into
 integer categories at fit time (`numeric_binning_strategy`, `numeric_n_bins`),
 so everything below applies to the binned codes rather than the raw values.
 
+**Position in the literature.** The method is a member of the tree-structured
+subgroup-discovery family. Its ancestry is concrete rather than rhetorical:
+recursive partitioning on a target statistic is the CART template (Breiman et
+al. 1984); splitting categorical features by grouping levels through
+significance tests — rather than exhaustive binary search — is the CHAID move
+(Kass 1980), and §7's merge test is the same idea run in reverse; hunting for
+row subsets whose *aggregate* target mass is unusually large, rather than
+minimizing predictive loss, is the defining objective of bump hunting (Friedman
+& Fisher 1999) and of subgroup discovery with an explicit quality function
+(Klösgen 1996; Wrobel 1997). What this method adds to that family is the
+routing statistic itself: a centered, volume-denominated excess with a
+two-bar materiality-and-significance sieve (§§2–3), chosen so that the
+reported segments are business-material by construction and not merely
+statistically distinguishable.
+
 **Enforced by:** `tests/test_impact_splitter.py::test_trace_records_split_and_conserves_total_sum`,
 `tests/test_viz_data.py::test_payload_conservation_and_counts`.
 
@@ -78,6 +93,16 @@ D_{cat} = S_{cat} - n_{cat}\cdot \bar{y}_{node}
 category *would* have if it were unremarkable — that is, if its rows were drawn
 from the node's overall level. $D_{cat}$ is what is left after charging the
 category for its own size.
+
+**Proposition 2.1 (contrast form).** $D_{cat} = n_{cat}\big(\bar{y}_{cat} -
+\bar{y}_{node}\big)$: the centered excess is the category's mean elevation
+above the node, weighted by its size. *Proof.* $S_{cat} = n_{cat}\bar{y}_{cat}$
+by definition of the mean; substitute. ∎
+
+This identifies the routing signal as a size-weighted contrast of group means
+in the one-way layout (Scheffé 1959) — the same object analysis of variance
+tests, but accumulated as impact ($n \cdot$ mean-difference has the units of
+$y$-mass) rather than normalized into an $F$-ratio.
 
 The failure mode without that subtraction is not subtle on one-sided KPIs. Take
 a revenue-like target with a positive base and no real category effect, and let
@@ -103,8 +128,10 @@ routing reduces to raw routing. The correction costs nothing where it is not
 needed, which is why it is the *only* routing mode as of the 2026-07 robustness
 loop; raw-sum routing was removed rather than kept as an option.
 
-**Consequence worth stating.** Centering is done per node, so $\sum_{cat}
-D_{cat} = 0$ exactly within a node. A node's positive and negative excesses
+**Proposition 2.2 (zero-sum constraint).** $\sum_{cat} D_{cat} = 0$ exactly
+within every node. *Proof.* $\sum_{cat} D_{cat} = \sum_{cat} S_{cat} -
+\bar{y}_{node}\sum_{cat} n_{cat} = n_{node}\bar{y}_{node} -
+n_{node}\bar{y}_{node} = 0$. ∎ A node's positive and negative excesses
 always balance. The method therefore reports *relative* over- and
 under-performance within each slice, not absolute sign — a category routed
 "negative" in a strongly profitable node may still be profitable, just less so
