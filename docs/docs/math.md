@@ -6,8 +6,11 @@ assumes, and what breaks when those assumptions fail. It is written for a reader
 who wants to check the algorithm rather than use it — every section closes with
 an **Enforced by:** line naming the tests that hold the property in place, and
 the last section states plainly which numbers in the library were *not* derived
-at all. Nothing here describes behaviour the code does not have: the derivations
-follow `impact_split/splitter.py` and `impact_split/ensemble.py` as shipped.
+at all. Nothing here describes behaviour the code does not have, with one
+deliberate exception: the clearly-labeled **Exact form (not implemented)**
+blocks, which derive the sharper results a future algorithm pass could adopt.
+Outside those blocks, the derivations follow `impact_split/splitter.py` and
+`impact_split/ensemble.py` as shipped.
 
 A note on what "derived" means here. The **shapes** of the formulas — the
 $\sqrt{n}$ in the null band, the $1/k$ in the gain, the $\sqrt{2\ln K}$

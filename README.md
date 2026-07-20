@@ -219,7 +219,7 @@ model.fit(X, y, trace=True)  # optional: populate model.fit_trace_ (verbose= is 
 
 ## Learn more
 
-- **The math** — full derivations behind every formula and constant: [`docs/docs/math.md`](docs/docs/math.md). The derivation layer is literature-grounded: every formula's shape carries a citation, and each known approximation states its exact form — see [the math](docs/docs/math.md).
+- **The math** — full derivations behind every formula and constant: [`docs/docs/math.md`](docs/docs/math.md). The derivation layer is literature-grounded: every formula's shape carries a citation, and each known approximation states its exact form.
 - **The story** — how the algorithm was arrived at, including the refuted variants and the missed floor bar: [`docs/docs/story.md`](docs/docs/story.md)
 - **The validation report** — method, per-case results, known weaknesses: [`reports/validation-report-v3.md`](reports/validation-report-v3.md)
 - **Worked example notebook** — synthetic DGP with planted effects, fit on observed outcome only: [`notebooks/1.0-jde-impact-split-explainer.ipynb`](notebooks/1.0-jde-impact-split-explainer.ipynb)
