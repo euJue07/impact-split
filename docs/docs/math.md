@@ -190,7 +190,7 @@ $n_{cat}\mu$ to $D_{cat}$, growing like $n$ while the noise grows like
 $\sqrt{n}$ — so genuine effects separate from the band as $n$ increases, which
 is the whole point.
 
-**Where the assumptions bite.** Independence (ii) is the load-bearing one. If
+**Where the assumptions bite.** Independence (A3) is the load-bearing one. If
 rows within a category are positively correlated — repeated measurements on the
 same customer, the same store on consecutive days, an unmodelled time trend —
 then $\mathrm{Var}(D_{cat}) = n\sigma^2 + \sum_{i \neq j}\mathrm{Cov}$ exceeds
@@ -198,7 +198,7 @@ $n\sigma^2$, the true null band is wider than $\sigma\sqrt{n}$, and the sieve
 becomes anti-conservative: it will route categories that are only clustered
 noise. There is no correction for this in the library. On clustered data the
 honest response is to raise `noise_z` or to aggregate to the cluster level
-before fitting. Assumption (iii), a common $\sigma$ across the feature's
+before fitting. Assumption (A4), a common $\sigma$ across the feature's
 categories, is likewise not tested; under strong heteroscedasticity the pooled
 $\hat{\sigma}_f$ is too large for the quiet categories and too small for the
 loud ones.
