@@ -149,8 +149,14 @@ def plot_segments(
                 zorder=1,
             )
         ax.barh(
-            y, value, height=0.72, color=face, hatch=hatch,
-            edgecolor="white", linewidth=0.8, zorder=2,
+            y,
+            value,
+            height=0.72,
+            color=face,
+            hatch=hatch,
+            edgecolor="white",
+            linewidth=0.8,
+            zorder=2,
         )
         labels.append(textwrap.fill(str(b["path"]), width=38))
         note = f"n={b['n']:,}"
@@ -165,8 +171,7 @@ def plot_segments(
                 lo, hi = float(st["ci_low"]), float(st["ci_high"])
                 ax.plot([lo, hi], [y, y], color=_INK, linewidth=1.3, zorder=4)
                 for cx in (lo, hi):
-                    ax.plot([cx, cx], [y - 0.12, y + 0.12], color=_INK,
-                            linewidth=1.3, zorder=4)
+                    ax.plot([cx, cx], [y - 0.12, y + 0.12], color=_INK, linewidth=1.3, zorder=4)
         anchor = float(b["pos_sum"]) if is_churn else value
         offset = pad if (value >= 0 or is_churn) else -pad
         ha = "left" if (value >= 0 or is_churn) else "right"
@@ -226,9 +231,11 @@ def plot_segments(
     fig.text(0.01, 0.01, footer, fontsize=7.5, color=_MUTED_TEXT)
     if ens:
         fig.text(
-            0.01, 0.035,
+            0.01,
+            0.035,
             "black whisker = bootstrap 5–95% CI · stab = re-emergence rate (⚠ <50%)",
-            fontsize=7.5, color=_MUTED_TEXT,
+            fontsize=7.5,
+            color=_MUTED_TEXT,
         )
     fig.tight_layout(rect=(0, 0.07, 1, 1) if ens else (0, 0.045, 1, 1))
     if show:

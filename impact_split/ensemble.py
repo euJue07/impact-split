@@ -34,9 +34,7 @@ def mask_from_conditions(
     mask = np.ones(X.shape[0], dtype=bool)
     for f, codes in conditions.items():
         col = int(f) if col_map is None else int(col_map[int(f)])
-        mask &= np.isin(
-            X[:, col], np.fromiter(codes, dtype=np.int64, count=len(codes))
-        )
+        mask &= np.isin(X[:, col], np.fromiter(codes, dtype=np.int64, count=len(codes)))
     return mask
 
 
@@ -94,9 +92,7 @@ def _clone_params(model: Any) -> dict[str, Any]:
     }
 
 
-def fit_replicate(
-    model: Any, rng: np.random.Generator, cols: np.ndarray
-) -> Any:
+def fit_replicate(model: Any, rng: np.random.Generator, cols: np.ndarray) -> Any:
     """Fit one perturbed refit: bootstrap rows of the parent's pre-encoded matrix.
 
     Binning/encoding happened once at parent fit time, so replicates share the
@@ -163,9 +159,7 @@ def _collect_shadow_candidates(
         neg = float(np.abs(ym[ym < 0]).sum())
         material = (
             model._v_global_p > 0 and pos / model._v_global_p > model.min_global_impact_pct
-        ) or (
-            model._v_global_n > 0 and neg / model._v_global_n > model.min_global_impact_pct
-        )
+        ) or (model._v_global_n > 0 and neg / model._v_global_n > model.min_global_impact_pct)
         if not material:
             continue
         # Bootstrap resampling lets replicate trees clear the sieve on nuisance
@@ -179,9 +173,7 @@ def _collect_shadow_candidates(
             {
                 "mask": mask,
                 "total_sum": float(seg["total_sum"]),
-                "conditions": {
-                    int(cols[f]): codes for f, codes in seg["conditions"].items()
-                },
+                "conditions": {int(cols[f]): codes for f, codes in seg["conditions"].items()},
                 "block": block,
                 "replicate": replicate_serial,
             }
@@ -226,7 +218,8 @@ def _finalize_shadows(
         while unassigned:
             seed_i = unassigned[0]
             members = [
-                k for k in unassigned
+                k
+                for k in unassigned
                 if jaccard(cands[seed_i]["mask"], cands[k]["mask"]) >= match_threshold
             ]
             unassigned = [k for k in unassigned if k not in members]
@@ -234,7 +227,9 @@ def _finalize_shadows(
             if recurrence < shadow_min_stability:
                 continue
 
-            def mean_jac(k: int, cands: list[dict[str, Any]] = cands, members: list[int] = members) -> float:
+            def mean_jac(
+                k: int, cands: list[dict[str, Any]] = cands, members: list[int] = members
+            ) -> float:
                 return float(
                     np.mean([jaccard(cands[k]["mask"], cands[m]["mask"]) for m in members])
                 )
@@ -252,9 +247,7 @@ def _finalize_shadows(
                         model._feature_display_name(f) for f in sorted(rep["conditions"])
                     ],
                     "recurrence": recurrence,
-                    "mean_impact": float(
-                        np.mean([cands[k]["total_sum"] for k in members])
-                    ),
+                    "mean_impact": float(np.mean([cands[k]["total_sum"] for k in members])),
                     "n_members": len(members),
                     "block": block,
                 }
@@ -293,9 +286,7 @@ def run_ensemble(
     gain_shares: dict[int, float] = {}
     gain_avail: dict[int, int] = {}
 
-    shadow_on = (
-        shadow_replicates > 0 and feature_subsample is not None and n_features >= 2
-    )
+    shadow_on = shadow_replicates > 0 and feature_subsample is not None and n_features >= 2
     blocks: list[tuple[str, int]] = [("bootstrap", n_replicates)]
     if shadow_on:
         blocks.append(("shadow", shadow_replicates))
@@ -316,17 +307,22 @@ def run_ensemble(
                 rep_masks.append(mask_from_conditions(s["conditions"], X, col_map=cols))
                 rep_signs.append(1 if float(s["total_sum"]) >= 0 else -1)
                 rep_segs.append(s)
-            matches = greedy_match(
-                ref_masks, ref_signs, rep_masks, rep_signs, match_threshold
-            )
+            matches = greedy_match(ref_masks, ref_signs, rep_masks, rep_signs, match_threshold)
             matched_rep = {j for _, j, _ in matches}
             if block == "bootstrap":
                 for i, j, _ in matches:
                     n_matched[i] += 1
                     ci_samples[i].append(float(rep_segs[j]["total_sum"]))
             _collect_shadow_candidates(
-                model, X, cols, rep_segs, rep_masks, matched_rep,
-                block, replicate_serial, shadow_pool,
+                model,
+                X,
+                cols,
+                rep_segs,
+                rep_masks,
+                matched_rep,
+                block,
+                replicate_serial,
+                shadow_pool,
             )
             replicate_serial += 1
 
@@ -360,7 +356,10 @@ def run_ensemble(
         "segments": seg_stats,
         "importance": _finalize_importance(model, gain_shares, gain_avail),
         "shadows": _finalize_shadows(
-            model, shadow_pool, match_threshold, shadow_min_stability,
+            model,
+            shadow_pool,
+            match_threshold,
+            shadow_min_stability,
             {"bootstrap": n_replicates, "shadow": shadow_replicates if shadow_on else 0},
         ),
     }
