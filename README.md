@@ -11,198 +11,157 @@
 
 Contributions and security reports: [CONTRIBUTING.md](CONTRIBUTING.md) · [SECURITY.md](SECURITY.md)
 
-A tree-based approach to determine the driver of a KPI. The installable Python package is **`impact_split`** (`import impact_split` / `from impact_split import ImpactSplitter`).
+`impact-split` is an EDA-first tree method that finds the drivers of an **additive KPI** — a quantity whose total is the number you care about (revenue, profit/loss, hours watched, claim amount). The installable package is **`impact_split`** (`from impact_split import ImpactSplitter`).
 
-## What is impact-split?
+## The problem it solves
 
-`impact-split` is an ML-driven EDA approach for additive KPIs (extensive metrics), such as:
+Standard decision trees minimize variance — they isolate segments with similar *average* values. In business work, averages hide what matters most: the total.
 
-- Total Revenue
-- Total Hours Watched
-- Total Profit/Loss
+A tiny segment with 2 churn events at −$5,000 each looks "purer" than a segment with 10,000 churn events at −$40 each. The variance tree prefers the first. But the second carries 40× the total business weight. `impact-split` optimizes for **additive totals**, so it surfaces the segment that actually moves the KPI.
 
-Unlike standard decision trees that optimize for variance reduction (often favoring "pure" average-based segments), impact-split prioritizes **material business impact** by focusing on segment-level totals instead of average purity alone.
+The rest of this page is the case that the method is both **mathematically sound** and **experimentally tested** — every claim below links to the test or benchmark that backs it.
 
-## Repository layout
+## See it work
 
-| Path | Purpose |
-|------|---------|
-| [`impact_split/`](impact_split/) | Library source: [`splitter.py`](impact_split/splitter.py) (`ImpactSplitter`) plus [`viz/`](impact_split/viz/) renderers — [`data.py`](impact_split/viz/data.py) (`to_dict` payload builder), [`text.py`](impact_split/viz/text.py) (`summary()`), [`static.py`](impact_split/viz/static.py) (tornado + icicle matplotlib figures), [`html.py`](impact_split/viz/html.py) (self-contained HTML report) — and [`py.typed`](impact_split/py.typed) |
-| [`tests/`](tests/) | Pytest suite |
-| [`docs/`](docs/) | MkDocs site ([local build](docs/README.md)) |
-| [`notebooks/`](notebooks/) | Explainer and trace walkthrough notebooks |
-| [`pyproject.toml`](pyproject.toml) | Package metadata and tool configuration |
+One fit produces everything in this section:
 
-## Core Idea
+```python
+from impact_split import ImpactSplitter
 
-The algorithm builds a ternary tree (Positive / Neutral / Negative) over categorical or pre-binned features and uses:
-
-- centered-excess routing (`D_cat = S_cat - n_cat * mean(y_node)`) so categories are judged by how far they deviate from the node's expected share, never by raw volume,
-- a two-part local sieve: a volume-relative threshold (`delta_pct`) **and** a per-category noise floor (`noise_z`) so neither sub-material nor statistically insignificant categories get routed,
-- a pairwise lookahead rescue that catches XOR-style interaction cancellation (offsetting contributors whose every marginal table nets to ~0) by re-running the same sieve on crossed category pairs — plus a churn flag for offsetting mass that genuinely cannot be split,
-- a gain metric that emphasizes outer-branch impact while penalizing high-cardinality noise,
-- a global stopping threshold (`min_global_impact_pct`) to stop splitting low-materiality nodes,
-- an interaction-order depth cap (`max_depth` counts distinct-feature transitions; same-feature refinements are free),
-- guardrails that skip candidate splits which do not partition rows (a feature is constant on the current slice, or Act I routes every category to the same branch), avoiding redundant depth without new information.
-
-## Story Behind the Math
-
-Most decision-tree algorithms were designed to minimize variance and isolate segments with similar average values. In business work, averages can hide what matters most: total impact.
-
-Example: a tiny segment with 2 churn events at -$5,000 each can look "purer" than a segment with 10,000 churn events at -$40 each. But the second segment carries far more total business weight.
-
-`impact-split` was designed to solve this exact mismatch by optimizing for additive totals.
-
-Notation (used across all acts): $y_i$ is the row-level target value for row $i$; $V_{node}=\sum_{i \in node}|y_i|$ is node absolute volume; $S_{cat}=\sum_{i \in cat} y_i$ is the raw sum for a category inside the current node; $n_{cat}$ is that category's row count; $S_P, S_N$ are the current node's positive/negative outer-branch sums; and $k_P, k_N$ are the number of categories routed to each outer branch.
-
-### Act I: The Local Sieve (centered excess + noise floor)
-
-**Problem:** forcing every category into binary good/bad branches hides the baseline. For additive KPIs, we need Positive, Negative, and Neutral branches — and the routing signal must not confound *effect* with *volume*: on one-sided KPIs (revenue-like targets with a positive base), every large category has a large raw sum regardless of whether anything interesting happens inside it.
-
-**Routing signal — centered category excess:**
-
-```math
-D_{cat} = S_{cat} - n_{cat}\cdot \bar{y}_{node}
+model = ImpactSplitter().fit(X, y)   # X: DataFrame or int-encoded ndarray; y: additive target
+print(model)
 ```
 
-where $S_{cat}$ is the category-level sum within the node and $n_{cat}$ is the category row count. On zero-centered targets (profit/loss) $\bar{y}_{node}\approx 0$, so $D_{cat}\approx S_{cat}$; on one-sided targets the centering removes the volume artifact.
+On a 6,000-row synthetic book with two planted drivers (`segment=Enterprise` losing money, `region=West & channel=Online` making it) plus a non-driver numeric column and noise, `print(model)` renders the ledger below — verbatim, generated by [`reports/make_showcase.py`](reports/make_showcase.py), not hand-written:
 
-**Threshold — a category routes to P (or N) only if it clears BOTH bars:**
+<!-- BEGIN showcase-summary -->
+```
+ImpactSplitter — fit summary
+============================
+rows 6,000 · features 4 · params delta_pct=0.01 noise_z=3.0 max_depth=5 consolidate=True lookahead=True
+total Σy -40,431   (Σy⁺ 50,521 · Σy⁻ -90,952)
+tree      11 nodes · 6 leaves · depth 3 (interaction order 3)
+segments  6 · 2 churn ⇄ · conservation exact ✓
 
-```math
-\tau_{cat} = \max\Big(\underbrace{V^{c}_{node} \times \mathrm{delta\_pct}}_{\text{materiality}},\ \underbrace{z \cdot \hat{\sigma}_f \cdot \sqrt{n_{cat}}}_{\text{significance}}\Big)
+Top segments by |impact|
+  #  path                                                      Σy          n        pool share                 gross ⇄
+  1  root / segment=Enterprise / channel=Partner…         -46,124      1,311      50.7% of Σy⁻                        
+  2  root / segment=Mid-Market, SMB / region=Wes…         +21,072        372      41.7% of Σy⁺                        
+  3  root / segment=Mid-Market, SMB / region=Eas…          -1,553      3,002       1.7% of Σy⁻       +20,575 / -22,128
+  4  root / segment=Enterprise / channel=Online …         -17,204        494      18.9% of Σy⁻                        
+  5  root / segment=Mid-Market, SMB / region=Wes…         +142.29        642       0.3% of Σy⁺         +4,979 / -4,837
+  6  root / segment=Enterprise / channel=Online …          +3,236        179       6.4% of Σy⁺                        
+
+ ⇄ churn segment: positive and negative flows are both material — the net hides offsetting mass (gross column shows both).
+```
+<!-- END showcase-summary -->
+
+The two planted drivers land at #1 and #2 with the correct signs. Rows 3 and 5 are **churn** segments — offsetting positive and negative mass the net would hide — and the ledger shows both gross flows.
+
+`model.plot_segments()` renders the same segments as a tornado; `model.plot_tree()` shows where impact concentrates in the tree:
+
+![Segment tornado](reports/figures/segments-tornado.png)
+
+![Impact icicle](reports/figures/impact-icicle.png)
+
+`model.get_impact_segments()` returns the segments as a DataFrame:
+
+| path | total_sum | n_samples | node_id | mean | pool_share |
+| --- | --- | --- | --- | --- | --- |
+| root / segment=Enterprise / channel=Partner, Retail | -46123.8 | 1311 | node_10 | -35.2 | 0.5 |
+| root / segment=Mid-Market, SMB / region=West / channel=Online | 21072.2 | 372 | node_3 | 56.6 | 0.4 |
+| root / segment=Enterprise / channel=Online / region=East, North, South | -17204.5 | 494 | node_9 | -34.8 | 0.2 |
+| root / segment=Enterprise / channel=Online / region=West | 3235.9 | 179 | node_8 | 18.1 | 0.1 |
+| root / segment=Mid-Market, SMB / region=East, North, South | -1553.0 | 3002 | node_5 | -0.5 | 0.0 |
+| root / segment=Mid-Market, SMB / region=West / channel=Partner, Retail | 142.3 | 642 | node_4 | 0.2 | 0.0 |
+
+`model.to_html("report.html")` writes a self-contained interactive report (both figures plus a sortable, cross-highlighted segment table) with every asset inlined — no CDN, safe to open offline or email. A rendered example is committed at [`reports/sample-report.html`](reports/sample-report.html).
+
+Finally, `model.ensemble_report(X, y, seed=0)` annotates the same ledger with a forest of perturbed refits — a **stability** score and a 5–95% bootstrap **CI** per segment, plus **shadow drivers** the single tree does not report — without ever changing the tree:
+
+```
+Top segments by |impact|
+  #  path                                              Σy          n     pool share      gross ⇄     stability          Σy 5–95%
+  1  root / segment=Enterprise / channel=Partner…  -46,124      1,311   50.7% of Σy⁻                    96.0%    [-53,517, -36,480]
+  2  root / segment=Mid-Market, SMB / region=Wes…  +21,072        372   41.7% of Σy⁺                   100.0%    [+18,870, +23,185]
+  ...
+Shadow drivers (material regions the main tree does not report)
+  · region=West & segment=Enterprise  Σy≈-9,618 · recurrence 38.0% · via region, segment
 ```
 
-where $V^{c}_{node}=\sum|y_i-\bar{y}_{node}|$ is the node's excess volume, $z$ is `noise_z` (default 3.0), and $\hat{\sigma}_f = 1.4826\cdot\mathrm{MAD}$ of the candidate feature's within-category residuals. Route P if $D_{cat} > \tau_{cat}$, N if $D_{cat} < -\tau_{cat}$, else Neutral.
+## How it works
 
-**Why it works:** the materiality bar scales with local volume, so sensitivity adapts by depth — and because it is only 1% of node excess volume, effects trapped inside a large neutral catch-all remain detectable. The significance bar is the category's null band: under pure within-category noise, $D_{cat}$ wanders like $\sigma\sqrt{n_{cat}}$, so noise alone cannot clear it — deep nodes stop fragmenting when only noise is left.
+The algorithm builds a ternary tree (Positive / Neutral / Negative) over categorical or pre-binned features. Four ideas do the work; the [derivations page](docs/docs/math.md) proves each, and the section links below go straight to the relevant proof.
 
-#### Act I extension: the pairwise lookahead rescue (v0.2.0)
+**1. Centered-excess routing.** A category routes by how far its sum deviates from the node's expected share, never by raw volume:
 
-**Problem:** when the *sign* of $y$ depends on a combination of features
-(XOR-style interaction), every marginal category table nets to ~0 and the sieve
-finds nothing — even though the node's positive and negative flows are both
-material. In v0.1.0 the node silently leafed out (`stop_reason="no_split"`),
-e.g. +10,000 and −9,999 reported as one ~0 segment.
-
-**Rescue:** exactly at that signature (materiality triggers fired, best marginal
-gain 0, interaction cap not reached, `lookahead=True`), the same sieve re-runs
-over **crossed categories** of each feature pair $(f, g)$ — same materiality
-delta, but a multiplicity-corrected significance bar $z_{eff} = \mathrm{noise\_z} + \sqrt{2\ln K}$
-(where $K$ is the pair's present cross-cells), and a cross-cell counts as
-sieve-clearing only with at least 2 rows; same gain metric otherwise. The
-winning pair is realized as an ordinary single-feature split: $f$'s categories
-are partitioned by the sign of their cross-profile row's dot product with the
-max-norm anchor row (categories carrying no sieve-clearing cell stay neutral),
-and the children then split on $g$ through the normal marginal sieve.
-Happy-path fits are unchanged — the rescue only runs where the tree was about
-to give up. Pairs whose crossed cardinality exceeds a safety bound are
-skipped, and 3-way-or-higher cancellation whose pairwise margins all cancel
-remains out of reach — the churn flag below still surfaces it.
-
-**Churn flag:** offsetting mass that no split can separate (identical feature
-rows with ±y, higher-order interactions) is flagged instead of vanishing: a
-segment whose positive and negative gross flows *each* clear
-`min_global_impact_pct` against their global pools is marked `is_churn`, carries
-`pos_sum`/`neg_sum`, ranks by `max(|Σy|, min(Σy⁺, Σy⁻))`, and every renderer
-shows the gross flows (`net +1 (gross +10,000 / −9,999)`).
-
-### Act II: The Gain Metric (Category-Averaged Impact Divergence)
-
-**Problem:** after routing categories to Positive/Negative/Neutral, we still need to choose the best splitting feature.
-
-**Evolution:**
-
-- Start from sign-separation intuition (split positive and negative mass so they do not cancel).
-- Penalize high-cardinality slicing to avoid overfitting.
-- Focus on outer branches because this EDA method is built to find extremes.
-
-**Final formula:**
-
-```math
-Gain(X_i) = \frac{|S_P|}{k_P} + \frac{|S_N|}{k_N}
+```
+D_cat = S_cat − n_cat · mean(y_node)
 ```
 
-Where $S_P, S_N$ are outer-branch sums and $k_P, k_N$ are the number of categories assigned to each branch.
+On a one-sided KPI (revenue-like, everything positive) every large category has a large raw sum regardless of whether anything interesting happens inside it; centering removes that volume artifact. ([why raw sums fail →](docs/docs/math.md#2-centered-excess--separating-effect-from-volume))
 
-**Why it works:** It balances volume and density, rewarding features that isolate large positive/negative totals with fewer actionable categories; without dividing by $k$, high-cardinality fields like Customer ID or ZIP Code can win by shattering rows into many tiny, low-actionability slices.
+**2. A two-bar local sieve.** A category routes to an outer branch only if its excess clears **both** a materiality bar (a share of node excess volume) and a significance bar (a per-category noise floor):
 
-### Act III: The Global Kill Switch (Dual Materiality)
-
-**Problem:** as the tree deepens, local thresholds shrink, so eventually even tiny noise can look meaningful.
-
-Standard stopping rules like max depth or min samples are not tied to financial materiality. `impact-split` stops when a branch is globally irrelevant for both positive and negative pools.
-
-**Global theoretical maximums:**
-
-Here, each $y_i$ is an individual row-level target value in the full dataset.
-
-```math
-V_{global\_P} = \sum_{y_i > 0} y_i \quad \text{and} \quad V_{global\_N} = \sum_{y_i < 0} |y_i|
+```
+τ_cat = max( V_excess_node · delta_pct ,  noise_z · σ̂ · √n_cat )
 ```
 
-**Stopping rule:**
+The significance bar is the category's null band: under pure within-category noise `D_cat` wanders on the scale `σ√n`, so noise alone cannot clear it and deep nodes stop fragmenting when only noise is left. A [pairwise lookahead rescue](docs/docs/math.md#4-multiplicity-correction-on-the-lookahead-rescue) additionally catches XOR-style interactions where every marginal table cancels, and a **churn flag** surfaces offsetting mass no split can separate. ([null-band derivation →](docs/docs/math.md#3-the-two-bar-threshold))
 
-```math
-\text{Stop if: } \left( \frac{S_P}{V_{global\_P}} \le \theta_{stop} \right) \text{ AND } \left( \frac{S_N}{V_{global\_N}} \le \theta_{stop} \right)
+**3. A gain metric that rewards impact, not cardinality.** Among features that clear the sieve, the split score favors large outer-branch totals with few actionable categories:
+
+```
+Gain = |S_P| / k_P  +  |S_N| / k_N
 ```
 
-**Why it works:** positive and negative impacts are graded against their own global pools, avoiding net-sum distortions and preserving business materiality.
+Dividing by the per-branch category count `k` is what stops a high-cardinality field like Customer ID or ZIP from winning by shattering rows into many tiny slices. ([why divide by k →](docs/docs/math.md#5-the-gain-metric))
 
-### Act IV: Post-fit Segment Consolidation
+**4. A dual-pool stop.** Splitting stops when a branch is globally immaterial for **both** the positive and the negative pool, each graded against its own global total (`V_global_P`, `V_global_N`) rather than a net sum that could let a large positive and a large negative cancel into apparent irrelevance. ([derivation →](docs/docs/math.md#6-the-dual-pool-stop))
 
-**Problem:** the tree can only cut, never regroup. When it splits on one
-segment's features, any *other* coherent segment gets tiled across the branches
-— dozens of fragments that all behave identically.
+After fitting, [post-fit consolidation](docs/docs/math.md#7-consolidation) merges terminal segments that differ on one feature's category set and are statistically indistinguishable, so a single coherent segment is not reported as dozens of identical fragments.
 
-After fitting, terminal segments are merged iteratively when (a) their
-conditions are identical except on **one** feature's category set — so the
-union is still a single readable `feature=cat1,cat2` conjunction (conditions
-that grow to cover a feature's full universe are dropped) — and (b) their means
-are statistically compatible:
+**Derived vs. tuned.** The *forms* above — the `√n` null band, the `1/k` penalty, the `√(2 ln K)` multiplicity correction, the robust MAD scale, the pooled-scale merge test — follow from stated assumptions. The *levels* are not derived: `delta_pct=0.01`, `min_global_impact_pct=0.01`, and `max_depth=5` were fixed empirically by benchmark loops, while `noise_z=3.0` is a conventional significance default rather than a calibrated value — [the math page draws this line explicitly](docs/docs/math.md#9-the-constants-that-were-not-derived). One fixed configuration is used for every dataset — no per-dataset tuning.
 
-```math
-|\bar{y}_1 - \bar{y}_2| \le z \cdot \hat{\sigma} \cdot \sqrt{1/n_1 + 1/n_2}
+## What is guaranteed
+
+These properties are not asserted — they are enforced by the test suite. Each row links its claim to the test that would fail if the claim broke:
+
+| Property | Why it holds | Enforced by |
+|---|---|---|
+| **Exact sum conservation** | Segments partition the rows; merging disjoint sets sums by definition | `tests/test_viz_data.py::test_payload_conservation_and_counts`, `tests/test_consolidation.py::test_consolidation_preserves_conservation_and_partition`, `tests/test_churn.py::test_gross_flows_conserve_pools_exactly` |
+| **Partition disjointness** | Terminal segments are row-disjoint and cover the input | `tests/test_consolidation.py::test_consolidation_preserves_conservation_and_partition`, `tests/test_viz_data.py::test_payload_tree_integrity` |
+| **Consolidation is null-safe** | It can only reduce the segment count, never invent a segment | `tests/test_consolidation.py::test_consolidation_is_null_safe`, `tests/test_consolidation.py::test_incompatible_means_are_not_merged` |
+| **Noise-floor false-positive control** | Under pure within-category noise `D_cat` cannot clear the `σ√n` significance bar | `tests/test_consolidation.py::test_consolidation_is_null_safe` (2,000 rows of pure Gaussian noise → one root segment; the materiality bar alone would have split, so the `σ√n` bar is what forces abstention), plus the null battery 3/3 (`null_pass_rate` 1.0 in `benchmarks/results/cycle4-synthetic.json`) |
+| **Multiplicity-corrected rescue** | The cross-cell bar rises by `√(2 ln K)`, so chance cells cannot pose as interactions | `tests/test_lookahead.py::test_rescue_multiplicity_floor_suppresses_chance_cells`, `tests/test_lookahead.py::test_rescue_ignores_singleton_cells` |
+| **Determinism** | A fixed seed reproduces the ensemble report exactly | `tests/test_ensemble.py::test_run_ensemble_deterministic`, `tests/test_ensemble.py::test_fit_replicate_deterministic_and_remappable` |
+| **Annotation never mutates the model** | `to_dict()` / `summary()` / plots are byte-identical without a report | `tests/test_viz_data.py::test_payload_has_no_ensemble_key_without_report`, `tests/test_viz_html.py::test_html_unchanged_without_ensemble_and_annotated_with` |
+
+## What was measured
+
+`impact-split` is validated on a **planted-rule-recovery** benchmark: an 8-case synthetic battery and 10 semi-synthetic Kaggle datasets, each with known driver rules, run at three seeds — **51 scored dataset-seeds**. The metric is **impact-weighted F1**: per planted rule, the harmonic mean of how much of the rule's total impact the matched segments capture (recall) and how cleanly they isolate it (precision). With one fixed configuration and no per-dataset tuning, the suite holds **mean 0.9646 / floor 0.8154** at the current v0.2.0/v0.3.0 defaults, with exact conservation everywhere and null false-positive control 3/3. (The linked validation report predates the lookahead work and quotes the v0.1.0 headline of 0.962 at the same 0.8154 floor; only the mean has moved since.)
+
+Against a depth-matched CART reference under the same metric, impact-split wins **37 of the 51 dataset-seeds** (6 ties, 8 losses). Averaged per case, the picture is:
+
+![Planted-rule recovery vs CART](reports/figures/validation-vs-cart.png)
+
+The three non-wins are shown, not hidden: `noise_2x` (−0.046, the recorded cost of consolidation under heavy noise), `wine` (−0.003), and `adult_census` (tie). The CART scores were measured at v0.1.0; only impact-split has improved since (synthetic 0.9767 → 0.9836, Kaggle unchanged), so this chart **understates** the current gap.
+
+**The pre-registered floor bar was not met.** The 2026-07 floor loop set a target of floor ≥ 0.85 and reached 0.8154. 48 of 51 dataset-seeds clear 0.85; the three that do not are each explained — overlapping-rule lattices and detectability-edge contrasts — in [`reports/validation-report-v3.md`](reports/validation-report-v3.md) §4. The loop closed on a pre-registered explained-and-accepted exit rather than moving the goalpost.
+
+![Score distribution against the 0.85 bar](reports/figures/validation-distribution.png)
+
+Reproduce the whole thing from the committed benchmarks:
+
+```bash
+python -m benchmarks.run --tag mysynth --cart              # synthetic battery, self-contained
+python -m benchmarks.run --tag mykaggle --kaggle --cart    # Kaggle suite, needs kagglehub credentials
+python -m benchmarks.figures                               # re-render the charts above
 ```
 
-where $\hat{\sigma}$ is the pooled robust (MAD) scale of within-segment
-residuals and $z$ is the same `noise_z`. The tree itself is untouched (plots
-and traces show the full structure); merging disjoint row sets preserves exact
-sum conservation, and consolidation is null-safe — it can only reduce the
-segment count (Kaggle suite: −26%). Disable with `consolidate=False`.
+Full method, per-case results, and known-weakness analysis: [`reports/validation-report-v3.md`](reports/validation-report-v3.md).
 
-### Implementation notes
-
-- Centered-excess routing is the *only* routing mode (since the 2026-07 robustness loop; raw-sum routing was removed because it split on volume rather than effect for one-sided KPIs).
-- `max_depth` caps **interaction order** — the number of distinct-feature transitions along a path. Consecutive splits that refine the same feature's category pool are free and remain legal even at the cap; they narrow a segment rather than add an interaction term.
-- Defaults (`delta_pct=0.01`, `min_global_impact_pct=0.01`, `max_depth=5`, `noise_z=3.0`, `consolidate=True`, `lookahead=True`) were fixed by benchmark loops over an 8-case synthetic battery and 10 semi-synthetic Kaggle datasets (see `reports/validation-report-v3.md`); the same configuration is used for every dataset — no per-dataset tuning; `lookahead=True` was added in v0.2.0 and validated on dedicated XOR/churn cases without moving the headline suite.
-
-## Validation
-
-`impact-split` is validated on a planted-rule-recovery benchmark: an 8-case
-synthetic battery and 10 semi-synthetic Kaggle datasets, each with known driver
-rules and run at three seeds. The primary metric is **impact-weighted F1** — per
-planted rule, the harmonic mean of
-
-- **recall** — the share of the rule's total impact (the sum of its per-row
-  contribution) captured by the matched segments, and
-- **precision** — how cleanly the matched rows isolate that impact (captured
-  impact ÷ observed `|y|` over those rows), normalized so a perfect recovery
-  scores 1.0 at any noise level,
-
-where the matched set is a greedy union of at most three terminal segments per
-rule. A dataset scores the mean F1 over its rules; the suite reports the **mean**
-and the **floor** (worst dataset-seed). Unlike row-level Jaccard, this credits
-recovering a rule's *impact mass* even when the tree spreads it across a few
-readable segments.
-
-With the shipped defaults — one fixed configuration, no per-dataset tuning — the
-suite holds at least **mean 0.962 / floor 0.815** (v0.1.0 baseline across 51 scored
-dataset-seeds), and v0.2.0's lookahead rescue improves the synthetic battery without moving the Kaggle suite, beating CART under the same metric on both. Full method,
-per-case results, and known-weakness analysis:
-[`reports/validation-report-v3.md`](reports/validation-report-v3.md).
-
-## Quick Start
+## Quick start
 
 ### Install
 
@@ -210,51 +169,18 @@ per-case results, and known-weakness analysis:
 pip install impact-split
 ```
 
-(PyPI, once published — see [CHANGELOG](CHANGELOG.md)). To work on the library itself, use an editable dev install instead:
+(PyPI, once published — see [CHANGELOG](CHANGELOG.md).) To work on the library itself, use an editable dev install:
 
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
+python -m venv .venv
+source .venv/bin/activate          # Windows: .venv\Scripts\activate
 python -m pip install --upgrade pip
 python -m pip install -e ".[dev]"
 ```
 
-### Reproduce The Explainer Notebook
+### Constructor knobs and `fit()` options
 
-To reproduce `notebooks/1.0-jde-impact-split-explainer.ipynb` from a clean start:
-
-1. Activate the project environment above.
-2. Open the notebook and run **Kernel -> Restart & Run All**.
-3. Use the notebook's `repro_fingerprint` output to compare reruns.
-
-The explainer notebook is deterministic by design: it uses a seeded RNG (`np.random.default_rng(42)`) and does not require external data/API calls.
-
-### Build & Package Validation
-
-```bash
-python -m build --no-isolation
-python -m twine check dist/*
-```
-
-This creates both wheel and sdist artifacts under `dist/` and validates long-description metadata before publishing.
-
-### Basic Usage
-
-```python
-from impact_split import ImpactSplitter
-
-model = ImpactSplitter().fit(X, y)   # X: DataFrame or int-encoded ndarray; y: additive target
-
-print(model)                          # designed text summary (ledger + top segments)
-model.plot_segments()                 # tornado: ranked segment impacts (matplotlib)
-model.plot_tree()                     # icicle: where impact concentrates in the tree
-model.to_html("report.html")          # self-contained interactive report (offline-safe)
-
-segments = model.get_impact_segments()   # DataFrame: path, total_sum, n_samples, node_id, mean, pool_share
-payload = model.to_dict()                # JSON-safe dict for custom renderers
-```
-
-Constructor knobs (all optional, defaults shown) and `fit()` options:
+All optional; defaults shown:
 
 ```python
 model = ImpactSplitter(
@@ -267,86 +193,35 @@ model = ImpactSplitter(
     numeric_binning_strategy="quantiles",  # "quantiles" or "interval"
     numeric_n_bins=10,                     # number of bins for float columns
 )
-model.fit(X, y, trace=True)  # optional: populate model.fit_trace_
+model.fit(X, y, trace=True)  # optional: populate model.fit_trace_ (verbose= is an alias)
 ```
 
-If you want the motivation behind each formula (not just usage), read the Story Behind the Math section above, then the explainer notebook linked below.
+### Outputs reference
 
-## Outputs
+`impact-split` ships five ways to read a fitted model, all built from one JSON-safe payload. Each is also a standalone function (`impact_split.viz.text.render_summary`, `impact_split.viz.static.plot_segments` / `plot_icicle`, `impact_split.viz.html.render_html`) so you can build a custom renderer from `model.to_dict()`.
 
-`impact-split` ships five ways to read a fitted model — a text ledger, two matplotlib figures, a self-contained HTML report, and the raw JSON-safe payload behind all of them. Each is also available as a standalone function (`impact_split.viz.text.render_summary`, `impact_split.viz.static.plot_segments` / `plot_icicle`, `impact_split.viz.html.render_html`) if you want to build a custom renderer from `model.to_dict()`.
+- **`print(model)` / `model.summary()`** — the text ledger shown above: a header (global pools, split/stop counts) then the top segments by absolute impact.
+- **`model.plot_segments()`** — the tornado: one horizontal bar per consolidated segment, blue for positive and orange for negative, diverging from a zero baseline. Churn segments add a hatched band from −Σy⁻ to +Σy⁺ with a net + gross label.
+- **`model.plot_tree()`** — the impact icicle: cell width ∝ Σ|y| within its parent, color encoding each node's mean excess, so *where* impact lives and *which direction* it points are visible at once.
+- **`model.to_html(path)`** — the self-contained interactive report (offline-safe, no network calls).
+- **`model.to_dict()`** — the JSON-safe `meta` / `tree` / `segments` payload behind every renderer.
+- **`model.get_impact_segments()`** — the segment DataFrame: `path`, `total_sum`, `n_samples`, `node_id` (or `merged(...)`), `mean`, `pool_share`.
+- **`fit(..., trace=True)`** — records one pre-order step per visited node in `model.fit_trace_`, including per-category thresholds, candidate gains, and `stop_reason` (`materiality`, `max_depth`, `identical_rows`, `no_split`).
 
-- **`print(model)` / `model.summary()`** — a designed text report: a ledger header (global positive/negative pools, split/stop counts) followed by the top segments ranked by absolute impact. Cheapest way to sanity-check a fit in a terminal or log.
-- **`model.plot_segments()`** — a tornado chart of the consolidated terminal segments, one horizontal bar per segment, sorted by absolute impact. Bars are additive and diverge from a zero baseline: blue for positive segments, orange for negative, so the reader sees at a glance which segments help and which hurt. Churn segments (both gross flows material) additionally show a hatched band spanning −Σy⁻ to +Σy⁺ with a net + gross label.
-
-  ![Segment tornado](reports/figures/segments-tornado.png)
-
-- **`model.plot_tree()`** — an impact icicle showing where impact concentrates as the tree splits. Cell width is proportional to Σ|y| within its parent (so wide cells carry more absolute volume), and color encodes the mean excess of that node (diverging: positive vs. negative), making both *where* the impact lives and *which direction* it points visible in one figure.
-
-  ![Impact icicle](reports/figures/impact-icicle.png)
-
-- **`model.to_html(path)`** — a self-contained interactive HTML report combining both figures plus a sortable segment table, with linked highlighting (hovering a segment row highlights it in the icicle and vice versa). No CDN or network calls — every asset is inlined, so the file is safe to open offline or email as an attachment.
-- **`model.to_dict()`** — the JSON-safe `meta` / `tree` / `segments` payload every renderer above is built from. Use it to feed a custom dashboard or notebook widget without re-deriving anything from the fitted tree.
-
-### Segment table — `get_impact_segments()`
-
-`model.get_impact_segments()` returns terminal segments sorted by absolute impact, with columns:
-
-- `path` — rule path for the segment,
-- `total_sum` — sum of `y` in the segment,
-- `n_samples` — row count,
-- `node_id` — tree node identifier (or `merged(...)` for a consolidated segment),
-- `mean` — `total_sum / n_samples`,
-- `pool_share` — `|total_sum|` as a share of the segment's own-sign global pool (`V_global_P` or `V_global_N`).
-
-### Fit trace (optional)
-
-Pass `trace=True` or `verbose=True` to `fit()` to record one pre-order step per visited node in `model.fit_trace_` (`verbose` is an alias for `trace`; there is no extra logging). Each step includes raw and centered diagnostics (`delta_raw`, `delta_centered_excess`, `V_node`, `V_node_centered`), `routing_mode` (always `centered_excess`), per-category thresholds (`tau`, the max of the materiality and noise-floor bars), `delta_pct`, `s_node_p`, `s_node_n`, `total_sum`, global materiality ratios, per-feature candidate gains, category tables, `chosen_feature_index` when splitting, and `stop_reason` when a leaf is created (`materiality`, `max_depth`, `identical_rows`, or `no_split`). When `X` is a DataFrame, trace rows also include `chosen_feature_name`, `routing_labels`, and per-row `category_label` in category tables where applicable.
-
-## Ensemble annotations (v0.3.0)
-
-The single tree stays the answer; a Random-Forest-inspired forest of perturbed
-refits annotates it. `splitter.ensemble_report(X, y, seed=0)` fits two blocks —
-row-bootstrap replicates (segment **stability** and a 5–95% bootstrap **CI** on
-each segment's Σy) and feature-subsampled replicates (**shadow segments**:
-material regions that only appear when dominant features are forced out) — plus
-an availability-weighted **ensemble feature importance**. Annotations flow into
-`summary()`, `plot_segments()`, `plot_tree()`, and `to_html()` automatically;
-without a report, `to_dict()` / `summary()` / the plots are byte-identical to
-v0.2.x, and `to_html()` renders identically (the template gains inert
-ensemble CSS/JS that only activates once a report is present, so its bytes
-differ but the rendered output does not). No prediction averaging: the
-forest measures the ledger, it never replaces it.
-
-The segment CI is computed over the refits in which the segment re-emerged
-(matched replicates only), so it must be read jointly with stability — for
-fragile segments the band is conditioned on rediscovery and can understate
-uncertainty.
-
-```python
-model.fit(X, y)
-model.ensemble_report(X, y, seed=0)   # ~100 refits; O(replicates × fit cost)
-print(model.summary())                 # stability + CI columns, shadow drivers
-```
-
-## Assumptions and Limitations
+## Assumptions and limitations
 
 - `fit(X, y)` accepts:
-  - `X`: `np.ndarray` with shape `(n_samples, n_features)` and non-negative integer label-encoded categories, or a `pandas.DataFrame`:
-    - float columns are converted to bin IDs via `numeric_binning_strategy` and `numeric_n_bins`,
-    - other columns are factorized as categorical codes.
-  - `y`: `np.ndarray` or `pandas.Series` with shape `(n_samples,)` and float-coercible additive target values.
-- For NumPy `X`, inputs should be categorical or discretized before fitting (label-encoded into integer bins).
-- Learned bin edges for float columns are stored in `model.numeric_bin_edges_` keyed by feature index.
-- Ternary recursion can still grow quickly with depth.
-- This is primarily an EDA summarization tool, not a cross-validation-first predictive workflow.
+  - `X`: an `np.ndarray` of shape `(n_samples, n_features)` with non-negative integer label-encoded categories, or a `pandas.DataFrame` — float columns are binned via `numeric_binning_strategy` / `numeric_n_bins` (edges stored in `model.numeric_bin_edges_`), other columns are factorized as categorical codes.
+  - `y`: an `np.ndarray` or `pandas.Series` of shape `(n_samples,)` with float-coercible **additive** target values.
+- For NumPy `X`, discretize continuous features before fitting (label-encode into integer bins).
+- Ternary recursion can grow quickly with depth.
+- This is an EDA summarization tool, not a cross-validation-first predictive workflow. The three sub-0.85 cases in [`reports/validation-report-v3.md`](reports/validation-report-v3.md) §4 are the known boundaries.
 
-## Learn More
+## Learn more
 
-- Documentation is MkDocs source under [`docs/`](docs/) (not yet hosted) — build locally per [`docs/README.md`](docs/README.md)
-- Full mathematical walkthrough and toy example (documented synthetic DGP: planted category-interaction effects plus noise; fit uses observed outcome only):
-  - [`notebooks/1.0-jde-impact-split-explainer.ipynb`](notebooks/1.0-jde-impact-split-explainer.ipynb)
-- Kaggle Sample Supermarket data, `kagglehub` download, and step-by-step trace tables:
-  - [`notebooks/2.0-jde-supermarket-kaggle-trace.ipynb`](notebooks/2.0-jde-supermarket-kaggle-trace.ipynb) (requires [Kaggle API credentials](https://github.com/Kaggle/kagglehub#authentication) for `kagglehub`)
-- Setup and navigation (source for the docs site):
-  - [`docs/docs/getting-started.md`](docs/docs/getting-started.md)
+- **The math** — full derivations behind every formula and constant: [`docs/docs/math.md`](docs/docs/math.md)
+- **The story** — how the algorithm was arrived at, including the refuted variants and the missed floor bar: [`docs/docs/story.md`](docs/docs/story.md)
+- **The validation report** — method, per-case results, known weaknesses: [`reports/validation-report-v3.md`](reports/validation-report-v3.md)
+- **Worked example notebook** — synthetic DGP with planted effects, fit on observed outcome only: [`notebooks/1.0-jde-impact-split-explainer.ipynb`](notebooks/1.0-jde-impact-split-explainer.ipynb)
+- **Real-data trace** — Kaggle Sample Supermarket, step-by-step trace tables: [`notebooks/2.0-jde-supermarket-kaggle-trace.ipynb`](notebooks/2.0-jde-supermarket-kaggle-trace.ipynb) (needs [Kaggle API credentials](https://github.com/Kaggle/kagglehub#authentication))
+- **Docs site source** (MkDocs, not yet hosted): build locally per [`docs/README.md`](docs/README.md)

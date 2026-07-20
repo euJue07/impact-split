@@ -1,0 +1,17 @@
+ImpactSplitter — fit summary
+============================
+rows 6,000 · features 4 · params delta_pct=0.01 noise_z=3.0 max_depth=5 consolidate=True lookahead=True
+total Σy -40,431   (Σy⁺ 50,521 · Σy⁻ -90,952)
+tree      11 nodes · 6 leaves · depth 3 (interaction order 3)
+segments  6 · 2 churn ⇄ · conservation exact ✓
+
+Top segments by |impact|
+  #  path                                                      Σy          n        pool share                 gross ⇄
+  1  root / segment=Enterprise / channel=Partner…         -46,124      1,311      50.7% of Σy⁻                        
+  2  root / segment=Mid-Market, SMB / region=Wes…         +21,072        372      41.7% of Σy⁺                        
+  3  root / segment=Mid-Market, SMB / region=Eas…          -1,553      3,002       1.7% of Σy⁻       +20,575 / -22,128
+  4  root / segment=Enterprise / channel=Online …         -17,204        494      18.9% of Σy⁻                        
+  5  root / segment=Mid-Market, SMB / region=Wes…         +142.29        642       0.3% of Σy⁺         +4,979 / -4,837
+  6  root / segment=Enterprise / channel=Online …          +3,236        179       6.4% of Σy⁺                        
+
+ ⇄ churn segment: positive and negative flows are both material — the net hides offsetting mass (gross column shows both).
