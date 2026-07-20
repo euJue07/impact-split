@@ -40,18 +40,18 @@ def render_summary(payload: dict[str, Any], *, top: int = 10, path_width: int = 
         ),
     ]
 
-    churn_note = (
-        f" · {meta['n_churn_segments']} churn ⇄" if meta["n_churn_segments"] else ""
-    )
+    churn_note = f" · {meta['n_churn_segments']} churn ⇄" if meta["n_churn_segments"] else ""
     ens_header = f"  {'stability':>10}  {'Σy 5–95%':>28}" if ens else ""
-    lines.extend([
-        f"segments  {meta['n_segments']}{merged_note}{churn_note} · "
-        f"conservation {conservation}",
-        "",
-        "Top segments by |impact|",
-        f" {'#':>2}  {'path':<{path_width}}  {'Σy':>14}  {'n':>9}  {'pool share':>16}  "
-        f"{'gross ⇄':>22}{ens_header}",
-    ])
+    lines.extend(
+        [
+            f"segments  {meta['n_segments']}{merged_note}{churn_note} · "
+            f"conservation {conservation}",
+            "",
+            "Top segments by |impact|",
+            f" {'#':>2}  {'path':<{path_width}}  {'Σy':>14}  {'n':>9}  {'pool share':>16}  "
+            f"{'gross ⇄':>22}{ens_header}",
+        ]
+    )
 
     ens_missing_extra = f"  {'—':>10}  {'—':>28}"
 
@@ -67,9 +67,7 @@ def render_summary(payload: dict[str, Any], *, top: int = 10, path_width: int = 
         else:
             share = "—"
         gross = (
-            f"+{fmt_num(seg['pos_sum'])} / -{fmt_num(seg['neg_sum'])}"
-            if seg["is_churn"]
-            else ""
+            f"+{fmt_num(seg['pos_sum'])} / -{fmt_num(seg['neg_sum'])}" if seg["is_churn"] else ""
         )
         row = (
             f" {i:>2}  {path:<{path_width}}  {fmt_num(seg['total_sum'], sign=True):>14}"
@@ -109,9 +107,7 @@ def render_summary(payload: dict[str, Any], *, top: int = 10, path_width: int = 
     if ens:
         if any(s["fragile"] for s in ens["segments"].values()):
             lines.append("")
-            lines.append(
-                " † fragile: segment re-emerged in <50% of bootstrap refits."
-            )
+            lines.append(" † fragile: segment re-emerged in <50% of bootstrap refits.")
         if ens["shadows"]:
             lines.append("")
             lines.append("Shadow drivers (material regions the main tree does not report)")
