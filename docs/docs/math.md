@@ -373,8 +373,8 @@ rate — so a rescue that "finds an interaction" is, at large $K$, mostly findin
 the maximum of a lot of noise.
 
 **The correction.** The relevant statistic is not any one cell but the *maximum*
-over cells. For $K$ standard normals $Z_1,\dots,Z_K$, the classical
-extreme-value bound gives
+over cells. For $K$ standard normals $Z_1,\dots,Z_K$, the classical Gaussian
+maximal inequality gives (Boucheron, Lugosi & Massart 2013)
 
 ```math
 \mathbb{E}\Big[\max_{1\le j\le K} Z_j\Big] \le \sqrt{2\ln K}
@@ -425,6 +425,41 @@ not one of them.
    above, not a quantile of it, and does not by itself control family-wise error
    at any stated $\alpha$. A tail version of the same argument would carry
    roughly $\sqrt{2\ln(K/\alpha)}$ instead.
+
+> **Exact form (not implemented).** Both gaps close at once with a
+> tail-controlled per-cell threshold. Fix a family-wise error rate $\alpha$
+> and test each of the $K$ cells two-sided at level $\alpha/K$ (Bonferroni;
+> Dunn 1961):
+>
+> ```math
+> z_{exact}(K,\alpha) = \Phi^{-1}\!\Big(1 - \frac{\alpha}{2K}\Big)
+> ```
+>
+> By the union bound this controls the probability that *any* null cell
+> clears the bar at $\alpha$, under **arbitrary dependence** among cells —
+> the same dependence-freeness the shipped bound enjoys. (Šidák's
+> $\Phi^{-1}\big(\tfrac{1}{2}(1 + (1-\alpha)^{1/K})\big)$ is marginally
+> sharper but needs independence or positive dependence (Šidák 1967);
+> at these $\alpha$ the two agree to two decimals, so Bonferroni is the
+> right default.) Taking $\alpha = 2(1-\Phi(3)) \approx 0.0027$ — the
+> two-sided tail the marginal sieve's `noise_z = 3` implies — gives:
+>
+> | $K$ | shipped $3 + \sqrt{2\ln K}$ | exact $z_{exact}$ |
+> | --- | --- | --- |
+> | 4 | 4.67 | 3.40 |
+> | 100 | 6.03 | 4.20 |
+> | 500 | 6.53 | 4.55 |
+>
+> The shipped additive form is therefore uniformly *stricter* than exact
+> family-wise control at the sieve's own implied $\alpha$ — by 1.3 to 2
+> robust-scale units. That is the right direction for a rescue path (a missed
+> interaction, never a false one, per the paragraph below), but it quantifies
+> what the conservatism costs: an algorithm pass that adopts $z_{exact}$
+> would admit genuinely smaller interactions at large $K$ while holding an
+> explicit, stated error rate — turning §4's "calibrated heuristic" into a
+> guarantee. The caveat that survives the swap is non-normality: both forms
+> price Gaussian tails, and the MAD standardisation (§3.2) is approximate on
+> heavy-tailed residuals.
 
 So $z_{eff}$ is a calibrated heuristic in the right functional form, not an exact
 family-wise error guarantee. Gap 2 is the reason the form is additive rather
