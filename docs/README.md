@@ -28,7 +28,20 @@ mkdocs serve    # local preview, default http://127.0.0.1:8000/
 mkdocs build    # static site under docs/site/
 ```
 
-`mkdocs build` writes output to `site/` (ignored by git if listed in `.gitignore`). Use `mkdocs build --strict` in automation to fail on warnings (broken links, etc.).
+`mkdocs build` writes output to `site/` (ignored by git if listed in `.gitignore`).
+
+**Do not use `mkdocs build --strict` here.** The documentation pages intentionally
+cross-link to repository files that live *outside* `docs_dir` — the top-level
+[`README.md`](../README.md), the `reports/` validation artifacts, `reports/figures/`
+images embedded in the story, and the `notebooks/`. Those `../../…` links resolve
+correctly in the GitHub file view, which is the primary reading surface while the
+site is unhosted, but MkDocs cannot follow them within the built site, so `--strict`
+aborts on ~13 out-of-tree-link warnings that are expected, not defects. Two further
+site-only caveats to resolve if the site is ever hosted: the math on
+[`math.md`](docs/math.md) uses `$…$` / ```` ```math ```` notation that renders on
+GitHub but needs `pymdownx.arithmatex` + a MathJax `extra_javascript` entry to render
+on the site; and the out-of-tree images/links would need copying into `docs/` or
+rewriting. Until then, prefer the GitHub file view for these pages.
 
 ## Publishing to GitHub Pages
 
