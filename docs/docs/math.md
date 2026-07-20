@@ -6,8 +6,11 @@ assumes, and what breaks when those assumptions fail. It is written for a reader
 who wants to check the algorithm rather than use it — every section closes with
 an **Enforced by:** line naming the tests that hold the property in place, and
 the last section states plainly which numbers in the library were *not* derived
-at all. Nothing here describes behaviour the code does not have: the derivations
-follow `impact_split/splitter.py` and `impact_split/ensemble.py` as shipped.
+at all. Nothing here describes behaviour the code does not have, with one
+deliberate exception: the clearly-labeled **Exact form (not implemented)**
+blocks, which derive the sharper results a future algorithm pass could adopt.
+Outside those blocks, the derivations follow `impact_split/splitter.py` and
+`impact_split/ensemble.py` as shipped.
 
 A note on what "derived" means here. The **shapes** of the formulas — the
 $\sqrt{n}$ in the null band, the $1/k$ in the gain, the $\sqrt{2\ln K}$
@@ -32,7 +35,7 @@ explicitly.
 | $k_P,\ k_N$ | number of categories routed to each outer branch |
 | $V_{global\_P},\ V_{global\_N}$ | global positive / negative pools, defined in §6 |
 
-**Additive (extensive) KPI.** The method assumes $y$ is a quantity whose *sum*
+**Assumption (A1) — additive (extensive) KPI.** The method assumes $y$ is a quantity whose *sum*
 over a set of rows is the meaningful aggregate for that set: profit, revenue,
 margin, cost, hours, claim amount, churned dollars. Formally, the method needs
 the target to be defined for any row subset $A$ as $Y(A) = \sum_{i \in A} y_i$
@@ -60,6 +63,21 @@ The features $X$ are categorical throughout; float columns are binned into
 integer categories at fit time (`numeric_binning_strategy`, `numeric_n_bins`),
 so everything below applies to the binned codes rather than the raw values.
 
+**Position in the literature.** The method is a member of the tree-structured
+subgroup-discovery family. Its ancestry is concrete rather than rhetorical:
+recursive partitioning on a target statistic is the CART template (Breiman et
+al. 1984); splitting categorical features by grouping levels through
+significance tests — rather than exhaustive binary search — is the CHAID move
+(Kass 1980), and §7's merge test is the same idea run in reverse; hunting for
+row subsets whose *aggregate* target mass is unusually large, rather than
+minimizing predictive loss, is the defining objective of bump hunting (Friedman
+& Fisher 1999) and of subgroup discovery with an explicit quality function
+(Klösgen 1996; Wrobel 1997). What this method adds to that family is the
+routing statistic itself: a centered, volume-denominated excess with a
+two-bar materiality-and-significance sieve (§§2–3), chosen so that the
+reported segments are business-material by construction and not merely
+statistically distinguishable.
+
 **Enforced by:** `tests/test_impact_splitter.py::test_trace_records_split_and_conserves_total_sum`,
 `tests/test_viz_data.py::test_payload_conservation_and_counts`.
 
@@ -78,6 +96,16 @@ D_{cat} = S_{cat} - n_{cat}\cdot \bar{y}_{node}
 category *would* have if it were unremarkable — that is, if its rows were drawn
 from the node's overall level. $D_{cat}$ is what is left after charging the
 category for its own size.
+
+**Proposition 2.1 (contrast form).** $D_{cat} = n_{cat}\big(\bar{y}_{cat} -
+\bar{y}_{node}\big)$: the centered excess is the category's mean elevation
+above the node, weighted by its size. *Proof.* $S_{cat} = n_{cat}\bar{y}_{cat}$
+by definition of the mean; substitute. ∎
+
+This identifies the routing signal as a size-weighted contrast of group means
+in the one-way layout (Scheffé 1959) — the same object analysis of variance
+tests, but accumulated as impact ($n \cdot$ mean-difference has the units of
+$y$-mass) rather than normalized into an $F$-ratio.
 
 The failure mode without that subtraction is not subtle on one-sided KPIs. Take
 a revenue-like target with a positive base and no real category effect, and let
@@ -103,8 +131,10 @@ routing reduces to raw routing. The correction costs nothing where it is not
 needed, which is why it is the *only* routing mode as of the 2026-07 robustness
 loop; raw-sum routing was removed rather than kept as an option.
 
-**Consequence worth stating.** Centering is done per node, so $\sum_{cat}
-D_{cat} = 0$ exactly within a node. A node's positive and negative excesses
+**Proposition 2.2 (zero-sum constraint).** $\sum_{cat} D_{cat} = 0$ exactly
+within every node. *Proof.* $\sum_{cat} D_{cat} = \sum_{cat} S_{cat} -
+\bar{y}_{node}\sum_{cat} n_{cat} = n_{node}\bar{y}_{node} -
+n_{node}\bar{y}_{node} = 0$. ∎ A node's positive and negative excesses
 always balance. The method therefore reports *relative* over- and
 under-performance within each slice, not absolute sign — a category routed
 "negative" in a strongly profitable node may still be profitable, just less so
@@ -137,15 +167,20 @@ $\varepsilon_i = y_i - \bar{y}_{node}$. Then
 D_{cat} = \sum_{i \in cat} \varepsilon_i
 ```
 
-is a **sum** of $n_{cat}$ residuals, not an average. Under the null, assume the
-residuals are (i) mean-zero, (ii) mutually independent within the category, and
-(iii) share a common finite variance $\sigma^2$. Then
+is a **sum** of $n_{cat}$ residuals, not an average.
+
+**Proposition 3.1 (null scale of a category sum).** Assume, under the null of
+no category effect: **(A2)** $\mathbb{E}[\varepsilon_i] = 0$; **(A3)** the
+$\varepsilon_i$ are mutually independent within the category; **(A4)**
+$\mathrm{Var}(\varepsilon_i) = \sigma^2 < \infty$, common across rows. Then
 
 ```math
 \mathrm{Var}(D_{cat}) = \sum_{i \in cat}\mathrm{Var}(\varepsilon_i) = n_{cat}\,\sigma^2
 \qquad\Longrightarrow\qquad
-\mathrm{SD}(D_{cat}) = \sigma\sqrt{n_{cat}}
+\mathrm{SD}(D_{cat}) = \sigma\sqrt{n_{cat}}.
 ```
+
+*Proof.* Variance of a sum of independent terms is the sum of variances. ∎
 
 So the natural scale of a *do-nothing* category grows like $\sqrt{n_{cat}}$. A
 fixed threshold would be wrong in both directions: too permissive for large
@@ -158,7 +193,7 @@ $n_{cat}\mu$ to $D_{cat}$, growing like $n$ while the noise grows like
 $\sqrt{n}$ — so genuine effects separate from the band as $n$ increases, which
 is the whole point.
 
-**Where the assumptions bite.** Independence (ii) is the load-bearing one. If
+**Where the assumptions bite.** Independence (A3) is the load-bearing one. If
 rows within a category are positively correlated — repeated measurements on the
 same customer, the same store on consecutive days, an unmodelled time trend —
 then $\mathrm{Var}(D_{cat}) = n\sigma^2 + \sum_{i \neq j}\mathrm{Cov}$ exceeds
@@ -166,7 +201,7 @@ $n\sigma^2$, the true null band is wider than $\sigma\sqrt{n}$, and the sieve
 becomes anti-conservative: it will route categories that are only clustered
 noise. There is no correction for this in the library. On clustered data the
 honest response is to raise `noise_z` or to aggregate to the cluster level
-before fitting. Assumption (iii), a common $\sigma$ across the feature's
+before fitting. Assumption (A4), a common $\sigma$ across the feature's
 categories, is likewise not tested; under strong heteroscedasticity the pooled
 $\hat{\sigma}_f$ is too large for the quiet categories and too small for the
 loud ones.
@@ -177,6 +212,8 @@ negatively dependent, and the size of that effect is computable. Because
 $\bar{y}_{node}$ is the node's own sample mean, $D_{cat}$ can be written as a
 linear form in the node's rows with weight $1 - n_{cat}/n_{node}$ inside the
 category and $-n_{cat}/n_{node}$ outside it. For i.i.d. rows this gives
+
+**Proposition 3.2 (exact null variance under mean estimation).**
 
 ```math
 \mathrm{Var}(D_{cat}) = n_{cat}\,\sigma^2\Big(1 - \tfrac{n_{cat}}{n_{node}}\Big)
@@ -189,6 +226,22 @@ and unbounded as $n_{cat} \to n_{node}$. The direction is conservative — the b
 is too high, never too low — but "slight" is the wrong word for a category that
 dominates its node, and this is worth knowing when reading a near-miss at a
 node with few categories.
+
+> **Exact form (not implemented).** The shipped significance bar uses
+> $\hat{\sigma}_f\sqrt{n_{cat}}$; Proposition 3.2 says the exact null standard
+> deviation is
+>
+> ```math
+> \mathrm{SD}(D_{cat}) = \sigma\sqrt{n_{cat}\Big(1 - \tfrac{n_{cat}}{n_{node}}\Big)}
+> ```
+>
+> — the same $(1-f)$ finite-population correction that appears in the variance
+> of a sample mean under simple random sampling without replacement (Cochran
+> 1977), with $f = n_{cat}/n_{node}$ the category's share of its node. An
+> algorithm pass that adopts it would multiply the shipped bar by
+> $\sqrt{1-f}$, tightening it most exactly where the current bar is most
+> conservative: categories that dominate their node. Nothing else in the sieve
+> changes.
 
 ### 3.2 The robust scale $\hat{\sigma}_f = 1.4826 \cdot \mathrm{MAD}$
 
@@ -213,15 +266,22 @@ estimator of $\sigma$ **for Gaussian noise** — for $\varepsilon \sim
 \mathcal{N}(0,\sigma^2)$ the population MAD is exactly $\sigma\Phi^{-1}(0.75)
 \approx 0.6745\sigma$, and the sample MAD converges to it in probability,
 $\mathrm{MAD}_n \xrightarrow{\;p\;} 0.6745\sigma$, so dividing by that constant
-gives back $\sigma$ in the limit. (Consistency is the right claim here, not
-unbiasedness: at finite $n$, $\mathbb{E}[\mathrm{MAD}_n]$ is not exactly the
-population value.) The MAD is
-chosen over the sample standard deviation because it has a breakdown point of
-50%: on a KPI where a handful of rows carry outsized values — which is the norm
-for revenue and claims — a few extremes would inflate an SD-based bar enough to
-suppress every real finding. The price is honest to state: under non-Gaussian
+gives back $\sigma$ in the limit (Rousseeuw & Croux 1993). (Consistency is the
+right claim here, not unbiasedness: at finite $n$, $\mathbb{E}[\mathrm{MAD}_n]$
+is not exactly the population value.) The MAD is chosen over the sample
+standard deviation because it has a breakdown point of 50% (Hampel 1974;
+Huber 1981): on a KPI where a handful of rows carry outsized values — which is
+the norm for revenue and claims — a few extremes would inflate an SD-based bar
+enough to suppress every real finding. The price is honest to state: under non-Gaussian
 noise the 1.4826 calibration no longer holds exactly, so `noise_z=3.0` is "three
 robust scale units", not a certified 3-sigma Gaussian tail probability.
+
+The MAD's known cost is efficiency: at the Gaussian its asymptotic relative
+efficiency is only about 37%, and Rousseeuw & Croux (1993) construct
+higher-efficiency robust scales ($S_n$, $Q_n$) with the same 50% breakdown.
+Those are the natural upgrades if the significance bar ever proves too noisy
+at small $n$; the library ships the MAD for its simplicity and its
+zero-configuration robustness, not because it is optimal.
 
 Two edge cases follow directly from the definition and are visible in the code
 path. If more than half the residuals are identical, $\mathrm{MAD} = 0$, the
@@ -239,10 +299,17 @@ The two bars encode two **separately necessary** conditions:
 - *significance* — the effect must be big enough that noise alone would not
   produce it.
 
-A finding that fails either one should not be routed. For two necessary
-thresholds on the same quantity, the admissible region is the intersection
-$\{D > a\} \cap \{D > b\} = \{D > \max(a,b)\}$ — so `max()` *is* the conjunction,
-not an approximation of it. Whichever bar is binding at that node does the work:
+A finding that fails either one should not be routed. Formally this is an
+**intersection–union test** (Berger 1982): the null hypothesis is a *union* —
+"the effect is immaterial **or** it is within noise" — and the alternative is
+the *intersection* of "material" and "significant". Berger's result is that if
+each component condition is tested at level $\alpha$, the rule *reject only if
+every component rejects* has level at most $\alpha$ overall — an IUT needs
+**no** multiplicity correction, unlike the union-of-rejections situation in
+§4. For two one-sided thresholds on the same statistic the intersection is
+$\{D > a\} \cap \{D > b\} = \{D > \max(a,b)\}$ — so `max()` *is* the
+conjunction, not an approximation of it, and inherits the component level.
+Whichever bar is binding at that node does the work:
 in a large shallow node the materiality bar dominates; in a deep, small node 1%
 of a small excess volume falls below the noise band and the significance bar
 takes over, which is what stops deep fragmentation.
@@ -309,8 +376,8 @@ rate — so a rescue that "finds an interaction" is, at large $K$, mostly findin
 the maximum of a lot of noise.
 
 **The correction.** The relevant statistic is not any one cell but the *maximum*
-over cells. For $K$ standard normals $Z_1,\dots,Z_K$, the classical
-extreme-value bound gives
+over cells. For $K$ standard normals $Z_1,\dots,Z_K$, the classical Gaussian
+maximal inequality gives (Boucheron, Lugosi & Massart 2013)
 
 ```math
 \mathbb{E}\Big[\max_{1\le j\le K} Z_j\Big] \le \sqrt{2\ln K}
@@ -361,6 +428,41 @@ not one of them.
    above, not a quantile of it, and does not by itself control family-wise error
    at any stated $\alpha$. A tail version of the same argument would carry
    roughly $\sqrt{2\ln(K/\alpha)}$ instead.
+
+> **Exact form (not implemented).** Both gaps close at once with a
+> tail-controlled per-cell threshold. Fix a family-wise error rate $\alpha$
+> and test each of the $K$ cells two-sided at level $\alpha/K$ (Bonferroni;
+> Dunn 1961):
+>
+> ```math
+> z_{exact}(K,\alpha) = \Phi^{-1}\!\Big(1 - \frac{\alpha}{2K}\Big)
+> ```
+>
+> By the union bound this controls the probability that *any* null cell
+> clears the bar at $\alpha$, under **arbitrary dependence** among cells —
+> the same dependence-freeness the shipped bound enjoys. (Šidák's
+> $\Phi^{-1}\big(\tfrac{1}{2}(1 + (1-\alpha)^{1/K})\big)$ is marginally
+> sharper but needs independence or positive dependence (Šidák 1967);
+> at these $\alpha$ the two agree to two decimals, so Bonferroni is the
+> right default.) Taking $\alpha = 2(1-\Phi(3)) \approx 0.0027$ — the
+> two-sided tail the marginal sieve's `noise_z = 3` implies — gives:
+>
+> | $K$ | shipped $3 + \sqrt{2\ln K}$ | exact $z_{exact}$ |
+> | --- | --- | --- |
+> | 4 | 4.67 | 3.40 |
+> | 100 | 6.03 | 4.20 |
+> | 500 | 6.53 | 4.55 |
+>
+> The shipped additive form is therefore uniformly *stricter* than exact
+> family-wise control at the sieve's own implied $\alpha$ — by 1.3 to 2
+> robust-scale units. That is the right direction for a rescue path (a missed
+> interaction, never a false one, per the paragraph below), but it quantifies
+> what the conservatism costs: an algorithm pass that adopts $z_{exact}$
+> would admit genuinely smaller interactions at large $K$ while holding an
+> explicit, stated error rate — turning §4's "calibrated heuristic" into a
+> guarantee. The caveat that survives the swap is non-normality: both forms
+> price Gaussian tails, and the MAD standardisation (§3.2) is approximate on
+> heavy-tailed residuals.
 
 So $z_{eff}$ is a calibrated heuristic in the right functional form, not an exact
 family-wise error guarantee. Gap 2 is the reason the form is additive rather
@@ -419,17 +521,30 @@ $\lvert D_{cat}\rvert = \lvert\sum_{i \in cat} y^c_i\rvert \le \sum_{i \in cat}
 \lvert y^c_i\rvert$ by the triangle inequality, and the routed categories are
 disjoint, so
 
+**Proposition 5.1 (shattering attains the supremum of the undivided criterion).**
+
 ```math
 \lvert S_P\rvert + \lvert S_N\rvert \;\le\; \sum_{cat}\lvert D_{cat}\rvert \;\le\; \sum_i \lvert y^c_i \rvert = V^c_{node}
 ```
 
 with equality exactly when every category is sign-pure internally and every row
 is routed to an outer branch — which is what shattering into singletons would
-deliver, since a singleton category is trivially sign-pure. So the undivided
+deliver, since a singleton category is trivially sign-pure. *Proof.* Triangle
+inequality per category; disjointness of routed categories for the outer
+inequality; equality requires every $\lvert D_{cat}\rvert$ to equal
+$\sum_{i\in cat}\lvert y^c_i\rvert$ (sign-purity) and all rows routed.
+Singletons satisfy both. ∎ So the undivided
 criterion does not merely have a slight preference for high cardinality: its
 **supremum** is attained by pure shattering, and no genuine feature can beat a
 column that indexes the rows. This is the same pathology that information gain
-has on ID columns, arriving through a different route.
+has on ID columns, arriving through a different route — recognized since the
+earliest tree induction work (Quinlan 1986, whose gain-ratio divides by an
+attribute's own entropy), formally analysed by White & Liu (1994), and still
+biting modern ensembles through variable-importance bias toward many-category
+predictors (Strobl et al. 2007). $1/k$ is this method's answer to that
+disease: like gain ratio, it normalizes the criterion by a function of the
+attribute's cardinality — but by the count of categories *actually routed*,
+not the count that exists.
 
 **Two defenses, and which one binds depends on node size.** With one row per
 category, each category's residual against its own mean is identically zero, so
@@ -609,12 +724,53 @@ keep two segments apart. $\hat{\sigma} = 1.4826\cdot\mathrm{MAD}$ is pooled over
 residual scale; under strong heteroscedasticity the test is too permissive for
 the quiet segments and too strict for the loud ones.
 
+Merging leaf categories by a significance test is the CHAID primitive (Kass
+1980) — there applied during growth, here applied after it, which is what
+lets the tree stay greedy while the *report* recovers the coherent segments
+the greedy cuts fractured.
+
 Note the direction of the test. It merges on *failure to reject* the null of
 equal means, which is not evidence of equality. This is the right default here
 — the operation is a readability repair, and the cost of an over-merge (two
 genuinely different segments reported as one) is bounded by the fact that the
 full tree structure remains available in plots and traces — but it should not be
 read as a claim that merged segments are proven identical.
+
+> **Exact form (not implemented) — heteroscedasticity.** The pooled-scale
+> assumption drops out by testing with per-segment scales (Welch 1947):
+>
+> ```math
+> \lvert \bar{y}_1 - \bar{y}_2 \rvert \;\le\; z \cdot
+> \sqrt{\tfrac{\hat{\sigma}_1^2}{n_1} + \tfrac{\hat{\sigma}_2^2}{n_2}},
+> \qquad \hat{\sigma}_j = 1.4826\cdot\mathrm{MAD}(\text{segment } j\text{ residuals})
+> ```
+>
+> which is the shipped test with $\hat{\sigma}^2(1/n_1+1/n_2)$ replaced by
+> the Welch standard error. Quiet segments stop inheriting the loud
+> segments' scale, at the cost of two scale estimates that are themselves
+> noisier on small segments.
+
+> **Exact form (not implemented) — proving mergeability.** Failure to reject
+> equality is not evidence of equality; the test that *affirms* "these two
+> segments are the same finding" is equivalence testing (TOST; Schuirmann
+> 1987). Fix an equivalence margin $\delta$ — the largest mean difference
+> that would still count as "the same segment", a materiality decision, not
+> a statistical one — and merge only if both one-sided nulls are rejected:
+>
+> ```math
+> \bar{y}_1 - \bar{y}_2 > -\delta + z_{1-\alpha}\,\mathrm{SE}
+> \quad\text{and}\quad
+> \bar{y}_1 - \bar{y}_2 < \delta - z_{1-\alpha}\,\mathrm{SE}
+> ```
+>
+> equivalently: the $(1-2\alpha)$ confidence interval for
+> $\bar{y}_1-\bar{y}_2$ lies inside $(-\delta, +\delta)$. This inverts the
+> burden of proof — small segments with wide intervals then *fail* to merge
+> rather than merging by default, the opposite of the shipped behaviour and
+> the statistically honest one. The open design choice an algorithm pass
+> would face is $\delta$; the natural candidate is a materiality-scaled
+> margin (per-row excess at `delta_pct`), keeping the method's convention
+> that statistical knobs are denominated in business units.
 
 ### 7.1 Conservation is structural, not checked
 
@@ -690,8 +846,10 @@ prediction averaging anywhere in the module. Two blocks run:
 
 - **Bootstrap block** — resample rows with replacement, refit, match the
   replicate's segments to the reference tree's segments. A segment's
-  **stability** is the share of bootstrap replicates in which it re-emerged;
-  below 0.5 it is flagged `fragile`.
+  **stability** is the share of bootstrap replicates in which it re-emerged —
+  the selection-frequency statistic of stability selection (Meinshausen &
+  Bühlmann 2010), applied to segments rather than features — below 0.5 it is
+  flagged `fragile`.
 - **Feature-subsampled block** — refit on a random subset of features, so
   dominant features are sometimes forced out. Segments that appear here but
   match nothing in the reference tree are **shadow** candidates.
@@ -703,7 +861,8 @@ gates candidacy before overlap is scored at all.
 
 ### 8.1 What the CI is conditioned on
 
-Each segment's band is the 5th–95th percentile of its $\Sigma y$ **across the
+Each segment's band is the 5th–95th percentile of its $\Sigma y$ (a percentile
+bootstrap interval; Efron 1979; Efron & Tibshirani 1993) **across the
 replicates in which it was matched**, reported only when at least 10 such
 matches exist (below that a percentile interval is itself noise, and the library
 returns null rather than a number).
@@ -711,7 +870,10 @@ returns null rather than a number).
 This conditioning is the caveat that must travel with the number. The CI is
 computed over matched replicates only, so it is a distribution of
 "$\Sigma y$ **given that the segment was rediscovered**", not the unconditional
-sampling distribution of the segment's impact. For a **fragile** segment the
+sampling distribution of the segment's impact. This is the selective-inference
+phenomenon (Taylor & Tibshirani 2015; Lee et al. 2016): the same data chose the
+segment and now evaluates it, and conditioning on selection changes the
+distribution of every downstream estimate. For a **fragile** segment the
 difference is material: the replicates in which it failed to re-emerge — often
 the ones where the effect happened to resample weakly — contribute nothing to
 the band, so the band is conditioned on rediscovery and **can understate
@@ -827,3 +989,79 @@ Practical consequence for a reader deciding whether to trust the defaults: they
 are the right starting point because they were validated broadly and never
 tuned per dataset, and they are the right thing to change first if a fit looks
 too eager or too quiet on your data.
+
+---
+
+## References
+
+- Berger, R. L. (1982). Multiparameter hypothesis testing and acceptance
+  sampling. *Technometrics*, 24(4), 295–300. doi:10.2307/1267823
+- Boucheron, S., Lugosi, G., Massart, P. (2013). *Concentration Inequalities:
+  A Nonasymptotic Theory of Independence*. Oxford University Press, Ch. 2.5.
+  ISBN 9780199535255. doi:10.1093/acprof:oso/9780199535255.001.0001
+- Breiman, L., Friedman, J. H., Olshen, R. A., Stone, C. J. (1984).
+  *Classification and Regression Trees*. Wadsworth International Group,
+  Belmont, CA. ISBN 9780412048418.
+  https://www.routledge.com/Classification-and-Regression-Trees/Breiman-Friedman-Stone-Olshen/p/book/9780412048418
+- Cochran, W. G. (1977). *Sampling Techniques*, 3rd ed. Wiley, New York.
+  ISBN 9780471162407.
+  https://www.wiley.com/en-us/Sampling+Techniques%2C+3rd+Edition-p-9780471162407
+- Dunn, O. J. (1961). Multiple comparisons among means. *Journal of the
+  American Statistical Association*, 56(293), 52–64.
+  doi:10.1080/01621459.1961.10482090
+- Efron, B. (1979). Bootstrap methods: Another look at the jackknife.
+  *Annals of Statistics*, 7(1), 1–26. doi:10.1214/aos/1176344552
+- Efron, B., Tibshirani, R. J. (1993). *An Introduction to the Bootstrap*.
+  Chapman & Hall, New York. ISBN 0-412-04231-2.
+  doi:10.1201/9780429246593
+- Friedman, J. H., Fisher, N. I. (1999). Bump hunting in high-dimensional
+  data. *Statistics and Computing*, 9(2), 123–143.
+  doi:10.1023/A:1008894516817
+- Hampel, F. R. (1974). The influence curve and its role in robust
+  estimation. *Journal of the American Statistical Association*, 69(346),
+  383–393. doi:10.1080/01621459.1974.10482962
+- Huber, P. J. (1981). *Robust Statistics*. Wiley, New York.
+  ISBN 9780471418054. doi:10.1002/0471725250
+- Kass, G. V. (1980). An exploratory technique for investigating large
+  quantities of categorical data. *Journal of the Royal Statistical Society:
+  Series C (Applied Statistics)*, 29(2), 119–127. doi:10.2307/2986296
+- Klösgen, W. (1996). Explora: A multipattern and multistrategy discovery
+  assistant. In *Advances in Knowledge Discovery and Data Mining* (Fayyad,
+  U., Piatetsky-Shapiro, G., Smyth, P., Uthurusamy, R., eds.), 249–271.
+  AAAI Press / MIT Press. https://dblp.org/rec/books/mit/fayyadPSU96/Klosgen96.html
+- Lee, J. D., Sun, D. L., Sun, Y., Taylor, J. E. (2016). Exact post-selection
+  inference, with application to the lasso. *Annals of Statistics*, 44(3),
+  907–927. doi:10.1214/15-AOS1371
+- Meinshausen, N., Bühlmann, P. (2010). Stability selection. *Journal of the
+  Royal Statistical Society: Series B (Statistical Methodology)*, 72(4),
+  417–473. doi:10.1111/j.1467-9868.2010.00740.x
+- Quinlan, J. R. (1986). Induction of decision trees. *Machine Learning*,
+  1(1), 81–106. doi:10.1007/BF00116251
+- Rousseeuw, P. J., Croux, C. (1993). Alternatives to the median absolute
+  deviation. *Journal of the American Statistical Association*, 88(424),
+  1273–1283. doi:10.1080/01621459.1993.10476408
+- Scheffé, H. (1959). *The Analysis of Variance*. Wiley, New York.
+  ISBN 9780471345053. https://archive.org/details/analysisofvarian00sche
+- Schuirmann, D. J. (1987). A comparison of the two one-sided tests
+  procedure and the power approach for assessing the equivalence of average
+  bioavailability. *Journal of Pharmacokinetics and Biopharmaceutics*,
+  15(6), 657–680. doi:10.1007/BF01068419
+- Šidák, Z. (1967). Rectangular confidence regions for the means of
+  multivariate normal distributions. *Journal of the American Statistical
+  Association*, 62(318), 626–633. doi:10.1080/01621459.1967.10482935
+- Strobl, C., Boulesteix, A.-L., Zeileis, A., Hothorn, T. (2007). Bias in
+  random forest variable importance measures: Illustrations, sources and a
+  solution. *BMC Bioinformatics*, 8, 25. doi:10.1186/1471-2105-8-25
+- Taylor, J., Tibshirani, R. J. (2015). Statistical learning and selective
+  inference. *Proceedings of the National Academy of Sciences*, 112(25),
+  7629–7634. doi:10.1073/pnas.1507583112
+- Welch, B. L. (1947). The generalization of "Student's" problem when
+  several different population variances are involved. *Biometrika*,
+  34(1–2), 28–35. doi:10.2307/2332510
+- White, A. P., Liu, W. Z. (1994). Bias in information-based measures in
+  decision tree induction. *Machine Learning*, 15(3), 321–329.
+  doi:10.1007/BF00993349
+- Wrobel, S. (1997). An algorithm for multi-relational discovery of
+  subgroups. In *Proc. 1st European Symposium on Principles of Data Mining
+  and Knowledge Discovery (PKDD 1997)*, LNCS 1263, 78–87. Springer.
+  doi:10.1007/3-540-63223-9_108
