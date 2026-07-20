@@ -518,17 +518,30 @@ $\lvert D_{cat}\rvert = \lvert\sum_{i \in cat} y^c_i\rvert \le \sum_{i \in cat}
 \lvert y^c_i\rvert$ by the triangle inequality, and the routed categories are
 disjoint, so
 
+**Proposition 5.1 (shattering attains the supremum of the undivided criterion).**
+
 ```math
 \lvert S_P\rvert + \lvert S_N\rvert \;\le\; \sum_{cat}\lvert D_{cat}\rvert \;\le\; \sum_i \lvert y^c_i \rvert = V^c_{node}
 ```
 
 with equality exactly when every category is sign-pure internally and every row
 is routed to an outer branch — which is what shattering into singletons would
-deliver, since a singleton category is trivially sign-pure. So the undivided
+deliver, since a singleton category is trivially sign-pure. *Proof.* Triangle
+inequality per category; disjointness of routed categories for the outer
+inequality; equality requires every $\lvert D_{cat}\rvert$ to equal
+$\sum_{i\in cat}\lvert y^c_i\rvert$ (sign-purity) and all rows routed.
+Singletons satisfy both. ∎ So the undivided
 criterion does not merely have a slight preference for high cardinality: its
 **supremum** is attained by pure shattering, and no genuine feature can beat a
 column that indexes the rows. This is the same pathology that information gain
-has on ID columns, arriving through a different route.
+has on ID columns, arriving through a different route — recognized since the
+earliest tree induction work (Quinlan 1986, whose gain-ratio divides by an
+attribute's own entropy), formally analysed by White & Liu (1994), and still
+biting modern ensembles through variable-importance bias toward many-category
+predictors (Strobl et al. 2007). $1/k$ is this method's answer to that
+disease: like gain ratio, it normalizes the criterion by a function of the
+attribute's cardinality — but by the count of categories *actually routed*,
+not the count that exists.
 
 **Two defenses, and which one binds depends on node size.** With one row per
 category, each category's residual against its own mean is identically zero, so
@@ -708,12 +721,53 @@ keep two segments apart. $\hat{\sigma} = 1.4826\cdot\mathrm{MAD}$ is pooled over
 residual scale; under strong heteroscedasticity the test is too permissive for
 the quiet segments and too strict for the loud ones.
 
+Merging leaf categories by a significance test is the CHAID primitive (Kass
+1980) — there applied during growth, here applied after it, which is what
+lets the tree stay greedy while the *report* recovers the coherent segments
+the greedy cuts fractured.
+
 Note the direction of the test. It merges on *failure to reject* the null of
 equal means, which is not evidence of equality. This is the right default here
 — the operation is a readability repair, and the cost of an over-merge (two
 genuinely different segments reported as one) is bounded by the fact that the
 full tree structure remains available in plots and traces — but it should not be
 read as a claim that merged segments are proven identical.
+
+> **Exact form (not implemented) — heteroscedasticity.** The pooled-scale
+> assumption drops out by testing with per-segment scales (Welch 1947):
+>
+> ```math
+> \lvert \bar{y}_1 - \bar{y}_2 \rvert \;\le\; z \cdot
+> \sqrt{\tfrac{\hat{\sigma}_1^2}{n_1} + \tfrac{\hat{\sigma}_2^2}{n_2}},
+> \qquad \hat{\sigma}_j = 1.4826\cdot\mathrm{MAD}(\text{segment } j\text{ residuals})
+> ```
+>
+> which is the shipped test with $\hat{\sigma}^2(1/n_1+1/n_2)$ replaced by
+> the Welch standard error. Quiet segments stop inheriting the loud
+> segments' scale, at the cost of two scale estimates that are themselves
+> noisier on small segments.
+
+> **Exact form (not implemented) — proving mergeability.** Failure to reject
+> equality is not evidence of equality; the test that *affirms* "these two
+> segments are the same finding" is equivalence testing (TOST; Schuirmann
+> 1987). Fix an equivalence margin $\delta$ — the largest mean difference
+> that would still count as "the same segment", a materiality decision, not
+> a statistical one — and merge only if both one-sided nulls are rejected:
+>
+> ```math
+> \bar{y}_1 - \bar{y}_2 > -\delta + z_{1-\alpha}\,\mathrm{SE}
+> \quad\text{and}\quad
+> \bar{y}_1 - \bar{y}_2 < \delta - z_{1-\alpha}\,\mathrm{SE}
+> ```
+>
+> equivalently: the $(1-2\alpha)$ confidence interval for
+> $\bar{y}_1-\bar{y}_2$ lies inside $(-\delta, +\delta)$. This inverts the
+> burden of proof — small segments with wide intervals then *fail* to merge
+> rather than merging by default, the opposite of the shipped behaviour and
+> the statistically honest one. The open design choice an algorithm pass
+> would face is $\delta$; the natural candidate is a materiality-scaled
+> margin (per-row excess at `delta_pct`), keeping the method's convention
+> that statistical knobs are denominated in business units.
 
 ### 7.1 Conservation is structural, not checked
 
