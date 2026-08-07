@@ -330,3 +330,80 @@ def test_align_dimension_preserves_extension_dtypes():
 
     assert result.X["dim.label"].dtype == pd.StringDtype()
     assert result.X["dim.n"].dtype == np.int64
+
+
+def test_flatten_keeps_orphan_rows_with_an_unmatched_sentinel():
+    tables = {
+        "fact": pd.DataFrame({"k": [1, 99], "y": [10.0, -4.0]}),
+        "dim": pd.DataFrame({"k": [1], "region": ["W"]}),
+    }
+    spec = SchemaSpec(fact="fact", target="y", joins=(Join(table="dim", left="k", right="k"),))
+
+    result = flatten(tables, spec)
+
+    assert list(result.X["dim.region"]) == ["W", "<unmatched>"]
+    assert result.y.sum() == 6.0  # conservation: the orphan row is not dropped
+
+
+def test_flatten_treats_a_null_foreign_key_as_unmatched():
+    tables = {
+        "fact": pd.DataFrame({"k": [1.0, np.nan], "y": [1.0, 2.0]}),
+        "dim": pd.DataFrame({"k": [1.0], "region": ["W"]}),
+    }
+    spec = SchemaSpec(fact="fact", target="y", joins=(Join(table="dim", left="k", right="k"),))
+
+    result = flatten(tables, spec)
+
+    assert list(result.X["dim.region"]) == ["W", "<unmatched>"]
+
+
+def test_flatten_records_unmatched_counts_and_mass_in_provenance():
+    tables = {
+        "fact": pd.DataFrame({"k": [1, 99, 98], "y": [10.0, -4.0, -6.0]}),
+        "dim": pd.DataFrame({"k": [1], "region": ["W"]}),
+    }
+    spec = SchemaSpec(fact="fact", target="y", joins=(Join(table="dim", left="k", right="k"),))
+
+    result = flatten(tables, spec)
+
+    entry = result.provenance["joins"][0]
+    assert entry["n_unmatched"] == 2
+    assert entry["unmatched_sum"] == -10.0
+    assert result.provenance["sentinel"] == "<unmatched>"
+
+
+def test_flatten_escalates_the_sentinel_when_it_collides_with_real_data():
+    tables = {
+        "fact": pd.DataFrame({"k": [1, 99], "y": [1.0, 2.0]}),
+        "dim": pd.DataFrame({"k": [1], "region": ["<unmatched>"]}),
+    }
+    spec = SchemaSpec(fact="fact", target="y", joins=(Join(table="dim", left="k", right="k"),))
+
+    result = flatten(tables, spec)
+
+    assert list(result.X["dim.region"]) == ["<unmatched>", "<unmatched_1>"]
+    assert result.provenance["sentinel"] == "<unmatched_1>"
+
+
+def test_flatten_rejects_unmatched_rows_against_a_float_dimension_column():
+    tables = {
+        "fact": pd.DataFrame({"k": [1, 99], "y": [1.0, 2.0]}),
+        "dim": pd.DataFrame({"k": [1], "score": [0.5]}),
+    }
+    spec = SchemaSpec(fact="fact", target="y", joins=(Join(table="dim", left="k", right="k"),))
+
+    with pytest.raises(SchemaError, match="float column 'dim.score'"):
+        flatten(tables, spec)
+
+
+def test_flatten_allows_float_dimension_columns_when_everything_matches():
+    tables = {
+        "fact": pd.DataFrame({"k": [1, 1], "y": [1.0, 2.0]}),
+        "dim": pd.DataFrame({"k": [1], "score": [0.5]}),
+    }
+    spec = SchemaSpec(fact="fact", target="y", joins=(Join(table="dim", left="k", right="k"),))
+
+    result = flatten(tables, spec)
+
+    assert list(result.X["dim.score"]) == [0.5, 0.5]
+    assert result.X["dim.score"].dtype == float

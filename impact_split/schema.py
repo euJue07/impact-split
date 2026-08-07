@@ -7,7 +7,7 @@ from typing import Any
 
 import numpy as np
 import pandas as pd
-from pandas.api.types import is_numeric_dtype
+from pandas.api.types import is_float_dtype, is_numeric_dtype
 
 
 class SchemaError(ValueError):
@@ -166,6 +166,23 @@ def _align_dimension(parent_keys: pd.Series, dim: pd.DataFrame, join: Join) -> p
     return aligned
 
 
+_SENTINEL_BASE = "<unmatched>"
+
+
+def _resolve_sentinel(frames: list[pd.DataFrame]) -> str:
+    """Pick an unmatched marker that does not already occur in the data."""
+    present: set[Any] = set()
+    for frame in frames:
+        for name in frame.columns:
+            present.update(frame[name].dropna().unique().tolist())
+    if _SENTINEL_BASE not in present:
+        return _SENTINEL_BASE
+    suffix = 1
+    while f"<unmatched_{suffix}>" in present:
+        suffix += 1
+    return f"<unmatched_{suffix}>"
+
+
 def flatten(tables: dict[str, pd.DataFrame], spec: SchemaSpec) -> FlattenResult:
     """Denormalize a star or snowflake schema into a flat frame plus target.
 
@@ -201,6 +218,8 @@ def flatten(tables: dict[str, pd.DataFrame], spec: SchemaSpec) -> FlattenResult:
         provenance["columns"][name] = {"table": spec.fact, "column": name}
 
     aligned_tables: dict[str, pd.DataFrame] = {spec.fact: fact.reset_index(drop=True)}
+    aligned_features: dict[str, tuple[Join, pd.DataFrame]] = {}
+    unmatched_masks: dict[str, np.ndarray] = {}
 
     for join in ordered:
         parent_name = join.parent or spec.fact
@@ -208,12 +227,12 @@ def flatten(tables: dict[str, pd.DataFrame], spec: SchemaSpec) -> FlattenResult:
         _assert_unique_key(dim, join)
         # Align every dimension column once: a chained hop needs this frame to
         # find its own foreign key, which the user's feature selection may omit.
+        parent_keys = aligned_tables[parent_name][join.left]
         full = _align_dimension(
-            aligned_tables[parent_name][join.left],
+            parent_keys,
             dim,
             Join(table=join.table, left=join.left, right=join.right, columns=tuple(dim.columns)),
         )
-        aligned_tables[join.table] = full
 
         if len(full) != len(fact):
             raise SchemaError(
@@ -222,16 +241,49 @@ def flatten(tables: dict[str, pd.DataFrame], spec: SchemaSpec) -> FlattenResult:
                 "unique index cannot fan out — so treat it as a bug in impact-split."
             )
 
-        for name in _selected_columns(dim, join):
-            qualified = f"{join.table}.{name}"
-            if full[name].isna().any():
-                raise SchemaError(f"dimension column {qualified!r} contains missing values.")
-            columns[qualified] = full[name]
-            provenance["columns"][qualified] = {"table": join.table, "column": name}
+        # A key resolves iff its row came back; every dimension row is non-null
+        # in the key column (enforced above), so the key column is the witness.
+        unmatched = np.asarray(full[join.right].isna())
+        aligned_tables[join.table] = full
+
+        selected = _selected_columns(dim, join)
+        aligned_features[join.table] = (join, full[list(selected)])
+        unmatched_masks[join.table] = unmatched
 
         provenance["joins"].append(
-            {"table": join.table, "parent": parent_name, "left": join.left, "right": join.right}
+            {
+                "table": join.table,
+                "parent": parent_name,
+                "left": join.left,
+                "right": join.right,
+                "n_unmatched": int(unmatched.sum()),
+                "unmatched_sum": float(y[unmatched].sum()),
+            }
         )
+
+    sentinel = _resolve_sentinel([frame for _, frame in aligned_features.values()])
+    provenance["sentinel"] = sentinel
+
+    for table, (_join, frame) in aligned_features.items():
+        unmatched = unmatched_masks[table]
+        source = tables[table]
+        for name in frame.columns:
+            qualified = f"{table}.{name}"
+            series = frame[name]
+            if unmatched.any():
+                if is_float_dtype(source[name]):
+                    raise SchemaError(
+                        f"{int(unmatched.sum())} fact row(s) do not match {table!r}, but "
+                        f"float column {qualified!r} cannot carry the {sentinel!r} marker "
+                        "without silently becoming categorical. Pre-bin this column into "
+                        "labels, or repair the foreign key."
+                    )
+                series = series.astype(object)
+                series[unmatched] = sentinel
+            if series.isna().any():
+                raise SchemaError(f"dimension column {qualified!r} contains missing values.")
+            columns[qualified] = series.reset_index(drop=True)
+            provenance["columns"][qualified] = {"table": table, "column": name}
 
     if not columns:
         raise SchemaError("spec selects no feature columns.")
