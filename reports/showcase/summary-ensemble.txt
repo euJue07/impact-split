@@ -6,13 +6,13 @@ tree      11 nodes · 6 leaves · depth 3 (interaction order 3)
 segments  6 · 2 churn ⇄ · conservation exact ✓
 
 Top segments by |impact|
-  #  path                                                      Σy          n        pool share                 gross ⇄   stability                      Σy 5–95%
-  1  root / segment=Enterprise / channel=Partner…         -46,124      1,311      50.7% of Σy⁻                               96.0%            [-53,517, -36,480]
-  2  root / segment=Mid-Market, SMB / region=Wes…         +21,072        372      41.7% of Σy⁺                              100.0%            [+18,870, +23,185]
-  3  root / segment=Mid-Market, SMB / region=Eas…          -1,553      3,002       1.7% of Σy⁻       +20,575 / -22,128       87.0%             [-3,157, -539.67]
-  4  root / segment=Enterprise / channel=Online …         -17,204        494      18.9% of Σy⁻                               61.0%            [-18,004, -15,224]
-  5  root / segment=Mid-Market, SMB / region=Wes…         +142.29        642       0.3% of Σy⁺         +4,979 / -4,837       58.0%             [+61.96, +968.24]
-  6  root / segment=Enterprise / channel=Online …          +3,236        179       6.4% of Σy⁺                              100.0%              [+2,410, +3,684]
+  #  path                                                                                                    Σy          n        pool share                 gross ⇄   stability                      Σy 5–95%
+  1  root / segment=Enterprise / channel=Partner, Retail                                                -46,124      1,311      50.7% of Σy⁻                               96.0%            [-53,517, -36,480]
+  2  root / segment=Mid-Market, SMB / region=West / channel=Online                                      +21,072        372      41.7% of Σy⁺                              100.0%            [+18,870, +23,185]
+  3  root / segment=Mid-Market, SMB / region=East, North, South                                          -1,553      3,002       1.7% of Σy⁻       +20,575 / -22,128       87.0%             [-3,157, -539.67]
+  4  root / segment=Enterprise / channel=Online / region=East, North, South                             -17,204        494      18.9% of Σy⁻                               61.0%            [-18,004, -15,224]
+  5  root / segment=Mid-Market, SMB / region=West / channel=Partner, Retail                             +142.29        642       0.3% of Σy⁺         +4,979 / -4,837       58.0%             [+61.96, +968.24]
+  6  root / segment=Enterprise / channel=Online / region=West                                            +3,236        179       6.4% of Σy⁺                              100.0%              [+2,410, +3,684]
 
  ⇄ churn segment: positive and negative flows are both material — the net hides offsetting mass (gross column shows both).
 

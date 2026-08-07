@@ -44,13 +44,13 @@ tree      11 nodes · 6 leaves · depth 3 (interaction order 3)
 segments  6 · 2 churn ⇄ · conservation exact ✓
 
 Top segments by |impact|
-  #  path                                                      Σy          n        pool share                 gross ⇄
-  1  root / segment=Enterprise / channel=Partner…         -46,124      1,311      50.7% of Σy⁻                        
-  2  root / segment=Mid-Market, SMB / region=Wes…         +21,072        372      41.7% of Σy⁺                        
-  3  root / segment=Mid-Market, SMB / region=Eas…          -1,553      3,002       1.7% of Σy⁻       +20,575 / -22,128
-  4  root / segment=Enterprise / channel=Online …         -17,204        494      18.9% of Σy⁻                        
-  5  root / segment=Mid-Market, SMB / region=Wes…         +142.29        642       0.3% of Σy⁺         +4,979 / -4,837
-  6  root / segment=Enterprise / channel=Online …          +3,236        179       6.4% of Σy⁺                        
+  #  path                                                                                                    Σy          n        pool share                 gross ⇄
+  1  root / segment=Enterprise / channel=Partner, Retail                                                -46,124      1,311      50.7% of Σy⁻                        
+  2  root / segment=Mid-Market, SMB / region=West / channel=Online                                      +21,072        372      41.7% of Σy⁺                        
+  3  root / segment=Mid-Market, SMB / region=East, North, South                                          -1,553      3,002       1.7% of Σy⁻       +20,575 / -22,128
+  4  root / segment=Enterprise / channel=Online / region=East, North, South                             -17,204        494      18.9% of Σy⁻                        
+  5  root / segment=Mid-Market, SMB / region=West / channel=Partner, Retail                             +142.29        642       0.3% of Σy⁺         +4,979 / -4,837
+  6  root / segment=Enterprise / channel=Online / region=West                                            +3,236        179       6.4% of Σy⁺                        
 
  ⇄ churn segment: positive and negative flows are both material — the net hides offsetting mass (gross column shows both).
 ```
@@ -81,9 +81,9 @@ Finally, `model.ensemble_report(X, y, seed=0)` annotates the same ledger with a 
 
 ```
 Top segments by |impact|
-  #  path                                              Σy          n     pool share      gross ⇄     stability          Σy 5–95%
-  1  root / segment=Enterprise / channel=Partner…  -46,124      1,311   50.7% of Σy⁻                    96.0%    [-53,517, -36,480]
-  2  root / segment=Mid-Market, SMB / region=Wes…  +21,072        372   41.7% of Σy⁺                   100.0%    [+18,870, +23,185]
+  #  path                                                       Σy          n     pool share      gross ⇄     stability          Σy 5–95%
+  1  root / segment=Enterprise / channel=Partner, Retail    -46,124      1,311   50.7% of Σy⁻                    96.0%    [-53,517, -36,480]
+  2  root / segment=Mid-Market, SMB / region=West / channel=Online  +21,072        372   41.7% of Σy⁺                   100.0%    [+18,870, +23,185]
   ...
 Shadow drivers (material regions the main tree does not report)
   · region=West & segment=Enterprise  Σy≈-9,618 · recurrence 38.0% · via region, segment

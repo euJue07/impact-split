@@ -7,7 +7,7 @@ from typing import Any
 from impact_split.viz.data import fmt_num, fmt_pct
 
 
-def render_summary(payload: dict[str, Any], *, top: int = 10, path_width: int = 44) -> str:
+def render_summary(payload: dict[str, Any], *, top: int = 10, path_width: int = 90) -> str:
     """Ledger header + ranked segment table; always ends with a complete total story."""
     meta = payload["meta"]
     segments = payload["segments"]
