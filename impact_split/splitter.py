@@ -41,7 +41,7 @@ def _prepare_X_y(
     elif isinstance(y, np.ndarray):
         y_arr = y.astype(float, copy=False)
     else:
-        raise ValueError("y must be a numpy.ndarray or pandas.Series.")
+        raise TypeError("y must be a numpy.ndarray or pandas.Series.")
 
     if y_arr.ndim != 1:
         raise ValueError("y must be a 1D numpy.ndarray or pandas.Series.")
@@ -95,7 +95,7 @@ def _prepare_X_y(
             raise ValueError("X and y must have the same number of rows.")
         x_arr = X.astype(np.int64, copy=False)
     else:
-        raise ValueError("X must be a numpy.ndarray or pandas.DataFrame.")
+        raise TypeError("X must be a numpy.ndarray or pandas.DataFrame.")
 
     return x_arr, y_arr, feature_names, category_maps, numeric_bin_edges
 
@@ -182,15 +182,15 @@ class ImpactSplitter:
         if numeric_binning_strategy not in {"quantiles", "interval"}:
             raise ValueError("numeric_binning_strategy must be one of {'quantiles', 'interval'}.")
         if isinstance(numeric_n_bins, bool) or not isinstance(numeric_n_bins, int):
-            raise ValueError("numeric_n_bins must be an integer >= 2.")
+            raise TypeError("numeric_n_bins must be an integer, got a non-integer.")
         if numeric_n_bins < 2:
-            raise ValueError("numeric_n_bins must be an integer >= 2.")
+            raise ValueError("numeric_n_bins must be >= 2.")
         if noise_z < 0:
             raise ValueError("noise_z must be >= 0 (0 disables the noise floor).")
         if not isinstance(consolidate, bool):
-            raise ValueError("consolidate must be a bool.")
+            raise TypeError("consolidate must be a bool.")
         if not isinstance(lookahead, bool):
-            raise ValueError("lookahead must be a bool.")
+            raise TypeError("lookahead must be a bool.")
 
         self.delta_pct = delta_pct
         self.min_global_impact_pct = min_global_impact_pct
@@ -1042,14 +1042,14 @@ class ImpactSplitter:
             raise RuntimeError("Call fit() before ensemble_report().")
         if tuple(np.shape(X)) != self._X.shape or np.shape(y)[0] != self._y.shape[0]:
             raise ValueError("ensemble_report expects the same X/y the model was fit on.")
-        if isinstance(n_replicates, bool) or not isinstance(n_replicates, int) or n_replicates < 1:
-            raise ValueError("n_replicates must be an integer >= 1.")
-        if (
-            isinstance(shadow_replicates, bool)
-            or not isinstance(shadow_replicates, int)
-            or shadow_replicates < 0
-        ):
-            raise ValueError("shadow_replicates must be an integer >= 0.")
+        if isinstance(n_replicates, bool) or not isinstance(n_replicates, int):
+            raise TypeError("n_replicates must be an integer, got a non-integer.")
+        if n_replicates < 1:
+            raise ValueError("n_replicates must be >= 1.")
+        if isinstance(shadow_replicates, bool) or not isinstance(shadow_replicates, int):
+            raise TypeError("shadow_replicates must be an integer, got a non-integer.")
+        if shadow_replicates < 0:
+            raise ValueError("shadow_replicates must be >= 0.")
         if feature_subsample is not None and not (0.0 < feature_subsample <= 1.0):
             raise ValueError("feature_subsample must be None or in (0, 1].")
         if not (0.0 < match_threshold <= 1.0):

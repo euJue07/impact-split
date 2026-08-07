@@ -27,8 +27,13 @@ for weeks:
 | Rule | Location | Count |
 |---|---|---|
 | `TRY004` prefer `TypeError` for invalid type | `impact_split/splitter.py` (44, 98, 185, 191, 193) | 5 |
-| `TRY004` | `impact_split/viz/data.py:49` | 1 |
-| `TRY004` | `impact_split/viz/text.py` (47, 51) | 2 |
+| `BLE001` do not catch blind `Exception` | `impact_split/viz/data.py:49` | 1 |
+| `ISC004` unparenthesized implicit string concat in a collection | `impact_split/viz/text.py` (47, 51) | 2 |
+
+*(Corrected: an earlier revision of this table attributed all 8 to `TRY004`.
+The three `viz/` hits are different rules entirely, and the mistake made the
+`TRY004` decision look ~60% larger and broader than it is. Re-read from the
+run log rather than from this table if it matters.)*
 
 The 9th (`RUF046`, a redundant `int()` around `len()`) was introduced by the
 relational-input branch and fixed there in `63c47d2`.
@@ -60,17 +65,35 @@ The general lesson: a fail-fast job hides everything behind its first red step,
 so the cost of a broken gate compounds. Treat the *first* green run after a long
 red stretch as the real measurement, not the fix that produced it.
 
-**2. Decide on `TRY004` separately.** The rule wants `TypeError` rather than
-`ValueError` for wrong-type arguments. That is a **public API change** — callers
-catching `ValueError` on `ImpactSplitter(...)` or `fit(...)` would break — so it
-is not a lint cleanup and should not be done reflexively to satisfy a linter.
-Either adopt it as an intentional breaking change with a CHANGELOG entry, or add
-`TRY004` to a per-file ignore with a comment explaining the API-stability
-reason.
+**2. Decide on `TRY004` separately. — Done: adopted.** The rule wants
+`TypeError` rather than `ValueError` for wrong-type arguments. That is a
+**public API change** — callers catching `ValueError` on `ImpactSplitter(...)`
+or `fit(...)` break — so it was treated as a product decision, not a lint
+cleanup.
 
-Note the interaction: `impact_split/schema.py`'s `SchemaError` subclasses
-`ValueError`, matching the existing convention. Whatever is decided here should
-apply to that module too, so the package raises one consistent way.
+Adopted as an intentional breaking change at the cheapest possible moment: 0.3.0
+is still unreleased, so it ships inside a version nobody has pinned yet. Five
+sites in `splitter.py`, four tests updated, CHANGELOG entry under
+`### Changed (breaking)`. `TRY004` is now explicitly in `extend-select`, so the
+convention is enforced under the pin instead of depending on ruff's default set.
+
+`schema.py`'s `SchemaError` deliberately still subclasses `ValueError`: a schema
+violation (duplicate key, unknown column, fan-out risk) is a wrong *value*, not
+a wrong *type*, so the two modules do agree — the split is by fault kind, not by
+module.
+
+## Still open: `BLE001` and `ISC004`
+
+The three `viz/` findings above are untouched and will fire again on a bump past
+0.15.x. Both are smaller than `TRY004` and neither is an API change:
+
+- `BLE001` at `viz/data.py:49` guards an `importlib.metadata` lookup that
+  already carries a `# pragma: no cover` and deliberately degrades to
+  `"unknown"`. A blind catch is arguably correct here; narrowing it or ignoring
+  the rule are both defensible.
+- `ISC004` at `viz/text.py` (47, 51) flags intentional line-wrapping of f-string
+  headers inside a list literal. The rule exists because a missing comma in a
+  collection silently becomes concatenation — worth a look before dismissing.
 
 ## Related
 

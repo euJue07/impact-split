@@ -10,10 +10,10 @@ from impact_split import ImpactSplitter
 def test_fit_rejects_invalid_inputs() -> None:
     model = ImpactSplitter()
 
-    with pytest.raises(ValueError, match="X must be a numpy.ndarray or pandas.DataFrame"):
+    with pytest.raises(TypeError, match="X must be a numpy.ndarray or pandas.DataFrame"):
         model.fit([[0], [1]], np.array([1.0, -1.0]))
 
-    with pytest.raises(ValueError, match="y must be a numpy.ndarray or pandas.Series"):
+    with pytest.raises(TypeError, match="y must be a numpy.ndarray or pandas.Series"):
         model.fit(np.array([[0], [1]], dtype=np.int64), [1.0, -1.0])
 
 
@@ -45,9 +45,11 @@ def test_fit_validates_shapes_and_integer_encoding() -> None:
 def test_constructor_validates_numeric_binning_parameters() -> None:
     with pytest.raises(ValueError, match="numeric_binning_strategy"):
         ImpactSplitter(numeric_binning_strategy="bad")
+    # An int below the floor is a wrong *value*; a bool (or any non-int) is a
+    # wrong *type*. They raise the same way only if the distinction is lost.
     with pytest.raises(ValueError, match="numeric_n_bins"):
         ImpactSplitter(numeric_n_bins=1)
-    with pytest.raises(ValueError, match="numeric_n_bins"):
+    with pytest.raises(TypeError, match="numeric_n_bins"):
         ImpactSplitter(numeric_n_bins=True)
 
 

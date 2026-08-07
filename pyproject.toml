@@ -73,7 +73,10 @@ include = ["pyproject.toml", "impact_split/**/*.py", "tests/**/*.py"]
 
 [tool.ruff.lint]
 # I: isort; UP: pyupgrade; B: bugbear; SIM: simplify
-extend-select = ["I", "UP", "B", "SIM"]
+# TRY004: TypeError for a wrong-type argument, ValueError for a wrong value.
+# Selected explicitly so the convention is enforced under the pinned ruff rather
+# than resurfacing whenever a bump changes the default rule set.
+extend-select = ["I", "UP", "B", "SIM", "TRY004"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["impact_split"]

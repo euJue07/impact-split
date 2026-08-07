@@ -9,7 +9,7 @@ from impact_split import ImpactSplitter
 
 
 def test_lookahead_constructor_validation() -> None:
-    with pytest.raises(ValueError, match="lookahead"):
+    with pytest.raises(TypeError, match="lookahead"):
         ImpactSplitter(lookahead="yes")  # type: ignore[arg-type]
 
 
