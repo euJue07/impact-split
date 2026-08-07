@@ -271,6 +271,8 @@ def flatten(tables: dict[str, pd.DataFrame], spec: SchemaSpec) -> FlattenResult:
             qualified = f"{table}.{name}"
             series = frame[name]
             if unmatched.any():
+                # Check source dtype, not aligned: int64 columns become float64 after NaN-injection
+                # upstream, and checking frame dtype would spuriously reject the column.
                 if is_float_dtype(source[name]):
                     raise SchemaError(
                         f"{int(unmatched.sum())} fact row(s) do not match {table!r}, but "

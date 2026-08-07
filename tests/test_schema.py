@@ -407,3 +407,117 @@ def test_flatten_allows_float_dimension_columns_when_everything_matches():
 
     assert list(result.X["dim.score"]) == [0.5, 0.5]
     assert result.X["dim.score"].dtype == float
+
+
+def _snowflake() -> tuple[dict[str, pd.DataFrame], SchemaSpec]:
+    tables = {
+        "fact": pd.DataFrame(
+            {"ck": [1, 2, 3, 1], "channel": ["a", "b", "a", "b"], "y": [5.0, -3.0, 2.0, 1.0]}
+        ),
+        "dim_cust": pd.DataFrame(
+            {"ck": [1, 2, 3], "gk": [10, 20, 10], "tier": ["gold", "silver", "gold"]}
+        ),
+        "dim_geo": pd.DataFrame({"gk": [10, 20], "country": ["PH", "US"]}),
+    }
+    spec = SchemaSpec(
+        fact="fact",
+        target="y",
+        features=("channel",),
+        joins=(
+            Join(table="dim_cust", left="ck", right="ck", columns=("tier",)),
+            Join(table="dim_geo", left="gk", right="gk", parent="dim_cust"),
+        ),
+    )
+    return tables, spec
+
+
+def test_snowflake_resolves_two_hops():
+    tables, spec = _snowflake()
+
+    result = flatten(tables, spec)
+
+    assert list(result.X.columns) == ["channel", "dim_cust.tier", "dim_geo.country"]
+    assert list(result.X["dim_cust.tier"]) == ["gold", "silver", "gold", "gold"]
+    assert list(result.X["dim_geo.country"]) == ["PH", "US", "PH", "PH"]
+
+
+def test_snowflake_conserves_rows_and_sum():
+    tables, spec = _snowflake()
+
+    result = flatten(tables, spec)
+
+    assert len(result.X) == 4
+    assert result.y.sum() == pytest.approx(5.0)
+    assert result.provenance["target_sum"] == pytest.approx(5.0)
+
+
+def test_snowflake_propagates_an_unmatched_first_hop_to_the_second():
+    """An orphan at hop 1 has no geo key, so hop 2 must also read as unmatched."""
+    tables, spec = _snowflake()
+    tables["fact"] = pd.DataFrame({"ck": [1, 404], "channel": ["a", "b"], "y": [5.0, -3.0]})
+
+    result = flatten(tables, spec)
+
+    assert list(result.X["dim_cust.tier"]) == ["gold", "<unmatched>"]
+    assert list(result.X["dim_geo.country"]) == ["PH", "<unmatched>"]
+    assert result.y.sum() == pytest.approx(2.0)
+
+
+def test_snowflake_three_hops():
+    tables = {
+        "fact": pd.DataFrame({"ak": [1], "y": [1.0]}),
+        "dim_a": pd.DataFrame({"ak": [1], "bk": [2], "av": ["A"]}),
+        "dim_b": pd.DataFrame({"bk": [2], "ck": [3], "bv": ["B"]}),
+        "dim_c": pd.DataFrame({"ck": [3], "cv": ["C"]}),
+    }
+    spec = SchemaSpec(
+        fact="fact",
+        target="y",
+        joins=(
+            Join(table="dim_a", left="ak", right="ak", columns=("av",)),
+            Join(table="dim_b", left="bk", right="bk", parent="dim_a", columns=("bv",)),
+            Join(table="dim_c", left="ck", right="ck", parent="dim_b", columns=("cv",)),
+        ),
+    )
+
+    result = flatten(tables, spec)
+
+    assert list(result.X.columns) == ["dim_a.av", "dim_b.bv", "dim_c.cv"]
+    assert result.X.iloc[0].tolist() == ["A", "B", "C"]
+
+
+def test_flattened_snowflake_fits_and_conserves_through_impact_splitter():
+    """The point of the whole feature: the output drops straight into fit()."""
+    from impact_split import ImpactSplitter
+
+    rng = np.random.default_rng(0)
+    n = 600
+    tables = {
+        "fact": pd.DataFrame(
+            {
+                "ck": rng.integers(1, 4, size=n),
+                "channel": rng.choice(["online", "partner"], size=n),
+                "y": rng.normal(0.0, 10.0, size=n),
+            }
+        ),
+        "dim_cust": pd.DataFrame(
+            {"ck": [1, 2, 3], "gk": [10, 20, 10], "tier": ["gold", "silver", "gold"]}
+        ),
+        "dim_geo": pd.DataFrame({"gk": [10, 20], "country": ["PH", "US"]}),
+    }
+    spec = SchemaSpec(
+        fact="fact",
+        target="y",
+        features=("channel",),
+        joins=(
+            Join(table="dim_cust", left="ck", right="ck", columns=("tier",)),
+            Join(table="dim_geo", left="gk", right="gk", parent="dim_cust"),
+        ),
+    )
+
+    result = flatten(tables, spec)
+    model = ImpactSplitter().fit(result.X, result.y)
+    segments = model.get_impact_segments()
+
+    assert segments["n_samples"].sum() == n
+    assert segments["total_sum"].sum() == pytest.approx(result.y.sum(), abs=1e-6)
