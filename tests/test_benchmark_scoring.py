@@ -96,8 +96,11 @@ def test_ceiling_cell_null_case_reports_guardrail():
     from benchmarks.shadow_ceiling import ceiling_cell
 
     cell = ceiling_cell(
-        case_null(42), feature_subsample=0.5, shadow_replicates=8,
-        n_replicates=8, seed=42,
+        case_null(42),
+        feature_subsample=0.5,
+        shadow_replicates=8,
+        n_replicates=8,
+        seed=42,
     )
     assert cell.null_clean is not None
     assert math.isnan(cell.f1_all) and math.isnan(cell.f1_low_overlap)

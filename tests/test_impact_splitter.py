@@ -224,9 +224,7 @@ def test_constant_feature_skipped_child_prefers_other_column() -> None:
     model.fit(x, y, trace=True)
 
     assert model.fit_trace_[0]["chosen_feature_index"] == 1
-    depth1_splits = [
-        e for e in model.fit_trace_ if e["depth"] == 1 and e["action"] == "split"
-    ]
+    depth1_splits = [e for e in model.fit_trace_ if e["depth"] == 1 and e["action"] == "split"]
     assert depth1_splits
     assert all(e["chosen_feature_index"] == 0 for e in depth1_splits)
 

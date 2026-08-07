@@ -69,12 +69,7 @@ Issues = "https://github.com/euJue07/impact-split/issues"
 [tool.ruff]
 line-length = 99
 src = ["impact_split"]
-# tests/ is deliberately excluded: bringing it into scope surfaces a pre-existing
-# `ruff format` drift across 8 files (a real formatting sweep, its own change,
-# not a one-line fix) alongside a handful of `ruff check` errors. The measured
-# cost, the 8 affected files, and a step-by-step recipe are in
-# docs/plans/followup-ruff-tests-scope.md — read it before re-attempting this.
-include = ["pyproject.toml", "impact_split/**/*.py"]
+include = ["pyproject.toml", "impact_split/**/*.py", "tests/**/*.py"]
 
 [tool.ruff.lint]
 # I: isort; UP: pyupgrade; B: bugbear; SIM: simplify

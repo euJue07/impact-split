@@ -44,9 +44,9 @@ def test_repr_pre_and_post_fit() -> None:
 def test_summary_flags_churn_segments() -> None:
     text = churn_mix_fitted().summary()
     assert "lookahead=True" in text
-    assert "churn ⇄" in text          # segments ledger line
-    assert "gross ⇄" in text          # table column header
-    assert " / -" in text             # gross column rendered for the churn row
+    assert "churn ⇄" in text  # segments ledger line
+    assert "gross ⇄" in text  # table column header
+    assert " / -" in text  # gross column rendered for the churn row
     assert "offsetting mass" in text  # footnote
 
 

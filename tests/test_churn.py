@@ -42,9 +42,7 @@ def test_gross_flows_on_all_segments_and_flag_matches_rule() -> None:
         model = ImpactSplitter(consolidate=consolidate).fit(X, y)
         for seg in model.segments_:
             assert seg["pos_sum"] >= 0.0 and seg["neg_sum"] >= 0.0
-            assert seg["pos_sum"] - seg["neg_sum"] == pytest.approx(
-                seg["total_sum"], abs=1e-6
-            )
+            assert seg["pos_sum"] - seg["neg_sum"] == pytest.approx(seg["total_sum"], abs=1e-6)
             expected = (
                 seg["pos_sum"] / pos_pool > model.min_global_impact_pct
                 and seg["neg_sum"] / neg_pool > model.min_global_impact_pct

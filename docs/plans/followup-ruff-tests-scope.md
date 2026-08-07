@@ -1,5 +1,8 @@
 # Follow-up: bring `tests/` into ruff's scope
 
+**Status: done.** `[tool.ruff] include` now carries `"tests/**/*.py"`, and the
+8 files below have had their format pass. Kept as the record of what it cost.
+
 Deferred out of the star/snowflake relational-input branch
 (`claude/algorithm-relational-db-support-f9e2dd`). Cost already measured — this
 is ready to execute as its own PR.
@@ -38,3 +41,21 @@ line-length-99 rule. No semantic changes expected.
 `test_viz_html.py`, `test_viz_static.py`, and `test_viz_text.py` already had
 their `ruff check` fixes landed on the relational-input branch (4 `I001` import
 sorts and one `F841`); only the format pass is outstanding for those three.
+
+## Outcome
+
+Cheaper than the estimate, for a reason worth noting. `ruff check .` came back
+clean on the first run — the 5 errors that made this look expensive had been
+fixed on the relational-input branch and *kept* when the scope was reverted in
+`6ecccd2`. Only the format pass was ever outstanding. The estimate was made
+before that revert and nobody re-measured after it.
+
+The sweep touched all 8 files as predicted, whitespace and line-wrap only. That
+was verified rather than assumed: each file's `ast.dump(..., include_attributes=
+False)` is byte-identical before and after, which is what makes the 186-test run
+a regression check rather than the sole evidence.
+
+One precondition mattered more than it looks. This was only safe to run once
+`ruff~=0.15.5` was pinned — before that, a local `ruff format` and CI's
+`ruff format --check` used different versions, so a locally clean sweep could
+still land red. See [followup-ci-ruff-drift.md](followup-ci-ruff-drift.md).
