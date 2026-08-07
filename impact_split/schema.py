@@ -132,6 +132,23 @@ def _selected_columns(dim: pd.DataFrame, join: Join) -> tuple[str, ...]:
     return tuple(c for c in dim.columns if c != join.right)
 
 
+def _assert_unique_key(dim: pd.DataFrame, join: Join) -> None:
+    """Enforce the many-to-one restriction: the dimension key is unique and non-null."""
+    key = dim[join.right]
+    if key.isna().any():
+        raise SchemaError(f"join key {join.right!r} in {join.table!r} contains missing values.")
+    duplicated = key[key.duplicated(keep=False)]
+    if not duplicated.empty:
+        example = duplicated.iloc[0]
+        n_dupes = int(duplicated.nunique())
+        raise SchemaError(
+            f"join key {join.right!r} in {join.table!r} is not unique — "
+            f"{n_dupes} duplicated key value(s), e.g. {example!r}. impact-split supports "
+            "many-to-one joins only; a fan-out join would duplicate rows and break sum "
+            "conservation."
+        )
+
+
 def _align_dimension(parent_keys: pd.Series, dim: pd.DataFrame, join: Join) -> pd.DataFrame:
     """Reindex ``dim`` onto the parent's row order, one dimension row per parent row.
 
@@ -188,6 +205,7 @@ def flatten(tables: dict[str, pd.DataFrame], spec: SchemaSpec) -> FlattenResult:
     for join in ordered:
         parent_name = join.parent or spec.fact
         dim = tables[join.table]
+        _assert_unique_key(dim, join)
         # Align every dimension column once: a chained hop needs this frame to
         # find its own foreign key, which the user's feature selection may omit.
         full = _align_dimension(
@@ -196,6 +214,13 @@ def flatten(tables: dict[str, pd.DataFrame], spec: SchemaSpec) -> FlattenResult:
             Join(table=join.table, left=join.left, right=join.right, columns=tuple(dim.columns)),
         )
         aligned_tables[join.table] = full
+
+        if len(full) != len(fact):
+            raise SchemaError(
+                f"joining {join.table!r} changed the row count: {len(fact)} fact rows "
+                f"produced {len(full)}. This should be unreachable — reindexing against a "
+                "unique index cannot fan out — so treat it as a bug in impact-split."
+            )
 
         for name in _selected_columns(dim, join):
             qualified = f"{join.table}.{name}"
@@ -212,6 +237,9 @@ def flatten(tables: dict[str, pd.DataFrame], spec: SchemaSpec) -> FlattenResult:
         raise SchemaError("spec selects no feature columns.")
 
     X = pd.DataFrame(columns)
+    # sum(y) needs no guard: y is read from the fact table once and never passes
+    # through a join, so only a row-count change can break the row-to-target
+    # correspondence. Both length checks above and below are that guard.
     if len(X) != len(fact):
         raise SchemaError(
             f"row count changed during flattening: {len(fact)} fact rows produced {len(X)}."

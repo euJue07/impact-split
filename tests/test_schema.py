@@ -256,3 +256,77 @@ def test_flatten_snowflake_child_keys_off_the_parents_own_key_column():
 
     assert list(result.X["dim_a.a_val"]) == ["x", "y"]
     assert list(result.X["dim_b.b_val"]) == ["p", "q"]
+
+
+def test_flatten_rejects_a_dimension_with_duplicate_keys():
+    tables = {
+        "fact": pd.DataFrame({"k": [1, 2], "y": [1.0, 2.0]}),
+        "dim": pd.DataFrame({"k": [1, 1, 2], "label": ["a", "b", "c"]}),
+    }
+    spec = SchemaSpec(fact="fact", target="y", joins=(Join(table="dim", left="k", right="k"),))
+
+    with pytest.raises(SchemaError) as excinfo:
+        flatten(tables, spec)
+
+    message = str(excinfo.value)
+    assert "dim" in message
+    assert "'k'" in message
+    assert "not unique" in message
+    assert "1" in message  # the offending key value is named
+
+
+def test_flatten_rejects_a_dimension_key_containing_nulls():
+    tables = {
+        "fact": pd.DataFrame({"k": [1], "y": [1.0]}),
+        "dim": pd.DataFrame({"k": [None], "label": ["a"]}),
+    }
+    spec = SchemaSpec(fact="fact", target="y", joins=(Join(table="dim", left="k", right="k"),))
+    with pytest.raises(SchemaError, match="join key 'k' in 'dim' contains missing values"):
+        flatten(tables, spec)
+
+
+def test_flatten_rejects_duplicate_keys_deep_in_a_snowflake():
+    tables = {
+        "fact": pd.DataFrame({"ck": [1], "y": [1.0]}),
+        "dim_cust": pd.DataFrame({"ck": [1], "gk": [9], "name": ["n"]}),
+        "dim_geo": pd.DataFrame({"gk": [9, 9], "country": ["PH", "US"]}),
+    }
+    spec = SchemaSpec(
+        fact="fact",
+        target="y",
+        joins=(
+            Join(table="dim_cust", left="ck", right="ck"),
+            Join(table="dim_geo", left="gk", right="gk", parent="dim_cust"),
+        ),
+    )
+    with pytest.raises(SchemaError, match="join key 'gk' in 'dim_geo' is not unique"):
+        flatten(tables, spec)
+
+
+def test_flatten_asserts_row_count_and_sum_survive_the_join():
+    """Belt-and-braces: the mechanism cannot fan out, but the guard still runs."""
+    tables, spec = _star()
+    result = flatten(tables, spec)
+    assert len(result.X) == len(tables["fact"])
+    assert result.y.sum() == tables["fact"]["y"].sum()
+
+
+def test_align_dimension_preserves_extension_dtypes():
+    """dtype preservation is load-bearing: Task 7 round-trips StringDtype frames.
+
+    Without a permanent test here, a future 'simplification' of _align_dimension
+    (to pd.merge, say) would silently downgrade StringDtype to object and only
+    surface as a confusing Task 7 failure.
+    """
+    tables = {
+        "fact": pd.DataFrame({"k": [1, 2], "y": [1.0, 2.0]}),
+        "dim": pd.DataFrame(
+            {"k": [1, 2], "label": pd.Series(["a", "b"], dtype="string"), "n": [10, 20]}
+        ),
+    }
+    spec = SchemaSpec(fact="fact", target="y", joins=(Join(table="dim", left="k", right="k"),))
+
+    result = flatten(tables, spec)
+
+    assert result.X["dim.label"].dtype == pd.StringDtype()
+    assert result.X["dim.n"].dtype == np.int64
