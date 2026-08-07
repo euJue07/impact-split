@@ -737,12 +737,35 @@ def test_flatten_rejects_duplicate_keys_deep_in_a_snowflake():
 
 
 def test_flatten_asserts_row_count_and_sum_survive_the_join():
-    """Belt-and-braces: the mechanism cannot fan out, but the assertion still runs."""
+    """Belt-and-braces: the mechanism cannot fan out, but the guard still runs."""
     tables, spec = _star()
     result = flatten(tables, spec)
     assert len(result.X) == len(tables["fact"])
     assert result.y.sum() == tables["fact"]["y"].sum()
+
+
+def test_align_dimension_preserves_extension_dtypes():
+    """dtype preservation is load-bearing: Task 7 round-trips StringDtype frames.
+
+    Without a permanent test here, a future 'simplification' of _align_dimension
+    (to pd.merge, say) would silently downgrade StringDtype to object and only
+    surface as a confusing Task 7 failure.
+    """
+    tables = {
+        "fact": pd.DataFrame({"k": [1, 2], "y": [1.0, 2.0]}),
+        "dim": pd.DataFrame(
+            {"k": [1, 2], "label": pd.Series(["a", "b"], dtype="string"), "n": [10, 20]}
+        ),
+    }
+    spec = SchemaSpec(fact="fact", target="y", joins=(Join(table="dim", left="k", right="k"),))
+
+    result = flatten(tables, spec)
+
+    assert result.X["dim.label"].dtype == pd.StringDtype()
+    assert result.X["dim.n"].dtype == np.int64
 ```
+
+The second test is carried forward from Task 3's review, which flagged that dtype preservation was verified only by an ad-hoc script in the implementer's report, never committed.
 
 - [ ] **Step 2: Run the tests to verify they fail**
 
@@ -783,15 +806,25 @@ In `flatten`, call it as the first statement of the `for join in ordered:` body:
         _assert_unique_key(dim, join)
 ```
 
-And add the post-join guard immediately before `return FlattenResult(...)`, replacing the existing row-count check:
+And add a post-alignment length guard as the last statement of the `for join in ordered:` body:
 
 ```python
-    if len(X) != len(fact):
-        raise SchemaError(
-            f"row count changed during flattening: {len(fact)} fact rows produced {len(X)}."
-        )
-    if float(y.sum()) != provenance["target_sum"]:
-        raise SchemaError("sum(y) changed during flattening — conservation violated.")
+        if len(full) != len(fact):
+            raise SchemaError(
+                f"joining {join.table!r} changed the row count: {len(fact)} fact rows "
+                f"produced {len(full)}. This should be unreachable — reindexing against a "
+                "unique index cannot fan out — so treat it as a bug in impact-split."
+            )
+```
+
+Keep the existing `len(X) != len(fact)` check before `return FlattenResult(...)` exactly as Task 2 wrote it.
+
+**Do not add a `sum(y)` comparison.** The source brief called for one, but under this design it would assert nothing: `y` is read once from the fact table and never passes through a join — only `X` does — so `y.sum()` is trivially equal to the `target_sum` recorded from it moments earlier. The two length guards above are the real conservation witnesses, because a row-count change is the only way a join can break the row-to-target correspondence. Write that reasoning into a comment above the `len(X)` check so the next reader does not "restore" the missing assertion:
+
+```python
+    # sum(y) needs no guard: y is read from the fact table once and never passes
+    # through a join, so only a row-count change can break the row-to-target
+    # correspondence. Both length checks above and below are that guard.
 ```
 
 - [ ] **Step 4: Run the tests to verify they pass**
