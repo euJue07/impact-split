@@ -35,11 +35,30 @@ relational-input branch and fixed there in `63c47d2`.
 
 ## Two decisions, not one
 
-**1. Stop the drift. — Done.** The `dev` extra now pins `ruff~=0.15.5`, a
-compatible-release pin so patch fixes still arrive while the minor version is
-bumped deliberately. CI had resolved 0.16.1 against a local 0.15.5; under the
-pin both report zero errors. Bumping the pin is now a change that carries its
-own findings, rather than a surprise on an unrelated branch.
+**1. Stop the drift. — Done.** The `dev` extra now pins `ruff~=0.15.5` and
+`mypy~=2.3.0`, compatible-release pins so patch fixes still arrive while the
+minor version is bumped deliberately. CI had resolved ruff 0.16.1 against a
+local 0.15.5; under the pin both report zero errors. Bumping is now a change
+that carries its own findings, rather than a surprise on an unrelated branch.
+
+Pinning was necessary but **not sufficient**, and the reason is worth keeping.
+`validate` runs format → lint → mypy → bandit → build → twine and stops at the
+first failure, so while ruff was red at step 2 **every later step had been dark
+in CI since July**. Clearing ruff exposed two more, neither related to the pin:
+
+- `ensemble.py` assigned `None` to `ci_low`/`ci_high`, inferred `float` from the
+  percentile branch. Both were already documented as nullable and already
+  reached the payload as `None`; only the annotation was missing.
+- mypy was told `python_version = "3.10"` while the job ran on 3.13, where pip
+  resolves numpy 2.5.1 — a release that itself requires ≥3.12 and whose stubs
+  use PEP 695 `type` statements that mypy then refuses to parse as 3.10. That
+  pairing cannot occur for a real user (a 3.10 install gets numpy ≤2.2.6), so
+  the job now runs on 3.10 and the declared floor and the checked dependency set
+  are the same thing.
+
+The general lesson: a fail-fast job hides everything behind its first red step,
+so the cost of a broken gate compounds. Treat the *first* green run after a long
+red stretch as the real measurement, not the fix that produced it.
 
 **2. Decide on `TRY004` separately.** The rule wants `TypeError` rather than
 `ValueError` for wrong-type arguments. That is a **public API change** — callers
