@@ -63,7 +63,7 @@ payload = model.to_dict()                # JSON-safe dict for custom renderers
 
 After fitting with a `DataFrame`, `model.feature_names_in_` and `model.category_maps_` hold column names and code-to-value maps for each feature. Pass `trace=True` (or the `verbose=True` alias) to `fit()` to populate `model.fit_trace_` with one pre-order step per visited node.
 
-## Fitting from a star or snowflake schema
+## Fitting From a Star or Snowflake Schema
 
 If your features live in dimension tables rather than one flat frame, describe the schema
 and let `flatten` denormalize it:

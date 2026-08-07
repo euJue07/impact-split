@@ -36,8 +36,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning: [S
   are the declarative contract — fact table, target, join chain, feature selection.
   Joins are **many-to-one only** and execute as a reindex against a unique index, so a
   fan-out cannot occur silently: duplicate or null dimension keys raise `SchemaError`
-  naming the table, key, and an example. Fact rows whose foreign key does not resolve
-  are kept under an `<unmatched>` category rather than dropped, so row count and
+  naming the table and key, plus an example duplicate value when the violation is
+  non-uniqueness. Fact rows whose foreign key does not resolve are kept under an
+  `<unmatched>` category rather than dropped, so row count and
   `sum(y)` are conserved exactly. Dimension columns are table-qualified
   (`dim_customer.region`); fact columns keep their names. Accepts
   `{table_name: DataFrame}`; a SQLAlchemy adapter and schema introspection are planned
