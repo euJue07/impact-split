@@ -329,6 +329,8 @@ def run_ensemble(
     seg_stats: list[dict[str, Any]] = []
     for i in range(n_ref):
         stability = n_matched[i] / n_replicates if n_replicates else 0.0
+        ci_low: float | None
+        ci_high: float | None
         if len(ci_samples[i]) >= CI_MIN_MATCHES:
             lo, hi = np.percentile(ci_samples[i], CI_PERCENTILES)
             ci_low, ci_high = float(lo), float(hi)
