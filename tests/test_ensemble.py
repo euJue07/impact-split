@@ -1,4 +1,5 @@
 """Forest annotation layer: matching, replicates, stability/CI, importance, shadows."""
+
 import numpy as np
 import pytest
 
@@ -62,14 +63,9 @@ def test_fit_replicate_deterministic_and_remappable():
     cols = np.array([1, 0])  # deliberately permuted subset
     rep1 = fit_replicate(model, np.random.default_rng(42), cols)
     rep2 = fit_replicate(model, np.random.default_rng(42), cols)
-    assert [s["conditions"] for s in rep1.segments_] == [
-        s["conditions"] for s in rep2.segments_
-    ]
+    assert [s["conditions"] for s in rep1.segments_] == [s["conditions"] for s in rep2.segments_]
     # remapped masks are full-length and the planted a==0 segment reappears
-    masks = [
-        mask_from_conditions(s["conditions"], X, col_map=cols)
-        for s in rep1.segments_
-    ]
+    masks = [mask_from_conditions(s["conditions"], X, col_map=cols) for s in rep1.segments_]
     assert all(m.shape == (X.shape[0],) for m in masks)
     planted = X[:, 0] == 0
     from impact_split.ensemble import jaccard
@@ -82,8 +78,13 @@ def test_run_ensemble_stability_and_ci_on_planted_effect():
 
     model, X, y = _planted_model()
     report = run_ensemble(
-        model, n_replicates=30, shadow_replicates=0, feature_subsample=None,
-        match_threshold=0.5, shadow_min_stability=0.2, seed=11,
+        model,
+        n_replicates=30,
+        shadow_replicates=0,
+        feature_subsample=None,
+        match_threshold=0.5,
+        shadow_min_stability=0.2,
+        seed=11,
     )
     assert len(report["segments"]) == len(model.segments_)
     planted_total = float(y[X[:, 0] == 0].sum())
@@ -101,8 +102,14 @@ def test_run_ensemble_deterministic():
     from impact_split.ensemble import run_ensemble
 
     model, _, _ = _planted_model()
-    kw = dict(n_replicates=8, shadow_replicates=4, feature_subsample=0.5,
-              match_threshold=0.5, shadow_min_stability=0.2, seed=99)
+    kw = dict(
+        n_replicates=8,
+        shadow_replicates=4,
+        feature_subsample=0.5,
+        match_threshold=0.5,
+        shadow_min_stability=0.2,
+        seed=99,
+    )
     assert run_ensemble(model, **kw) == run_ensemble(model, **kw)
 
 
@@ -113,11 +120,7 @@ def _masked_driver_data(seed=7, n=4000):
     rng = np.random.default_rng(seed)
     a = rng.integers(0, 3, n)
     b = rng.integers(0, 3, n)
-    y = (
-        np.where(a == 0, 100.0, 0.0)
-        + np.where(b == 0, 60.0, 0.0)
-        + rng.normal(0, 4, n)
-    )
+    y = np.where(a == 0, 100.0, 0.0) + np.where(b == 0, 60.0, 0.0) + rng.normal(0, 4, n)
     X = np.column_stack([a, b]).astype(np.int64)
     return ImpactSplitter(max_depth=1).fit(X, y), X, y
 
@@ -127,11 +130,19 @@ def test_shadow_block_recovers_masked_driver():
 
     model, X, _ = _masked_driver_data()
     # sanity: reference tree only used feature a
-    assert all(0 in s["conditions"] and 1 not in s["conditions"]
-               for s in model.segments_ if s["conditions"])
+    assert all(
+        0 in s["conditions"] and 1 not in s["conditions"]
+        for s in model.segments_
+        if s["conditions"]
+    )
     report = run_ensemble(
-        model, n_replicates=10, shadow_replicates=30, feature_subsample=0.5,
-        match_threshold=0.5, shadow_min_stability=0.2, seed=13,
+        model,
+        n_replicates=10,
+        shadow_replicates=30,
+        feature_subsample=0.5,
+        match_threshold=0.5,
+        shadow_min_stability=0.2,
+        seed=13,
     )
     hits = [sh for sh in report["shadows"] if "f1" in sh["features"]]
     assert hits, f"expected a shadow on feature f1, got {report['shadows']}"
@@ -150,8 +161,13 @@ def test_no_shadow_on_control_without_secondary_effect():
     X = np.column_stack([a, b]).astype(np.int64)
     model = ImpactSplitter(max_depth=1).fit(X, y)
     report = run_ensemble(
-        model, n_replicates=10, shadow_replicates=30, feature_subsample=0.5,
-        match_threshold=0.5, shadow_min_stability=0.2, seed=13,
+        model,
+        n_replicates=10,
+        shadow_replicates=30,
+        feature_subsample=0.5,
+        match_threshold=0.5,
+        shadow_min_stability=0.2,
+        seed=13,
     )
     assert not [sh for sh in report["shadows"] if "f1" in sh["features"]]
 
@@ -161,8 +177,13 @@ def test_importance_ranks_planted_feature_first():
 
     model, _, _ = _planted_model()
     report = run_ensemble(
-        model, n_replicates=15, shadow_replicates=10, feature_subsample=0.5,
-        match_threshold=0.5, shadow_min_stability=0.2, seed=5,
+        model,
+        n_replicates=15,
+        shadow_replicates=10,
+        feature_subsample=0.5,
+        match_threshold=0.5,
+        shadow_min_stability=0.2,
+        seed=5,
     )
     imp = report["importance"]
     assert imp and imp[0]["feature_index"] == 0  # feature a carries the effect
@@ -177,8 +198,13 @@ def test_shadow_records_carry_reconstructable_conditions():
 
     model, X, y = _masked_driver_data()
     report = run_ensemble(
-        model, n_replicates=10, shadow_replicates=30, feature_subsample=0.5,
-        match_threshold=0.5, shadow_min_stability=0.2, seed=13,
+        model,
+        n_replicates=10,
+        shadow_replicates=30,
+        feature_subsample=0.5,
+        match_threshold=0.5,
+        shadow_min_stability=0.2,
+        seed=13,
     )
     assert report["shadows"], "precondition: shadows must surface on this DGP"
     for sh in report["shadows"]:
@@ -206,7 +232,12 @@ def test_shadow_conditions_survive_payload_json_roundtrip():
 
     model, X, y = _masked_driver_data()
     model.ensemble_report(
-        X, y, n_replicates=10, shadow_replicates=30, feature_subsample=0.5, seed=13,
+        X,
+        y,
+        n_replicates=10,
+        shadow_replicates=30,
+        feature_subsample=0.5,
+        seed=13,
     )
     payload = model.to_dict()
     shadows = payload["ensemble"]["shadows"]

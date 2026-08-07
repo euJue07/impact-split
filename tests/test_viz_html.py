@@ -41,11 +41,11 @@ def test_html_write_mode_roundtrip(tmp_path: Path) -> None:
 
 def test_html_marks_churn() -> None:
     html_out = churn_mix_fitted().to_html()
-    assert "churn segments" in html_out   # ledger tile
-    assert "lookahead=" in html_out       # params line
-    assert "tband" in html_out            # gross-band CSS + tornado renderer
-    assert "stroke-dasharray" in html_out # icicle churn outline
-    assert "Σy⁺" in html_out              # gross table columns
+    assert "churn segments" in html_out  # ledger tile
+    assert "lookahead=" in html_out  # params line
+    assert "tband" in html_out  # gross-band CSS + tornado renderer
+    assert "stroke-dasharray" in html_out  # icicle churn outline
+    assert "Σy⁺" in html_out  # gross table columns
     # Data-dependent: only holds when churn exists in the output
     assert '"is_churn": true' in html_out
     # Verify the assertion is data-dependent by confirming it does NOT appear
@@ -97,8 +97,14 @@ def test_html_ensemble_importance_and_whiskers() -> None:
     assert '"ensemble"' not in baseline
 
     model.ensemble_report(
-        X, y, n_replicates=10, shadow_replicates=30, feature_subsample=0.5,
-        match_threshold=0.5, shadow_min_stability=0.2, seed=13,
+        X,
+        y,
+        n_replicates=10,
+        shadow_replicates=30,
+        feature_subsample=0.5,
+        match_threshold=0.5,
+        shadow_min_stability=0.2,
+        seed=13,
     )
     assert model.ensemble_["shadows"], "fixture must produce real shadows"
     assert model.ensemble_["importance"], "fixture must produce real importance rows"

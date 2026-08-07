@@ -80,9 +80,7 @@ def test_icicle_layout_children_tile_parent_exactly() -> None:
     assert rects[root_id]["x0"] == 0.0 and rects[root_id]["width"] == pytest.approx(1.0)
     for parent_id, kid_ids in kids_of.items():
         parent = rects[parent_id]
-        assert sum(rects[k]["width"] for k in kid_ids) == pytest.approx(
-            parent["width"], abs=1e-9
-        )
+        assert sum(rects[k]["width"] for k in kid_ids) == pytest.approx(parent["width"], abs=1e-9)
         assert min(rects[k]["x0"] for k in kid_ids) == pytest.approx(parent["x0"], abs=1e-9)
 
 

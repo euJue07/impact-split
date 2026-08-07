@@ -142,8 +142,7 @@ def test_payload_ensemble_keyed_by_segment_id() -> None:
     # ensemble_ entry of the SAME underlying segment (matched by path), not
     # merely share a key namespace
     stats_by_path = {
-        seg["path"]: model.ensemble_["segments"][i]
-        for i, seg in enumerate(model.segments_)
+        seg["path"]: model.ensemble_["segments"][i] for i, seg in enumerate(model.segments_)
     }
     for seg in payload["segments"]:
         st = ens["segments"][seg["segment_id"]]
