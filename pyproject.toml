@@ -74,9 +74,12 @@ include = ["pyproject.toml", "impact_split/**/*.py", "tests/**/*.py"]
 [tool.ruff.lint]
 # I: isort; UP: pyupgrade; B: bugbear; SIM: simplify
 # TRY004: TypeError for a wrong-type argument, ValueError for a wrong value.
-# Selected explicitly so the convention is enforced under the pinned ruff rather
-# than resurfacing whenever a bump changes the default rule set.
-extend-select = ["I", "UP", "B", "SIM", "TRY004"]
+# BLE001: no blind `except Exception` — name what you expect to fail.
+# Both are selected explicitly so the conventions are enforced under the pinned
+# ruff rather than resurfacing whenever a bump changes the default rule set.
+# ISC004 belongs here too, but is still a preview rule in 0.15.5 — add it with
+# the 0.16 bump (see docs/plans/followup-ci-ruff-drift.md).
+extend-select = ["I", "UP", "B", "SIM", "TRY004", "BLE001"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["impact_split"]
