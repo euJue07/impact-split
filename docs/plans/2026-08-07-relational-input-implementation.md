@@ -1505,18 +1505,23 @@ will not silently duplicate rows. One-to-many relationships are out of scope.
 
 - [ ] **Step 4: Add the CHANGELOG entry**
 
-In `CHANGELOG.md`, add under a new `0.4.0` heading (match the existing entry format):
+In `CHANGELOG.md`, add a bullet to the **existing** `## [0.3.0] - Unreleased` section's `### Added` list. Do **not** open a new `0.4.0` heading and do **not** bump `pyproject.toml`: 0.3.0 has not shipped yet, so this feature rides that release. (The source brief said 0.4.0/0.5.0; that was written before the CHANGELOG's state was checked. Version numbers in `docs/plans/relational-input.md` are stale on this point — the sequencing it describes still holds.)
+
+Match the surrounding entries' style — bold lead-in, wrapped prose, concrete about behavior:
 
 ```markdown
-### Added
-
-- `impact_split.schema` — star/snowflake denormalization via `flatten(tables, spec)`,
-  with `SchemaSpec` and `Join` as the declarative contract. Many-to-one joins only:
-  duplicate or null dimension keys raise `SchemaError`, and orphan foreign keys are kept
-  under an `<unmatched>` category so `sum(y)` is conserved exactly. Dimension columns are
-  table-qualified in the output frame; fact columns keep their names.
-  Accepts `{name: DataFrame}` — a SQLAlchemy adapter and schema introspection are planned
-  for 0.5.0. No new dependencies.
+- **`impact_split.schema`** (new module; `flatten`, `SchemaSpec`, `Join`,
+  `FlattenResult`, `SchemaError` exported from the package root): star/snowflake
+  denormalization into the flat frame `fit()` already accepts. `SchemaSpec` + `Join`
+  are the declarative contract — fact table, target, join chain, feature selection.
+  Joins are **many-to-one only** and execute as a reindex against a unique index, so a
+  fan-out cannot occur silently: duplicate or null dimension keys raise `SchemaError`
+  naming the table, key, and an example. Fact rows whose foreign key does not resolve
+  are kept under an `<unmatched>` category rather than dropped, so row count and
+  `sum(y)` are conserved exactly. Dimension columns are table-qualified
+  (`dim_customer.region`); fact columns keep their names. Accepts
+  `{table_name: DataFrame}`; a SQLAlchemy adapter and schema introspection are planned
+  for a later release. No new dependencies.
 ```
 
 - [ ] **Step 5: Verify docs links and full suite, then commit**
