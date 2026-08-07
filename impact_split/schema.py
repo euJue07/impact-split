@@ -7,7 +7,7 @@ from typing import Any
 
 import numpy as np
 import pandas as pd
-from pandas.api.types import is_float_dtype, is_numeric_dtype
+from pandas.api.types import is_float_dtype, is_integer_dtype, is_numeric_dtype
 
 
 class SchemaError(ValueError):
@@ -51,6 +51,22 @@ class FlattenResult:
     provenance: dict[str, Any] = field(default_factory=dict)
 
 
+def _assert_no_duplicate_columns(table_name: str, frame: pd.DataFrame) -> None:
+    """Reject a table with a repeated column label.
+
+    A duplicate column label makes ``frame[name]`` return a DataFrame instead
+    of a Series, which surfaces later as an opaque ``AttributeError`` deep in
+    the join logic rather than a ``SchemaError`` naming the table.
+    """
+    counts = frame.columns.value_counts()
+    dupes = counts[counts > 1]
+    if not dupes.empty:
+        raise SchemaError(
+            f"table {table_name!r} has duplicate column name {dupes.index[0]!r}; every "
+            "column name must be unique within a table."
+        )
+
+
 def validate_spec(tables: dict[str, pd.DataFrame], spec: SchemaSpec) -> list[Join]:
     """Check the spec against the supplied tables; return joins parents-first.
 
@@ -61,13 +77,20 @@ def validate_spec(tables: dict[str, pd.DataFrame], spec: SchemaSpec) -> list[Joi
     if spec.fact not in tables:
         raise SchemaError(f"fact table {spec.fact!r} not found in tables.")
     fact = tables[spec.fact]
+    _assert_no_duplicate_columns(spec.fact, fact)
 
     if spec.target not in fact.columns:
         raise SchemaError(f"target column {spec.target!r} not found in {spec.fact!r}.")
     if not is_numeric_dtype(fact[spec.target]):
         raise SchemaError(f"target column {spec.target!r} must be numeric.")
 
+    seen_features: set[str] = set()
     for name in spec.features:
+        if name in seen_features:
+            raise SchemaError(
+                f"feature column {name!r} is selected more than once in spec.features."
+            )
+        seen_features.add(name)
         if name not in fact.columns:
             raise SchemaError(f"feature column {name!r} not found in {spec.fact!r}.")
         if "." in name:
@@ -78,12 +101,24 @@ def validate_spec(tables: dict[str, pd.DataFrame], spec: SchemaSpec) -> list[Joi
 
     seen: list[str] = []
     for join in spec.joins:
-        if join.table in seen or join.table == spec.fact:
-            raise SchemaError(f"table {join.table!r} is joined more than once.")
+        if join.table == spec.fact:
+            raise SchemaError(
+                f"table {join.table!r} is the fact table and cannot also be joined as a "
+                "dimension of itself."
+            )
+        if join.table in seen:
+            raise SchemaError(
+                f"table {join.table!r} is joined more than once. impact-split supports "
+                "joining each table at most once — a role-playing dimension (for example "
+                "the same dim_geo joined once as ship_geo and again as bill_geo) is not "
+                "supported; duplicate the table under a different name in `tables` if you "
+                "need two roles for it."
+            )
         seen.append(join.table)
         if join.table not in tables:
             raise SchemaError(f"dimension table {join.table!r} not found in tables.")
         dim = tables[join.table]
+        _assert_no_duplicate_columns(join.table, dim)
         if join.right not in dim.columns:
             raise SchemaError(f"join key {join.right!r} not found in {join.table!r}.")
         for name in join.columns or ():
@@ -143,7 +178,7 @@ def _assert_unique_key(dim: pd.DataFrame, join: Join) -> None:
         n_dupes = int(duplicated.nunique())
         raise SchemaError(
             f"join key {join.right!r} in {join.table!r} is not unique — "
-            f"{n_dupes} duplicated key value(s), e.g. {example!r}. impact-split supports "
+            f"{n_dupes} distinct duplicated key value(s), e.g. {example!r}. impact-split supports "
             "many-to-one joins only; a fan-out join would duplicate rows and break sum "
             "conservation."
         )
@@ -170,7 +205,12 @@ _SENTINEL_BASE = "<unmatched>"
 
 
 def _resolve_sentinel(frames: list[pd.DataFrame]) -> str:
-    """Pick an unmatched marker that does not already occur in the data."""
+    """Pick an unmatched marker that does not already occur in a joined dimension column.
+
+    Only scans the selected dimension columns after alignment — fact columns
+    and unselected dimension columns are out of scope, so a collision there
+    cannot cause a false escalation.
+    """
     present: set[Any] = set()
     for frame in frames:
         for name in frame.columns:
@@ -198,6 +238,11 @@ def flatten(tables: dict[str, pd.DataFrame], spec: SchemaSpec) -> FlattenResult:
     if target.isna().any():
         raise SchemaError(f"target column {spec.target!r} contains missing values.")
     y = np.asarray(target, dtype=float)
+    if not np.isfinite(y).all():
+        raise SchemaError(
+            f"target column {spec.target!r} contains non-finite values (inf or -inf); "
+            "an additive KPI cannot include unbounded values."
+        )
 
     columns: dict[str, pd.Series] = {}
     provenance: dict[str, Any] = {
@@ -228,10 +273,49 @@ def flatten(tables: dict[str, pd.DataFrame], spec: SchemaSpec) -> FlattenResult:
         # Align every dimension column once: a chained hop needs this frame to
         # find its own foreign key, which the user's feature selection may omit.
         parent_keys = aligned_tables[parent_name][join.left]
+
+        # A cheap membership test — not a second alignment pass — that tells us
+        # up front whether this hop will leave any parent row unresolved. dim's
+        # key column is already guaranteed unique and non-null (asserted above),
+        # so this is exactly the mask reindex() would produce, computed without
+        # touching the dimension's other columns.
+        resolved = np.asarray(parent_keys.isin(dim[join.right]))
+        if not resolved.any() and len(fact) > 0:
+            raise SchemaError(
+                f"joining {join.table!r} matched none of {len(fact)} row(s) in "
+                f"{parent_name!r}: foreign key {join.left!r} has dtype "
+                f"{parent_keys.dtype} but join key {join.right!r} in {join.table!r} has "
+                f"dtype {dim[join.right].dtype}. A total mismatch like this is almost "
+                "always a dtype mismatch (e.g. int64 keys on one side, strings on the "
+                "other) rather than genuinely disjoint data — align the two columns' "
+                "dtypes and retry."
+            )
+
+        dim_for_align = dim
+        if not resolved.all():
+            # reindex() promotes an int64 column to float64 to make room for the
+            # NaN an unresolved row needs, so a later `.astype(object)` freezes the
+            # already-promoted float (7 -> 7.0 -> '7.0') instead of the original
+            # int. Casting to object *before* the reindex means NaN injection
+            # leaves every already-present value untouched. Only needed for
+            # columns that will actually see NaN; the join key itself is
+            # excluded — its dtype is reported in the error above and it never
+            # reaches the output (validate_spec forbids selecting it).
+            int_cols = [c for c in dim.columns if c != join.right and is_integer_dtype(dim[c])]
+            if int_cols:
+                dim_for_align = dim.copy()
+                for c in int_cols:
+                    dim_for_align[c] = dim_for_align[c].astype(object)
+
         full = _align_dimension(
             parent_keys,
-            dim,
-            Join(table=join.table, left=join.left, right=join.right, columns=tuple(dim.columns)),
+            dim_for_align,
+            Join(
+                table=join.table,
+                left=join.left,
+                right=join.right,
+                columns=tuple(dim_for_align.columns),
+            ),
         )
 
         if len(full) != len(fact):
@@ -261,7 +345,17 @@ def flatten(tables: dict[str, pd.DataFrame], spec: SchemaSpec) -> FlattenResult:
             }
         )
 
-    sentinel = _resolve_sentinel([frame for _, frame in aligned_features.values()])
+    # Resolving the sentinel scans every selected dimension column with
+    # .dropna().unique(), an O(rows * columns) hash pass over data the common
+    # fully-matched case never needs — and one that raises on an unhashable
+    # cell (a list/dict column) even though nothing is actually unmatched. Skip
+    # it entirely unless some join actually left a row unresolved.
+    any_unmatched = any(mask.any() for mask in unmatched_masks.values())
+    sentinel = (
+        _resolve_sentinel([frame for _, frame in aligned_features.values()])
+        if any_unmatched
+        else None
+    )
     provenance["sentinel"] = sentinel
 
     for table, (_join, frame) in aligned_features.items():

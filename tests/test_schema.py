@@ -97,6 +97,50 @@ def test_validate_spec_rejects_unreachable_parent():
         validate_spec(tables, spec)
 
 
+def test_validate_spec_rejects_a_dimension_table_not_found():
+    tables, _ = _star()
+    spec = SchemaSpec(
+        fact="fact",
+        target="y",
+        joins=(Join(table="ghost", left="cust_key", right="cust_key"),),
+    )
+    with pytest.raises(SchemaError, match="dimension table 'ghost' not found"):
+        validate_spec(tables, spec)
+
+
+def test_validate_spec_rejects_a_join_key_not_found_in_the_dimension():
+    tables, _ = _star()
+    spec = SchemaSpec(
+        fact="fact",
+        target="y",
+        joins=(Join(table="dim_cust", left="cust_key", right="nope"),),
+    )
+    with pytest.raises(SchemaError, match="join key 'nope' not found in 'dim_cust'"):
+        validate_spec(tables, spec)
+
+
+def test_validate_spec_rejects_a_column_not_found_in_the_dimension():
+    tables, _ = _star()
+    spec = SchemaSpec(
+        fact="fact",
+        target="y",
+        joins=(Join(table="dim_cust", left="cust_key", right="cust_key", columns=("nope",)),),
+    )
+    with pytest.raises(SchemaError, match="column 'nope' not found in 'dim_cust'"):
+        validate_spec(tables, spec)
+
+
+def test_validate_spec_rejects_a_foreign_key_not_found_in_the_parent():
+    tables, _ = _star()
+    spec = SchemaSpec(
+        fact="fact",
+        target="y",
+        joins=(Join(table="dim_cust", left="nope", right="cust_key"),),
+    )
+    with pytest.raises(SchemaError, match="foreign key 'nope' not found in 'fact'"):
+        validate_spec(tables, spec)
+
+
 def test_validate_spec_rejects_duplicate_join_target():
     tables, _ = _star()
     spec = SchemaSpec(
@@ -128,6 +172,53 @@ def test_validate_spec_rejects_non_numeric_target():
         validate_spec(tables, SchemaSpec(fact="fact", target="y"))
 
 
+def test_validate_spec_rejects_the_fact_table_joined_to_itself():
+    """Joining the fact to itself is a different mistake from a role-playing
+    dimension and must not share that message."""
+    tables, _ = _star()
+    spec = SchemaSpec(
+        fact="fact",
+        target="y",
+        joins=(Join(table="fact", left="cust_key", right="cust_key"),),
+    )
+    with pytest.raises(SchemaError, match="is the fact table and cannot also be joined"):
+        validate_spec(tables, spec)
+
+
+def test_validate_spec_names_role_playing_dimensions_in_the_duplicate_join_message():
+    """A role-playing dimension (the same table joined twice under different
+    FKs, e.g. ship_geo / bill_geo) is a legitimate star-schema pattern that
+    still hits the once-per-table restriction; the message should say so."""
+    tables, _ = _star()
+    spec = SchemaSpec(
+        fact="fact",
+        target="y",
+        joins=(
+            Join(table="dim_cust", left="cust_key", right="cust_key"),
+            Join(table="dim_cust", left="cust_key", right="cust_key"),
+        ),
+    )
+    with pytest.raises(SchemaError, match="role-playing dimension"):
+        validate_spec(tables, spec)
+
+
+def test_validate_spec_rejects_a_dimension_with_duplicate_columns():
+    tables = {
+        "fact": pd.DataFrame({"k": [1], "y": [1.0]}),
+        "dim": pd.DataFrame([[1, "x", "z"]], columns=["k", "v", "v"]),
+    }
+    spec = SchemaSpec(fact="fact", target="y", joins=(Join(table="dim", left="k", right="k"),))
+    with pytest.raises(SchemaError, match="duplicate column name 'v'"):
+        validate_spec(tables, spec)
+
+
+def test_validate_spec_rejects_duplicate_feature_columns():
+    tables, _ = _star()
+    spec = SchemaSpec(fact="fact", target="y", features=("channel", "channel"))
+    with pytest.raises(SchemaError, match="selected more than once"):
+        validate_spec(tables, spec)
+
+
 def test_flatten_with_no_joins_reproduces_the_fact_table():
     tables = {
         "fact": pd.DataFrame(
@@ -157,6 +248,13 @@ def test_flatten_rejects_a_target_containing_nulls():
     tables = {"fact": pd.DataFrame({"channel": ["a", "b"], "y": [1.0, np.nan]})}
     spec = SchemaSpec(fact="fact", target="y", features=("channel",))
     with pytest.raises(SchemaError, match="target column 'y' contains missing values"):
+        flatten(tables, spec)
+
+
+def test_flatten_rejects_a_non_finite_target():
+    tables = {"fact": pd.DataFrame({"channel": ["a", "b"], "y": [1.0, np.inf]})}
+    spec = SchemaSpec(fact="fact", target="y", features=("channel",))
+    with pytest.raises(SchemaError, match="non-finite"):
         flatten(tables, spec)
 
 
@@ -407,6 +505,91 @@ def test_flatten_allows_float_dimension_columns_when_everything_matches():
 
     assert list(result.X["dim.score"]) == [0.5, 0.5]
     assert result.X["dim.score"].dtype == float
+
+
+def test_flatten_rejects_a_totally_mismatched_join_key_dtype():
+    """int64 fact keys against str dimension keys resolve nothing; without this
+    guard the join would silently succeed with every row unmatched."""
+    tables = {
+        "fact": pd.DataFrame({"cust": np.arange(5, dtype=np.int64), "y": [1.0] * 5}),
+        "dim": pd.DataFrame({"cust": [str(i) for i in range(5)], "region": ["W"] * 5}),
+    }
+    spec = SchemaSpec(
+        fact="fact", target="y", joins=(Join(table="dim", left="cust", right="cust"),)
+    )
+
+    with pytest.raises(SchemaError) as excinfo:
+        flatten(tables, spec)
+
+    message = str(excinfo.value)
+    assert "matched none of 5" in message
+    assert "int64" in message
+    assert str(tables["dim"]["cust"].dtype) in message
+
+
+def test_flatten_allows_an_empty_fact_table_even_with_a_dtype_mismatched_dimension():
+    """The zero-match guard must not fire on a legitimately empty fact table —
+    np.array([]).all() is True, so len(fact) > 0 is required alongside it."""
+    tables = {
+        "fact": pd.DataFrame(
+            {"cust": pd.array([], dtype="int64"), "y": pd.array([], dtype="float64")}
+        ),
+        "dim": pd.DataFrame({"cust": ["0", "1"], "region": ["W", "E"]}),
+    }
+    spec = SchemaSpec(
+        fact="fact", target="y", joins=(Join(table="dim", left="cust", right="cust"),)
+    )
+
+    result = flatten(tables, spec)
+
+    assert len(result.X) == 0
+
+
+def test_flatten_keeps_integer_looking_labels_when_a_sibling_row_is_unmatched():
+    """reindex() promotes int64 -> float64 to carry NaN; without pre-casting to
+    object, the surviving values would freeze as stringified floats ('7.0')."""
+    tables = {
+        "fact": pd.DataFrame({"k": [1, 2, 99], "y": [1.0, 2.0, 3.0]}),
+        "dim": pd.DataFrame({"k": [1, 2], "store_no": [7, 8]}),
+    }
+    spec = SchemaSpec(fact="fact", target="y", joins=(Join(table="dim", left="k", right="k"),))
+
+    result = flatten(tables, spec)
+
+    assert list(result.X["dim.store_no"]) == [7, 8, "<unmatched>"]
+    assert isinstance(result.X["dim.store_no"].iloc[0], (int, np.integer))
+
+
+def test_flatten_skips_sentinel_resolution_when_everything_matches():
+    """_resolve_sentinel's .dropna().unique() scan raises on unhashable cells;
+    it must not run at all when nothing is unmatched."""
+    tables = {
+        "fact": pd.DataFrame({"k": [1, 2], "y": [1.0, 2.0]}),
+        "dim": pd.DataFrame({"k": [1, 2], "tags": [["a"], ["b"]]}),
+    }
+    spec = SchemaSpec(fact="fact", target="y", joins=(Join(table="dim", left="k", right="k"),))
+
+    result = flatten(tables, spec)
+
+    assert result.provenance["sentinel"] is None
+    assert list(result.X["dim.tags"]) == [["a"], ["b"]]
+
+
+def test_unmatched_dimension_columns_are_identical_across_a_multi_column_dimension():
+    """One orphan FK marks every selected column of that dimension identically,
+    producing perfectly-correlated features — the risk-4 behavior from the
+    implementation plan's Self-Review, distinct from the cross-hop propagation
+    pinned by test_snowflake_propagates_an_unmatched_first_hop_to_the_second."""
+    tables = {
+        "fact": pd.DataFrame({"k": [1, 99], "y": [1.0, 2.0]}),
+        "dim": pd.DataFrame({"k": [1], "region": ["W"], "tier": ["gold"], "channel": ["online"]}),
+    }
+    spec = SchemaSpec(fact="fact", target="y", joins=(Join(table="dim", left="k", right="k"),))
+
+    result = flatten(tables, spec)
+
+    row = result.X.iloc[1]
+    assert row["dim.region"] == row["dim.tier"] == row["dim.channel"] == "<unmatched>"
 
 
 def _snowflake() -> tuple[dict[str, pd.DataFrame], SchemaSpec]:
