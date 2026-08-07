@@ -521,3 +521,11 @@ def test_flattened_snowflake_fits_and_conserves_through_impact_splitter():
 
     assert segments["n_samples"].sum() == n
     assert segments["total_sum"].sum() == pytest.approx(result.y.sum(), abs=1e-6)
+
+
+def test_schema_api_is_exported_from_the_package_root():
+    import impact_split
+
+    for name in ("FlattenResult", "Join", "SchemaError", "SchemaSpec", "flatten"):
+        assert name in impact_split.__all__
+        assert hasattr(impact_split, name)
