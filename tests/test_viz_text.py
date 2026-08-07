@@ -3,10 +3,10 @@
 import numpy as np
 import pandas as pd
 import pytest
+from tests.test_viz_data import _fitted, churn_mix_fitted, fitted
 
 from impact_split import ImpactSplitter
 from impact_split.viz.text import render_summary
-from tests.test_viz_data import _fitted, churn_mix_fitted, fitted
 
 
 def test_summary_requires_fit() -> None:
@@ -70,7 +70,7 @@ def test_render_summary_ensemble_formatting_branches() -> None:
     payload = model.to_dict()
     seg_ids = [s["segment_id"] for s in payload["segments"]]
     assert len(seg_ids) >= 3, "fixture must produce >=3 segments for this test"
-    s0, s1, s2 = seg_ids[0], seg_ids[1], seg_ids[2]
+    s0, s1 = seg_ids[0], seg_ids[1]
 
     payload["ensemble"] = {
         "config": {},
@@ -136,6 +136,52 @@ def test_render_summary_ensemble_formatting_branches() -> None:
     assert "Σy≈+123.00" in shadow_line
     assert "recurrence 40.0%" in shadow_line
     assert "via a, b" in shadow_line
+
+
+def _segment_with_path(path: str) -> dict:
+    return {
+        "segment_id": "s0",
+        "path": path,
+        "node_ids": ["node_0"],
+        "n": 10,
+        "total_sum": 1.0,
+        "mean": 0.1,
+        "pool_share": 0.5,
+        "pos_sum": 1.0,
+        "neg_sum": 0.0,
+        "is_churn": False,
+    }
+
+
+def test_render_summary_default_width_does_not_collide_two_qualified_paths() -> None:
+    """Regression for the pre-fix 44-char default: two segments differing only
+    after the old cutoff used to render as identical rows."""
+    payload = fitted().to_dict()
+    path_a = "root / dim_customer_master.customer_segment=A"
+    path_b = "root / dim_customer_master.customer_segment=B"
+    assert path_a[:43] == path_b[:43]  # would have collided under the old default
+    payload["segments"] = [_segment_with_path(path_a), _segment_with_path(path_b)]
+
+    text = render_summary(payload)
+
+    rows = [line for line in text.splitlines() if "customer_segment=" in line]
+    assert len(rows) == 2
+    assert rows[0] != rows[1]
+    assert "customer_segment=A" in rows[0]
+    assert "customer_segment=B" in rows[1]
+
+
+def test_render_summary_default_width_fits_a_realistic_two_hop_qualified_path() -> None:
+    """A two-hop snowflake path with realistic table/column names must render
+    in full, not lose its last hop to truncation."""
+    path = "root / dim_customer_master.customer_segment=A / dim_geo_region.region_name=Europe"
+    payload = fitted().to_dict()
+    payload["segments"] = [_segment_with_path(path)]
+
+    text = render_summary(payload)
+
+    assert path in text
+    assert "…" not in text
 
 
 def test_summary_without_churn_has_no_footnote() -> None:

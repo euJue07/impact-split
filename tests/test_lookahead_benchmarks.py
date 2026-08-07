@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from benchmarks.battery import fit_and_score
 from benchmarks.dgp import SEEDS, case_churn, case_xor, case_xor_embedded
+
 from impact_split import ImpactSplitter
 
 

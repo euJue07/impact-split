@@ -44,13 +44,13 @@ tree      11 nodes · 6 leaves · depth 3 (interaction order 3)
 segments  6 · 2 churn ⇄ · conservation exact ✓
 
 Top segments by |impact|
-  #  path                                                      Σy          n        pool share                 gross ⇄
-  1  root / segment=Enterprise / channel=Partner…         -46,124      1,311      50.7% of Σy⁻                        
-  2  root / segment=Mid-Market, SMB / region=Wes…         +21,072        372      41.7% of Σy⁺                        
-  3  root / segment=Mid-Market, SMB / region=Eas…          -1,553      3,002       1.7% of Σy⁻       +20,575 / -22,128
-  4  root / segment=Enterprise / channel=Online …         -17,204        494      18.9% of Σy⁻                        
-  5  root / segment=Mid-Market, SMB / region=Wes…         +142.29        642       0.3% of Σy⁺         +4,979 / -4,837
-  6  root / segment=Enterprise / channel=Online …          +3,236        179       6.4% of Σy⁺                        
+  #  path                                                                                                    Σy          n        pool share                 gross ⇄
+  1  root / segment=Enterprise / channel=Partner, Retail                                                -46,124      1,311      50.7% of Σy⁻                        
+  2  root / segment=Mid-Market, SMB / region=West / channel=Online                                      +21,072        372      41.7% of Σy⁺                        
+  3  root / segment=Mid-Market, SMB / region=East, North, South                                          -1,553      3,002       1.7% of Σy⁻       +20,575 / -22,128
+  4  root / segment=Enterprise / channel=Online / region=East, North, South                             -17,204        494      18.9% of Σy⁻                        
+  5  root / segment=Mid-Market, SMB / region=West / channel=Partner, Retail                             +142.29        642       0.3% of Σy⁺         +4,979 / -4,837
+  6  root / segment=Enterprise / channel=Online / region=West                                            +3,236        179       6.4% of Σy⁺                        
 
  ⇄ churn segment: positive and negative flows are both material — the net hides offsetting mass (gross column shows both).
 ```
@@ -81,9 +81,9 @@ Finally, `model.ensemble_report(X, y, seed=0)` annotates the same ledger with a 
 
 ```
 Top segments by |impact|
-  #  path                                              Σy          n     pool share      gross ⇄     stability          Σy 5–95%
-  1  root / segment=Enterprise / channel=Partner…  -46,124      1,311   50.7% of Σy⁻                    96.0%    [-53,517, -36,480]
-  2  root / segment=Mid-Market, SMB / region=Wes…  +21,072        372   41.7% of Σy⁺                   100.0%    [+18,870, +23,185]
+  #  path                                                       Σy          n     pool share      gross ⇄     stability          Σy 5–95%
+  1  root / segment=Enterprise / channel=Partner, Retail    -46,124      1,311   50.7% of Σy⁻                    96.0%    [-53,517, -36,480]
+  2  root / segment=Mid-Market, SMB / region=West / channel=Online  +21,072        372   41.7% of Σy⁺                   100.0%    [+18,870, +23,185]
   ...
 Shadow drivers (material regions the main tree does not report)
   · region=West & segment=Enterprise  Σy≈-9,618 · recurrence 38.0% · via region, segment
@@ -136,6 +136,7 @@ These properties are not asserted — they are enforced by the test suite. Each 
 | **Multiplicity-corrected rescue** | The cross-cell bar rises by `√(2 ln K)`, so chance cells cannot pose as interactions | `tests/test_lookahead.py::test_rescue_multiplicity_floor_suppresses_chance_cells`, `tests/test_lookahead.py::test_rescue_ignores_singleton_cells` |
 | **Determinism** | A fixed seed reproduces the ensemble report exactly | `tests/test_ensemble.py::test_run_ensemble_deterministic`, `tests/test_ensemble.py::test_fit_replicate_deterministic_and_remappable` |
 | **Annotation never mutates the model** | `to_dict()` / `summary()` / plots are byte-identical without a report | `tests/test_viz_data.py::test_payload_has_no_ensemble_key_without_report`, `tests/test_viz_html.py::test_html_unchanged_without_ensemble_and_annotated_with` |
+| **Relational input is lossless** | Many-to-one joins are reindex-aligned, so rows cannot duplicate; orphan keys are kept under a sentinel rather than dropped | `tests/test_schema_roundtrip.py::test_normalize_then_flatten_reproduces_the_original_frame`, `tests/test_schema.py::test_flatten_rejects_a_dimension_with_duplicate_keys`, `tests/test_schema.py::test_flatten_keeps_orphan_rows_with_an_unmatched_sentinel`, `tests/test_schema.py::test_flatten_records_unmatched_counts_and_mass_in_provenance` |
 
 ## What was measured
 
@@ -213,6 +214,18 @@ model.fit(X, y, trace=True)  # optional: populate model.fit_trace_ (verbose= is 
 - `fit(X, y)` accepts:
   - `X`: an `np.ndarray` of shape `(n_samples, n_features)` with non-negative integer label-encoded categories, or a `pandas.DataFrame` — float columns are binned via `numeric_binning_strategy` / `numeric_n_bins` (edges stored in `model.numeric_bin_edges_`), other columns are factorized as categorical codes.
   - `y`: an `np.ndarray` or `pandas.Series` of shape `(n_samples,)` with float-coercible **additive** target values.
+- `flatten(tables, spec)` additionally accepts a **star or snowflake schema** — one fact
+  table at the observation grain plus dimension tables joined many-to-one — and returns the
+  flat frame `fit()` expects. The restriction is strict: every join key must be unique and
+  non-null in its dimension, and a fan-out join is rejected rather than silently duplicating
+  rows. Fact rows whose foreign key does not resolve are kept under an `<unmatched>` category
+  (escalating to `<unmatched_1>`, etc. if that literal string already occurs in a joined
+  dimension column), so `sum(y)` is preserved exactly. Dimension columns are table-qualified
+  (`dim_customer.region`); fact columns keep their names. One-to-many relationships
+  (fact → line items) are **not** supported. Each table may be joined at most once — a
+  role-playing dimension (the same `dim_geo` joined twice, e.g. as `ship_geo` and `bill_geo`)
+  is not supported; duplicate the table under a different name in `tables` if you need two
+  roles for it.
 - For NumPy `X`, discretize continuous features before fitting (label-encode into integer bins).
 - Ternary recursion can grow quickly with depth.
 - This is an EDA summarization tool, not a cross-validation-first predictive workflow. The three sub-0.85 cases in [`reports/validation-report-v3.md`](reports/validation-report-v3.md) §4 are the known boundaries.
