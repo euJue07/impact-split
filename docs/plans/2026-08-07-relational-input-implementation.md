@@ -440,7 +440,7 @@ def flatten(tables: dict[str, pd.DataFrame], spec: SchemaSpec) -> FlattenResult:
     dimension's columns set to an unmatched sentinel, so the row count and
     ``sum(y)`` of the fact table are preserved exactly.
     """
-    ordered = validate_spec(tables, spec)
+    validate_spec(tables, spec)
     fact = tables[spec.fact]
 
     target = fact[spec.target]
@@ -477,7 +477,7 @@ def flatten(tables: dict[str, pd.DataFrame], spec: SchemaSpec) -> FlattenResult:
     return FlattenResult(X=X, y=y, provenance=provenance)
 ```
 
-Note the `ordered` variable is unused until Task 3 — that is intentional and temporary. Silence ruff for this one commit only if it complains, and remove the suppression in Task 3.
+`validate_spec` is called for its side effect (raising) here; Task 3 binds its return value to drive the join loop. Do not add an unused-variable suppression.
 
 - [ ] **Step 4: Run the tests to verify they pass**
 
@@ -611,7 +611,13 @@ def _align_dimension(parent_keys: pd.Series, dim: pd.DataFrame, join: Join) -> p
     return aligned
 ```
 
-Then replace the body of `flatten` between the feature loop and the `if not columns` guard with:
+Change the first line of `flatten` to bind the return value:
+
+```python
+    ordered = validate_spec(tables, spec)
+```
+
+Then insert this between the fact-feature loop and the `if not columns` guard:
 
 ```python
     aligned_tables: dict[str, pd.DataFrame] = {spec.fact: fact.reset_index(drop=True)}
@@ -619,25 +625,28 @@ Then replace the body of `flatten` between the feature loop and the `if not colu
     for join in ordered:
         parent_name = join.parent or spec.fact
         dim = tables[join.table]
-        aligned = _align_dimension(aligned_tables[parent_name][join.left], dim, join)
-        for name in aligned.columns:
-            qualified = f"{join.table}.{name}"
-            if aligned[name].isna().any():
-                raise SchemaError(f"dimension column {qualified!r} contains missing values.")
-            columns[qualified] = aligned[name]
-            provenance["columns"][qualified] = {"table": join.table, "column": name}
-        provenance["joins"].append(
-            {"table": join.table, "parent": parent_name, "left": join.left, "right": join.right}
-        )
-        # Chained hops key off this dimension's own columns, so keep the full aligned frame.
-        aligned_tables[join.table] = _align_dimension(
+        # Align every dimension column once: a chained hop needs this frame to
+        # find its own foreign key, which the user's feature selection may omit.
+        full = _align_dimension(
             aligned_tables[parent_name][join.left],
             dim,
             Join(table=join.table, left=join.left, right=join.right, columns=tuple(dim.columns)),
         )
+        aligned_tables[join.table] = full
+
+        for name in _selected_columns(dim, join):
+            qualified = f"{join.table}.{name}"
+            if full[name].isna().any():
+                raise SchemaError(f"dimension column {qualified!r} contains missing values.")
+            columns[qualified] = full[name]
+            provenance["columns"][qualified] = {"table": join.table, "column": name}
+
+        provenance["joins"].append(
+            {"table": join.table, "parent": parent_name, "left": join.left, "right": join.right}
+        )
 ```
 
-The `Join(...)` rebuild in the last statement selects *all* dimension columns (including the key) so a child hop can find its foreign key there, whereas the feature loop above uses only the user's selection. The key column survives here because `_selected_columns` is bypassed by the explicit `columns=` argument.
+The explicit `columns=tuple(dim.columns)` argument bypasses `_selected_columns`, so the key column survives in `full` for child hops to key off. The feature loop then takes only the user's selection from that same frame — one alignment per join, not two.
 
 Note: the NaN check above currently conflates "the dimension row itself has a null" with "the key did not resolve". Task 5 separates them.
 
@@ -1251,22 +1260,29 @@ def test_normalize_then_flatten_reproduces_the_original_frame(case: str):
 
 
 @pytest.mark.parametrize("case", sorted(CASE_FACTORIES))
-def test_round_trip_preserves_the_fitted_ledger(case: str):
-    """Identical frames must produce byte-identical model payloads."""
+def test_qualified_names_do_not_change_the_fitted_tree(case: str):
+    """Renaming a column must not move a split.
+
+    This is the non-tautological half. The frame test above proves the *values*
+    survive the round trip; this proves the qualified names impact-split now sees
+    (``dim_region.region`` rather than ``region``) do not perturb the tree, which
+    they could if any tie-break or ordering depended on the column label.
+    """
     from impact_split import ImpactSplitter
 
     dataset = CASE_FACTORIES[case](42)
     tables, spec = normalize_to_star(dataset.X, dataset.y)
     result = flatten(tables, spec)
 
-    direct = ImpactSplitter().fit(dataset.X, dataset.y).to_dict()
-    via_schema = (
-        ImpactSplitter()
-        .fit(result.X.rename(columns={f"dim_{c}.{c}": c for c in dataset.X.columns}), result.y)
-        .to_dict()
-    )
+    direct = ImpactSplitter().fit(dataset.X, dataset.y).get_impact_segments()
+    qualified = ImpactSplitter().fit(result.X, result.y).get_impact_segments()
 
-    assert via_schema == direct
+    assert len(qualified) == len(direct)
+    np.testing.assert_allclose(
+        sorted(qualified["total_sum"]), sorted(direct["total_sum"]), rtol=0, atol=1e-9
+    )
+    assert sorted(qualified["n_samples"]) == sorted(direct["n_samples"])
+    assert qualified["total_sum"].sum() == pytest.approx(dataset.y.sum(), abs=1e-6)
 ```
 
 - [ ] **Step 2: Run the test to verify it fails or passes for the right reason**
@@ -1277,7 +1293,7 @@ python -m pytest tests/test_schema_roundtrip.py -v
 
 Expected: PASS for every case. If `check_dtype=True` fails, that is a **real dtype-preservation bug in `_align_dimension`**, not a test to loosen — the benchmark frames use pandas `StringDtype`, and a reindex that silently downgrades it to `object` would change how `_prepare_X_y` factorizes. Fix `schema.py`.
 
-If `test_round_trip_preserves_the_fitted_ledger` fails while the frame test passes, the difference is column *order*; `flatten` must emit fact features first, then dimension columns in join order.
+If `test_qualified_names_do_not_change_the_fitted_tree` fails while the frame test passes, a split moved purely because a column was renamed — investigate ordering or tie-breaking in `splitter.py` that depends on the column label, and report it rather than weakening the test.
 
 - [ ] **Step 3: Lint and commit**
 
@@ -1386,7 +1402,7 @@ Read `docs/docs/getting-started.md` before editing to match its existing heading
 In `README.md`, in the "What is guaranteed" table (starts around line 130), add:
 
 ```markdown
-| **Relational input is lossless** | Many-to-one joins are reindex-aligned, so rows cannot duplicate; orphan keys are kept under a sentinel rather than dropped | `tests/test_schema_roundtrip.py::test_normalize_then_flatten_reproduces_the_original_frame`, `tests/test_schema_roundtrip.py::test_round_trip_preserves_the_fitted_ledger`, `tests/test_schema.py::test_flatten_rejects_a_dimension_with_duplicate_keys` |
+| **Relational input is lossless** | Many-to-one joins are reindex-aligned, so rows cannot duplicate; orphan keys are kept under a sentinel rather than dropped | `tests/test_schema_roundtrip.py::test_normalize_then_flatten_reproduces_the_original_frame`, `tests/test_schema_roundtrip.py::test_qualified_names_do_not_change_the_fitted_tree`, `tests/test_schema.py::test_flatten_rejects_a_dimension_with_duplicate_keys` |
 ```
 
 - [ ] **Step 2: Extend the assumptions section**
