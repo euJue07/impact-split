@@ -233,3 +233,26 @@ def test_flatten_rejects_nulls_in_a_dimension_feature_column():
     spec = SchemaSpec(fact="fact", target="y", joins=(Join(table="dim", left="k", right="k"),))
     with pytest.raises(SchemaError, match="dimension column 'dim.a' contains missing values"):
         flatten(tables, spec)
+
+
+def test_flatten_snowflake_child_keys_off_the_parents_own_key_column():
+    # dim_b hops off dim_a's "k" column, which is also dim_a's own join key —
+    # the internal alignment frame must keep that key column available.
+    tables = {
+        "fact": pd.DataFrame({"k": [1, 2], "y": [1.0, 2.0]}),
+        "dim_a": pd.DataFrame({"k": [1, 2], "a_val": ["x", "y"]}),
+        "dim_b": pd.DataFrame({"k": [1, 2], "b_val": ["p", "q"]}),
+    }
+    spec = SchemaSpec(
+        fact="fact",
+        target="y",
+        joins=(
+            Join(table="dim_a", left="k", right="k"),
+            Join(table="dim_b", left="k", right="k", parent="dim_a"),
+        ),
+    )
+
+    result = flatten(tables, spec)
+
+    assert list(result.X["dim_a.a_val"]) == ["x", "y"]
+    assert list(result.X["dim_b.b_val"]) == ["p", "q"]

@@ -140,7 +140,10 @@ def _align_dimension(parent_keys: pd.Series, dim: pd.DataFrame, join: Join) -> p
     order. Unresolvable keys produce all-NaN rows.
     """
     selected = _selected_columns(dim, join)
-    indexed = dim.set_index(join.right)[list(selected)]
+    # drop=False keeps the key available as a column as well as the index, so an
+    # explicit columns= request that names it still resolves — and Task 5 reads it
+    # as the witness for "did this key resolve?".
+    indexed = dim.set_index(join.right, drop=False)[list(selected)]
     aligned = indexed.reindex(pd.Index(parent_keys))
     aligned.index = pd.RangeIndex(len(aligned))
     return aligned
@@ -190,7 +193,7 @@ def flatten(tables: dict[str, pd.DataFrame], spec: SchemaSpec) -> FlattenResult:
         full = _align_dimension(
             aligned_tables[parent_name][join.left],
             dim,
-            Join(table=join.table, left=join.left, right=join.right),
+            Join(table=join.table, left=join.left, right=join.right, columns=tuple(dim.columns)),
         )
         aligned_tables[join.table] = full
 
