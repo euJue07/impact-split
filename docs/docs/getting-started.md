@@ -102,7 +102,10 @@ rows (and how much `y`) failed to match each dimension.
 
 **The restriction:** every join must be many-to-one. If a dimension's key is not unique,
 `flatten` raises `SchemaError` naming the table, the key, and an example duplicate — it
-will not silently duplicate rows. One-to-many relationships are out of scope.
+will not silently duplicate rows. One-to-many relationships are out of scope. Each table
+may also be joined at most once — a role-playing dimension (the same `dim_geo` joined
+twice, e.g. as `ship_geo` and `bill_geo`) is not supported; duplicate the table under a
+different name in `tables` if you need two roles for it.
 
 ## Outputs
 

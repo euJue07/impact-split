@@ -1562,7 +1562,7 @@ git commit -m "docs: star/snowflake relational input"
 | Unit tests: fan-out, Σy, orphan, multi-hop | 4, 4, 5, 6 |
 | README guarantees row + docs | 9 |
 | Sentinel-collision escalation (risk 3) | 5 |
-| Correlated-sentinel behavior documented (risk 4) | 6 (`test_snowflake_propagates_an_unmatched_first_hop_to_the_second` pins it) |
+| Correlated-sentinel behavior documented (risk 4) | 6 (`test_unmatched_dimension_columns_are_identical_across_a_multi_column_dimension` pins it — the previously-cited `test_snowflake_propagates_an_unmatched_first_hop_to_the_second` uses single-column dimensions and pins cross-hop propagation, a different property; corrected during the final whole-branch review) |
 | Independent normalizer (risk 5) | 7 (module docstring states why) |
 
 **Deferred to 0.5.0, no task here:** SQLAlchemy adapter, schema introspection helper. Correct — the source spec scopes them out of this release.

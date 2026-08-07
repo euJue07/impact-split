@@ -219,10 +219,13 @@ model.fit(X, y, trace=True)  # optional: populate model.fit_trace_ (verbose= is 
   flat frame `fit()` expects. The restriction is strict: every join key must be unique and
   non-null in its dimension, and a fan-out join is rejected rather than silently duplicating
   rows. Fact rows whose foreign key does not resolve are kept under an `<unmatched>` category
-  (escalating to `<unmatched_1>`, etc. if that literal string already occurs in the data), so
-  `sum(y)` is preserved exactly. Dimension columns are table-qualified
+  (escalating to `<unmatched_1>`, etc. if that literal string already occurs in a joined
+  dimension column), so `sum(y)` is preserved exactly. Dimension columns are table-qualified
   (`dim_customer.region`); fact columns keep their names. One-to-many relationships
-  (fact → line items) are **not** supported.
+  (fact → line items) are **not** supported. Each table may be joined at most once — a
+  role-playing dimension (the same `dim_geo` joined twice, e.g. as `ship_geo` and `bill_geo`)
+  is not supported; duplicate the table under a different name in `tables` if you need two
+  roles for it.
 - For NumPy `X`, discretize continuous features before fitting (label-encode into integer bins).
 - Ternary recursion can grow quickly with depth.
 - This is an EDA summarization tool, not a cross-validation-first predictive workflow. The three sub-0.85 cases in [`reports/validation-report-v3.md`](reports/validation-report-v3.md) §4 are the known boundaries.
