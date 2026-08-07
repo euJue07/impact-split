@@ -30,6 +30,18 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning: [S
   filtered ledgers against the synthetic battery. Result: filtering made no
   measurable difference (mean impact-F1 0.9836 → 0.9835, floor 0.8846 flat
   across stability thresholds) — no default changed as a result.
+- **`impact_split.schema`** (new module; `flatten`, `SchemaSpec`, `Join`,
+  `FlattenResult`, `SchemaError` exported from the package root): star/snowflake
+  denormalization into the flat frame `fit()` already accepts. `SchemaSpec` + `Join`
+  are the declarative contract — fact table, target, join chain, feature selection.
+  Joins are **many-to-one only** and execute as a reindex against a unique index, so a
+  fan-out cannot occur silently: duplicate or null dimension keys raise `SchemaError`
+  naming the table, key, and an example. Fact rows whose foreign key does not resolve
+  are kept under an `<unmatched>` category rather than dropped, so row count and
+  `sum(y)` are conserved exactly. Dimension columns are table-qualified
+  (`dim_customer.region`); fact columns keep their names. Accepts
+  `{table_name: DataFrame}`; a SQLAlchemy adapter and schema introspection are planned
+  for a later release. No new dependencies.
 
 ### Guarantees
 - Byte-identical `to_dict()` / `summary()` / plot output to v0.2.x when

@@ -136,6 +136,7 @@ These properties are not asserted — they are enforced by the test suite. Each 
 | **Multiplicity-corrected rescue** | The cross-cell bar rises by `√(2 ln K)`, so chance cells cannot pose as interactions | `tests/test_lookahead.py::test_rescue_multiplicity_floor_suppresses_chance_cells`, `tests/test_lookahead.py::test_rescue_ignores_singleton_cells` |
 | **Determinism** | A fixed seed reproduces the ensemble report exactly | `tests/test_ensemble.py::test_run_ensemble_deterministic`, `tests/test_ensemble.py::test_fit_replicate_deterministic_and_remappable` |
 | **Annotation never mutates the model** | `to_dict()` / `summary()` / plots are byte-identical without a report | `tests/test_viz_data.py::test_payload_has_no_ensemble_key_without_report`, `tests/test_viz_html.py::test_html_unchanged_without_ensemble_and_annotated_with` |
+| **Relational input is lossless** | Many-to-one joins are reindex-aligned, so rows cannot duplicate; orphan keys are kept under a sentinel rather than dropped | `tests/test_schema_roundtrip.py::test_normalize_then_flatten_reproduces_the_original_frame`, `tests/test_schema_roundtrip.py::test_qualified_names_do_not_change_the_fitted_tree`, `tests/test_schema.py::test_flatten_rejects_a_dimension_with_duplicate_keys` |
 
 ## What was measured
 
@@ -213,6 +214,14 @@ model.fit(X, y, trace=True)  # optional: populate model.fit_trace_ (verbose= is 
 - `fit(X, y)` accepts:
   - `X`: an `np.ndarray` of shape `(n_samples, n_features)` with non-negative integer label-encoded categories, or a `pandas.DataFrame` — float columns are binned via `numeric_binning_strategy` / `numeric_n_bins` (edges stored in `model.numeric_bin_edges_`), other columns are factorized as categorical codes.
   - `y`: an `np.ndarray` or `pandas.Series` of shape `(n_samples,)` with float-coercible **additive** target values.
+- `flatten(tables, spec)` additionally accepts a **star or snowflake schema** — one fact
+  table at the observation grain plus dimension tables joined many-to-one — and returns the
+  flat frame `fit()` expects. The restriction is strict: every join key must be unique and
+  non-null in its dimension, and a fan-out join is rejected rather than silently duplicating
+  rows. Fact rows whose foreign key does not resolve are kept under an `<unmatched>` category,
+  so `sum(y)` is preserved exactly. Dimension columns are table-qualified
+  (`dim_customer.region`); fact columns keep their names. One-to-many relationships
+  (fact → line items) are **not** supported.
 - For NumPy `X`, discretize continuous features before fitting (label-encode into integer bins).
 - Ternary recursion can grow quickly with depth.
 - This is an EDA summarization tool, not a cross-validation-first predictive workflow. The three sub-0.85 cases in [`reports/validation-report-v3.md`](reports/validation-report-v3.md) §4 are the known boundaries.

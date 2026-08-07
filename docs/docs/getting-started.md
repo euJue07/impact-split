@@ -63,6 +63,47 @@ payload = model.to_dict()                # JSON-safe dict for custom renderers
 
 After fitting with a `DataFrame`, `model.feature_names_in_` and `model.category_maps_` hold column names and code-to-value maps for each feature. Pass `trace=True` (or the `verbose=True` alias) to `fit()` to populate `model.fit_trace_` with one pre-order step per visited node.
 
+## Fitting from a star or snowflake schema
+
+If your features live in dimension tables rather than one flat frame, describe the schema
+and let `flatten` denormalize it:
+
+```python
+from impact_split import ImpactSplitter, Join, SchemaSpec, flatten
+
+tables = {
+    "fact_sales": fact_df,        # one row per sale, carries the additive target
+    "dim_customer": customer_df,  # one row per customer
+    "dim_geo": geo_df,            # one row per geography (snowflaked off dim_customer)
+}
+
+spec = SchemaSpec(
+    fact="fact_sales",
+    target="amount",
+    features=("channel",),                     # fact columns to keep as features
+    joins=(
+        Join(table="dim_customer", left="customer_id", right="customer_id",
+             columns=("tier", "segment")),
+        Join(table="dim_geo", left="geo_id", right="geo_id",
+             parent="dim_customer", columns=("country",)),
+    ),
+)
+
+result = flatten(tables, spec)
+model = ImpactSplitter().fit(result.X, result.y)
+print(model)
+```
+
+Segment paths name the source table, so a driver reads as
+`dim_customer.tier=gold / dim_geo.country=PH`.
+
+`result.provenance` is the audit trail: which tables joined in which order, and how many
+rows (and how much `y`) failed to match each dimension.
+
+**The restriction:** every join must be many-to-one. If a dimension's key is not unique,
+`flatten` raises `SchemaError` naming the table, the key, and an example duplicate — it
+will not silently duplicate rows. One-to-many relationships are out of scope.
+
 ## Outputs
 
 Five ways to read a fitted model, all built from the same `model.to_dict()` payload:
