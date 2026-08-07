@@ -125,6 +125,27 @@ def _topological_order(tables: dict[str, pd.DataFrame], spec: SchemaSpec) -> lis
     return ordered
 
 
+def _selected_columns(dim: pd.DataFrame, join: Join) -> tuple[str, ...]:
+    """Dimension columns that become features: the declared set, or all but the key."""
+    if join.columns is not None:
+        return tuple(join.columns)
+    return tuple(c for c in dim.columns if c != join.right)
+
+
+def _align_dimension(parent_keys: pd.Series, dim: pd.DataFrame, join: Join) -> pd.DataFrame:
+    """Reindex ``dim`` onto the parent's row order, one dimension row per parent row.
+
+    Reindexing against a unique index cannot fan out and cannot reorder, so
+    the returned frame has exactly ``len(parent_keys)`` rows in the parent's
+    order. Unresolvable keys produce all-NaN rows.
+    """
+    selected = _selected_columns(dim, join)
+    indexed = dim.set_index(join.right)[list(selected)]
+    aligned = indexed.reindex(pd.Index(parent_keys))
+    aligned.index = pd.RangeIndex(len(aligned))
+    return aligned
+
+
 def flatten(tables: dict[str, pd.DataFrame], spec: SchemaSpec) -> FlattenResult:
     """Denormalize a star or snowflake schema into a flat frame plus target.
 
@@ -133,7 +154,7 @@ def flatten(tables: dict[str, pd.DataFrame], spec: SchemaSpec) -> FlattenResult:
     dimension's columns set to an unmatched sentinel, so the row count and
     ``sum(y)`` of the fact table are preserved exactly.
     """
-    validate_spec(tables, spec)
+    ordered = validate_spec(tables, spec)
     fact = tables[spec.fact]
 
     target = fact[spec.target]
@@ -158,6 +179,31 @@ def flatten(tables: dict[str, pd.DataFrame], spec: SchemaSpec) -> FlattenResult:
             raise SchemaError(f"fact feature column {name!r} contains missing values.")
         columns[name] = series.reset_index(drop=True)
         provenance["columns"][name] = {"table": spec.fact, "column": name}
+
+    aligned_tables: dict[str, pd.DataFrame] = {spec.fact: fact.reset_index(drop=True)}
+
+    for join in ordered:
+        parent_name = join.parent or spec.fact
+        dim = tables[join.table]
+        # Align every dimension column once: a chained hop needs this frame to
+        # find its own foreign key, which the user's feature selection may omit.
+        full = _align_dimension(
+            aligned_tables[parent_name][join.left],
+            dim,
+            Join(table=join.table, left=join.left, right=join.right),
+        )
+        aligned_tables[join.table] = full
+
+        for name in _selected_columns(dim, join):
+            qualified = f"{join.table}.{name}"
+            if full[name].isna().any():
+                raise SchemaError(f"dimension column {qualified!r} contains missing values.")
+            columns[qualified] = full[name]
+            provenance["columns"][qualified] = {"table": join.table, "column": name}
+
+        provenance["joins"].append(
+            {"table": join.table, "parent": parent_name, "left": join.left, "right": join.right}
+        )
 
     if not columns:
         raise SchemaError("spec selects no feature columns.")

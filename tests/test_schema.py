@@ -171,3 +171,65 @@ def test_flatten_requires_at_least_one_feature():
     tables = {"fact": pd.DataFrame({"y": [1.0]})}
     with pytest.raises(SchemaError, match="spec selects no feature columns"):
         flatten(tables, SchemaSpec(fact="fact", target="y"))
+
+
+def test_flatten_joins_a_dimension_and_qualifies_its_columns():
+    tables, spec = _star()
+
+    result = flatten(tables, spec)
+
+    assert list(result.X.columns) == ["channel", "dim_cust.region"]
+    assert list(result.X["dim_cust.region"]) == ["W", "E", "W", "W"]
+    assert list(result.X["channel"]) == ["a", "b", "a", "b"]
+
+
+def test_flatten_preserves_fact_row_order_under_a_join():
+    tables = {
+        # Keys deliberately out of dimension order.
+        "fact": pd.DataFrame({"k": [3, 1, 2], "y": [1.0, 2.0, 3.0]}),
+        "dim": pd.DataFrame({"k": [1, 2, 3], "label": ["one", "two", "three"]}),
+    }
+    spec = SchemaSpec(fact="fact", target="y", joins=(Join(table="dim", left="k", right="k"),))
+
+    result = flatten(tables, spec)
+
+    assert list(result.X["dim.label"]) == ["three", "one", "two"]
+    assert np.array_equal(result.y, np.array([1.0, 2.0, 3.0]))
+
+
+def test_flatten_selects_only_the_requested_dimension_columns():
+    tables = {
+        "fact": pd.DataFrame({"k": [1], "y": [1.0]}),
+        "dim": pd.DataFrame({"k": [1], "keep": ["x"], "drop": ["z"]}),
+    }
+    spec = SchemaSpec(
+        fact="fact",
+        target="y",
+        joins=(Join(table="dim", left="k", right="k", columns=("keep",)),),
+    )
+
+    result = flatten(tables, spec)
+
+    assert list(result.X.columns) == ["dim.keep"]
+
+
+def test_flatten_defaults_to_every_dimension_column_except_the_key():
+    tables = {
+        "fact": pd.DataFrame({"k": [1], "y": [1.0]}),
+        "dim": pd.DataFrame({"k": [1], "a": ["x"], "b": ["z"]}),
+    }
+    spec = SchemaSpec(fact="fact", target="y", joins=(Join(table="dim", left="k", right="k"),))
+
+    result = flatten(tables, spec)
+
+    assert list(result.X.columns) == ["dim.a", "dim.b"]
+
+
+def test_flatten_rejects_nulls_in_a_dimension_feature_column():
+    tables = {
+        "fact": pd.DataFrame({"k": [1], "y": [1.0]}),
+        "dim": pd.DataFrame({"k": [1], "a": [None]}),
+    }
+    spec = SchemaSpec(fact="fact", target="y", joins=(Join(table="dim", left="k", right="k"),))
+    with pytest.raises(SchemaError, match="dimension column 'dim.a' contains missing values"):
+        flatten(tables, spec)
