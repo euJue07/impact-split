@@ -88,5 +88,5 @@ def test_consolidation_is_null_safe() -> None:
 
 
 def test_consolidate_constructor_validation() -> None:
-    with pytest.raises(ValueError):
+    with pytest.raises(TypeError):
         ImpactSplitter(consolidate="yes")  # type: ignore[arg-type]

@@ -53,8 +53,34 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning: [S
   it only measures and annotates.
 - Deterministic under a fixed `seed`.
 
+### Changed (breaking)
+- **Wrong-*type* arguments now raise `TypeError` instead of `ValueError`.**
+  Affects five contracts: `fit()`'s `X` and `y` when neither is an accepted
+  container, and `ImpactSplitter(...)`'s `numeric_n_bins` (non-integer),
+  `consolidate`, and `lookahead` (non-bool). Wrong *values* are unchanged and
+  still raise `ValueError` — `numeric_binning_strategy="bad"`,
+  `numeric_n_bins=1`, `noise_z=-1`, and every shape/content check in `fit()`.
+  `TypeError` is not a subclass of `ValueError`, so `except ValueError` around
+  a constructor or `fit()` no longer catches the type case; catch
+  `(TypeError, ValueError)` to accept both.
+- `ensemble_report()`'s `n_replicates` and `shadow_replicates` follow the same
+  rule: non-integer → `TypeError`, out-of-range → `ValueError`. ruff's `TRY004`
+  does *not* flag these (the `isinstance` test is `or`-ed with the range test,
+  so the branch is not purely type-related) — they were changed to keep the
+  convention whole, not because a linter asked. Their validation had no test
+  coverage at all; it does now.
+- Consequently `numeric_n_bins` no longer raises the same message for two
+  different faults: a non-integer says "must be an integer, got a non-integer"
+  (`TypeError`), a value below the floor says "must be >= 2" (`ValueError`).
+  `n_replicates` / `shadow_replicates` split the same way.
+- `schema.SchemaError` still subclasses `ValueError` and is unaffected — a
+  schema violation is a wrong value, not a wrong type.
+
 ### Internal
 - `_TreeNode` gains `split_gain` (internal; feeds ensemble importance).
+- `TRY004` is now explicitly selected in ruff's config, so the type/value
+  convention above is enforced rather than depending on ruff's default rule
+  set, which varies by version.
 
 ## [0.2.0] - Unreleased
 

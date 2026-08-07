@@ -247,3 +247,24 @@ def test_shadow_conditions_survive_payload_json_roundtrip():
         # JSON stringifies int keys; mask_from_conditions must still work
         mask = mask_from_conditions(sh["conditions"], model._X)
         assert mask.any()
+
+
+def test_ensemble_report_separates_wrong_type_from_wrong_value():
+    """A non-integer replicate count is a TypeError; an out-of-range one is a
+    ValueError. Both were a single `ValueError` until the type/value convention
+    landed, and ruff's TRY004 cannot see these -- the isinstance test is `or`-ed
+    with the range test, so the branch is not purely type-related.
+    """
+    model, X, y = _masked_driver_data()
+
+    with pytest.raises(TypeError, match="n_replicates"):
+        model.ensemble_report(X, y, n_replicates=True)
+    with pytest.raises(TypeError, match="n_replicates"):
+        model.ensemble_report(X, y, n_replicates=2.5)
+    with pytest.raises(ValueError, match="n_replicates"):
+        model.ensemble_report(X, y, n_replicates=0)
+
+    with pytest.raises(TypeError, match="shadow_replicates"):
+        model.ensemble_report(X, y, shadow_replicates=True)
+    with pytest.raises(ValueError, match="shadow_replicates"):
+        model.ensemble_report(X, y, shadow_replicates=-1)
