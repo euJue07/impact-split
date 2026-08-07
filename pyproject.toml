@@ -65,7 +65,7 @@ Issues = "https://github.com/euJue07/impact-split/issues"
 [tool.ruff]
 line-length = 99
 src = ["impact_split"]
-include = ["pyproject.toml", "impact_split/**/*.py"]
+include = ["pyproject.toml", "impact_split/**/*.py", "tests/**/*.py"]
 
 [tool.ruff.lint]
 # I: isort; UP: pyupgrade; B: bugbear; SIM: simplify
