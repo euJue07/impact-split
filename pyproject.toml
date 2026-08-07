@@ -71,10 +71,9 @@ line-length = 99
 src = ["impact_split"]
 # tests/ is deliberately excluded: bringing it into scope surfaces a pre-existing
 # `ruff format` drift across 8 files (a real formatting sweep, its own change,
-# not a one-line fix) alongside a handful of `ruff check` errors. Measured cost
-# is recorded in docs/plans/2026-08-07-relational-input-implementation.md and
-# .superpowers/sdd/2026-08-07-relational-input-implementation/final-fix-report.md
-# — read those before re-attempting this.
+# not a one-line fix) alongside a handful of `ruff check` errors. The measured
+# cost, the 8 affected files, and a step-by-step recipe are in
+# docs/plans/followup-ruff-tests-scope.md — read it before re-attempting this.
 include = ["pyproject.toml", "impact_split/**/*.py"]
 
 [tool.ruff.lint]
