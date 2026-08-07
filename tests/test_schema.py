@@ -6,7 +6,14 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from impact_split.schema import FlattenResult, Join, SchemaError, SchemaSpec, flatten, validate_spec
+from impact_split.schema import (
+    FlattenResult,
+    Join,
+    SchemaError,
+    SchemaSpec,
+    flatten,
+    validate_spec,
+)
 
 
 def _star() -> tuple[dict[str, pd.DataFrame], SchemaSpec]:
