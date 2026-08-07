@@ -247,7 +247,7 @@ def flatten(tables: dict[str, pd.DataFrame], spec: SchemaSpec) -> FlattenResult:
     columns: dict[str, pd.Series] = {}
     provenance: dict[str, Any] = {
         "fact": spec.fact,
-        "n_rows": int(len(fact)),
+        "n_rows": len(fact),
         "target": spec.target,
         "target_sum": float(y.sum()),
         "joins": [],
