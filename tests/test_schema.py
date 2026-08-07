@@ -202,6 +202,35 @@ def test_validate_spec_names_role_playing_dimensions_in_the_duplicate_join_messa
         validate_spec(tables, spec)
 
 
+def test_role_playing_dimension_works_when_listed_under_two_names():
+    """The pattern the message above points at must actually work, or that
+    message is sending people somewhere broken. The same DataFrame object goes
+    under two keys in `tables` -- no copy -- and each is joined once. Both roles
+    must resolve independently and stay distinguishable by their qualifier.
+    """
+    geo = pd.DataFrame({"geo_id": [1, 2], "region": ["North", "South"]})
+    fact = pd.DataFrame({"ship_geo": [1, 2, 1], "bill_geo": [2, 2, 1], "y": [10.0, 20.0, 30.0]})
+    tables = {"fact": fact, "geo_ship": geo, "geo_bill": geo}
+    assert tables["geo_ship"] is tables["geo_bill"], "the point is one object, two keys"
+
+    spec = SchemaSpec(
+        fact="fact",
+        target="y",
+        joins=(
+            Join(table="geo_ship", left="ship_geo", right="geo_id", columns=("region",)),
+            Join(table="geo_bill", left="bill_geo", right="geo_id", columns=("region",)),
+        ),
+        features=(),
+    )
+    result = flatten(tables, spec)
+
+    assert list(result.X.columns) == ["geo_ship.region", "geo_bill.region"]
+    # Row 0 ships North but bills South -- the roles must not collapse together.
+    assert result.X["geo_ship.region"].tolist() == ["North", "South", "North"]
+    assert result.X["geo_bill.region"].tolist() == ["South", "South", "North"]
+    assert float(result.y.sum()) == float(fact["y"].sum())
+
+
 def test_validate_spec_rejects_a_dimension_with_duplicate_columns():
     tables = {
         "fact": pd.DataFrame({"k": [1], "y": [1.0]}),

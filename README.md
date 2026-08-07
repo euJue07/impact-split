@@ -222,10 +222,18 @@ model.fit(X, y, trace=True)  # optional: populate model.fit_trace_ (verbose= is 
   (escalating to `<unmatched_1>`, etc. if that literal string already occurs in a joined
   dimension column), so `sum(y)` is preserved exactly. Dimension columns are table-qualified
   (`dim_customer.region`); fact columns keep their names. One-to-many relationships
-  (fact → line items) are **not** supported. Each table may be joined at most once — a
-  role-playing dimension (the same `dim_geo` joined twice, e.g. as `ship_geo` and `bill_geo`)
-  is not supported; duplicate the table under a different name in `tables` if you need two
-  roles for it.
+  (fact → line items) are **not** supported. Each table may be joined at most once, which
+  shapes how you spell a **role-playing dimension** — the same `dim_geo` serving both
+  `ship_geo` and `bill_geo`. List it under two names in `tables` and join each once:
+  ```python
+  tables = {"fact": fact, "geo_ship": geo, "geo_bill": geo}  # same object, two keys
+  spec = SchemaSpec(fact="fact", target="amount", joins=[
+      Join(left="ship_geo", table="geo_ship", right="geo_id", columns=["region"]),
+      Join(left="bill_geo", table="geo_bill", right="geo_id", columns=["region"]),
+  ])
+  ```
+  Nothing is copied — both keys reference one DataFrame — and the roles stay distinguishable
+  in the output as `geo_ship.region` and `geo_bill.region`.
 - For NumPy `X`, discretize continuous features before fitting (label-encode into integer bins).
 - Ternary recursion can grow quickly with depth.
 - This is an EDA summarization tool, not a cross-validation-first predictive workflow. The three sub-0.85 cases in [`reports/validation-report-v3.md`](reports/validation-report-v3.md) §4 are the known boundaries.

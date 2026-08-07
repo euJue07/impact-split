@@ -23,6 +23,16 @@ class Join:
     selects which of the dimension's columns become features (``None`` means
     every column except ``right``). ``parent`` names the table this hop
     departs from; ``None`` means the fact table.
+
+    Each table may be joined at most once. A role-playing dimension — one
+    ``dim_geo`` serving both ``ship_geo`` and ``bill_geo`` — is spelled by
+    listing it under two names in ``tables`` and joining each once::
+
+        tables = {"fact": fact, "geo_ship": geo, "geo_bill": geo}
+
+    Both keys may reference the same DataFrame; nothing is copied, and the two
+    roles stay distinct in the output as ``geo_ship.region`` /
+    ``geo_bill.region``.
     """
 
     table: str
