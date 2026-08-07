@@ -8,9 +8,9 @@ from matplotlib.figure import Figure
 import numpy as np
 import pandas as pd
 import pytest
+from tests.test_viz_data import _fitted, churn_mix_fitted, fitted
 
 from impact_split import ImpactSplitter
-from tests.test_viz_data import _fitted, churn_mix_fitted, fitted
 
 
 def test_plot_segments_requires_fit() -> None:

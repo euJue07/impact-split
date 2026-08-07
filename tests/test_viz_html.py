@@ -5,9 +5,9 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import pytest
+from tests.test_viz_data import churn_mix_fitted, demo_frame, fitted
 
 from impact_split import ImpactSplitter
-from tests.test_viz_data import churn_mix_fitted, demo_frame, fitted
 
 
 def test_to_html_requires_fit() -> None:

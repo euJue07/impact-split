@@ -3,10 +3,10 @@
 import numpy as np
 import pandas as pd
 import pytest
+from tests.test_viz_data import _fitted, churn_mix_fitted, fitted
 
 from impact_split import ImpactSplitter
 from impact_split.viz.text import render_summary
-from tests.test_viz_data import _fitted, churn_mix_fitted, fitted
 
 
 def test_summary_requires_fit() -> None:
@@ -70,7 +70,7 @@ def test_render_summary_ensemble_formatting_branches() -> None:
     payload = model.to_dict()
     seg_ids = [s["segment_id"] for s in payload["segments"]]
     assert len(seg_ids) >= 3, "fixture must produce >=3 segments for this test"
-    s0, s1, s2 = seg_ids[0], seg_ids[1], seg_ids[2]
+    s0, s1 = seg_ids[0], seg_ids[1]
 
     payload["ensemble"] = {
         "config": {},
