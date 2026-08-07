@@ -35,10 +35,14 @@ dev = [
     "bandit",
     "build",
     "flit_core>=3.12,<4",
-    "mypy",
+    # mypy and ruff below are pinned: left unpinned, CI resolves whatever is
+    # current at run time and fails on rules no local install has yet, in files
+    # nobody touched. Bump either deliberately, fixing the new findings in that
+    # same change — never by drift. See docs/plans/followup-ci-ruff-drift.md.
+    "mypy~=2.3.0",
     "pandas-stubs",
     "pytest",
-    "ruff",
+    "ruff~=0.15.5",
     "twine",
 ]
 bench = [

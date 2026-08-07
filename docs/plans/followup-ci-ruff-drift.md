@@ -1,6 +1,8 @@
 # Follow-up: CI `validate` is red on unpinned-ruff drift
 
-`main`'s CI has been failing since at least 2026-07-19 — every run in that
+**Status:** the pin (decision 1) has landed; `TRY004` (decision 2) is still open.
+
+`main`'s CI had been failing since at least 2026-07-19 — every run in that
 window shows `validate` red while all four `test` matrix jobs pass. This is not
 caused by any one branch.
 
@@ -33,10 +35,11 @@ relational-input branch and fixed there in `63c47d2`.
 
 ## Two decisions, not one
 
-**1. Stop the drift.** Pin ruff in the `dev` extra so CI and local agree. This
-alone turns `validate` green, because the pinned version reports zero errors.
-Prefer a compatible-release pin (`ruff~=0.15.5`) over an exact one so patch
-fixes still arrive, and bump deliberately.
+**1. Stop the drift. — Done.** The `dev` extra now pins `ruff~=0.15.5`, a
+compatible-release pin so patch fixes still arrive while the minor version is
+bumped deliberately. CI had resolved 0.16.1 against a local 0.15.5; under the
+pin both report zero errors. Bumping the pin is now a change that carries its
+own findings, rather than a surprise on an unrelated branch.
 
 **2. Decide on `TRY004` separately.** The rule wants `TypeError` rather than
 `ValueError` for wrong-type arguments. That is a **public API change** — callers
