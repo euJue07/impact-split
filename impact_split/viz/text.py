@@ -44,12 +44,16 @@ def render_summary(payload: dict[str, Any], *, top: int = 10, path_width: int = 
     ens_header = f"  {'stability':>10}  {'Σy 5–95%':>28}" if ens else ""
     lines.extend(
         [
-            f"segments  {meta['n_segments']}{merged_note}{churn_note} · "
-            f"conservation {conservation}",
+            (
+                f"segments  {meta['n_segments']}{merged_note}{churn_note} · "
+                f"conservation {conservation}"
+            ),
             "",
             "Top segments by |impact|",
-            f" {'#':>2}  {'path':<{path_width}}  {'Σy':>14}  {'n':>9}  {'pool share':>16}  "
-            f"{'gross ⇄':>22}{ens_header}",
+            (
+                f" {'#':>2}  {'path':<{path_width}}  {'Σy':>14}  {'n':>9}  {'pool share':>16}  "
+                f"{'gross ⇄':>22}{ens_header}"
+            ),
         ]
     )
 

@@ -82,21 +82,33 @@ violation (duplicate key, unknown column, fan-out risk) is a wrong *value*, not
 a wrong *type*, so the two modules do agree — the split is by fault kind, not by
 module.
 
-## Still open: `BLE001` and `ISC004`
+## `ISC004` — done
 
-The three `viz/` findings above are untouched and will fire again on a bump past
-0.15.x. Both are smaller than `TRY004` and neither is an API change:
+Both hits in `viz/text.py` were checked before being silenced, which is the only
+correct way to treat this rule: it fires on implicit concatenation inside a
+collection precisely because a **missing comma looks identical to intentional
+concatenation**, and one of the two readings is a silently wrong list. Here both
+were intentional — one builds `"segments N · conservation X"`, the other a table
+header row — so the fix is explicit parentheses, not a comma.
+
+Evidence the change is invisible: `python -m reports.make_showcase` regenerates
+`reports/showcase/*.txt` byte-identically (sha256 `ef8523fc4153a677` and
+`b9be5d7f7fdde9db`, unchanged), and `git status reports/` stays clean.
+
+Not added to `extend-select`: `ISC004` is a **preview** rule in 0.15.5 (ruff
+prints "has no effect because preview is not enabled") and only stabilises in
+0.16. Enabling `preview = true` to reach it would pull in 12 unrelated findings.
+**Add `"ISC004"` to `extend-select` as part of the 0.16 bump**, where it is
+stable and free.
+
+## Still open: `BLE001`
 
 - `BLE001` at `viz/data.py:49` guards an `importlib.metadata` lookup that
   already carries a `# pragma: no cover` and deliberately degrades to
   `"unknown"`. A blind catch is arguably correct here; narrowing it or ignoring
-  the rule are both defensible.
-- `ISC004` at `viz/text.py` (47, 51) flags intentional line-wrapping of f-string
-  headers inside a list literal. The rule exists because a missing comma in a
-  collection silently becomes concatenation — worth a look before dismissing.
-
+  the rule are both defensible. It will fire again on a bump past 0.15.x.
 ## Related
 
-See [followup-ruff-tests-scope.md](followup-ruff-tests-scope.md) — a separate
-deferred lint item. Doing both in one PR would be reasonable; doing either
-inside a feature branch would not.
+See [followup-ruff-tests-scope.md](followup-ruff-tests-scope.md) — done; that
+sweep landed once the pin made a local `ruff format` and CI's
+`ruff format --check` the same operation.
