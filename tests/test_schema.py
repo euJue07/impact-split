@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
+import numpy as np
 import pandas as pd
 import pytest
 
-from impact_split.schema import Join, SchemaError, SchemaSpec, validate_spec
+from impact_split.schema import FlattenResult, Join, SchemaError, SchemaSpec, flatten, validate_spec
 
 
 def _star() -> tuple[dict[str, pd.DataFrame], SchemaSpec]:
@@ -118,3 +119,48 @@ def test_validate_spec_rejects_non_numeric_target():
     tables = {"fact": pd.DataFrame({"y": ["a", "b"]})}
     with pytest.raises(SchemaError, match="target column 'y' must be numeric"):
         validate_spec(tables, SchemaSpec(fact="fact", target="y"))
+
+
+def test_flatten_with_no_joins_reproduces_the_fact_table():
+    tables = {
+        "fact": pd.DataFrame(
+            {"channel": ["a", "b", "a"], "size": ["S", "M", "L"], "y": [1.0, -2.0, 3.5]}
+        )
+    }
+    spec = SchemaSpec(fact="fact", target="y", features=("channel", "size"))
+
+    result = flatten(tables, spec)
+
+    assert isinstance(result, FlattenResult)
+    pd.testing.assert_frame_equal(result.X, tables["fact"][["channel", "size"]])
+    assert np.array_equal(result.y, np.array([1.0, -2.0, 3.5]))
+
+
+def test_flatten_conserves_the_target_sum_exactly():
+    tables = {"fact": pd.DataFrame({"channel": ["a", "b"], "y": [0.1, 0.2]})}
+    spec = SchemaSpec(fact="fact", target="y", features=("channel",))
+
+    result = flatten(tables, spec)
+
+    assert result.y.sum() == tables["fact"]["y"].to_numpy(dtype=float).sum()
+    assert result.provenance["target_sum"] == float(tables["fact"]["y"].sum())
+
+
+def test_flatten_rejects_a_target_containing_nulls():
+    tables = {"fact": pd.DataFrame({"channel": ["a", "b"], "y": [1.0, np.nan]})}
+    spec = SchemaSpec(fact="fact", target="y", features=("channel",))
+    with pytest.raises(SchemaError, match="target column 'y' contains missing values"):
+        flatten(tables, spec)
+
+
+def test_flatten_rejects_a_fact_feature_containing_nulls():
+    tables = {"fact": pd.DataFrame({"channel": ["a", None], "y": [1.0, 2.0]})}
+    spec = SchemaSpec(fact="fact", target="y", features=("channel",))
+    with pytest.raises(SchemaError, match="fact feature column 'channel' contains missing values"):
+        flatten(tables, spec)
+
+
+def test_flatten_requires_at_least_one_feature():
+    tables = {"fact": pd.DataFrame({"y": [1.0]})}
+    with pytest.raises(SchemaError, match="spec selects no feature columns"):
+        flatten(tables, SchemaSpec(fact="fact", target="y"))

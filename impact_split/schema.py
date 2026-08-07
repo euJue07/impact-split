@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from typing import Any
 
+import numpy as np
 import pandas as pd
 from pandas.api.types import is_numeric_dtype
 
@@ -38,6 +40,15 @@ class SchemaSpec:
     target: str
     features: tuple[str, ...] = ()
     joins: tuple[Join, ...] = ()
+
+
+@dataclass(frozen=True)
+class FlattenResult:
+    """The denormalized frame, the target, and the audit trail of how it was built."""
+
+    X: pd.DataFrame
+    y: np.ndarray
+    provenance: dict[str, Any] = field(default_factory=dict)
 
 
 def validate_spec(tables: dict[str, pd.DataFrame], spec: SchemaSpec) -> list[Join]:
@@ -112,3 +123,48 @@ def _topological_order(tables: dict[str, pd.DataFrame], spec: SchemaSpec) -> lis
             )
 
     return ordered
+
+
+def flatten(tables: dict[str, pd.DataFrame], spec: SchemaSpec) -> FlattenResult:
+    """Denormalize a star or snowflake schema into a flat frame plus target.
+
+    Every join must be many-to-one: the dimension's key must be unique and
+    non-null. Fact rows whose foreign key does not resolve are kept, with the
+    dimension's columns set to an unmatched sentinel, so the row count and
+    ``sum(y)`` of the fact table are preserved exactly.
+    """
+    validate_spec(tables, spec)
+    fact = tables[spec.fact]
+
+    target = fact[spec.target]
+    if target.isna().any():
+        raise SchemaError(f"target column {spec.target!r} contains missing values.")
+    y = np.asarray(target, dtype=float)
+
+    columns: dict[str, pd.Series] = {}
+    provenance: dict[str, Any] = {
+        "fact": spec.fact,
+        "n_rows": int(len(fact)),
+        "target": spec.target,
+        "target_sum": float(y.sum()),
+        "joins": [],
+        "columns": {},
+        "sentinel": None,
+    }
+
+    for name in spec.features:
+        series = fact[name]
+        if series.isna().any():
+            raise SchemaError(f"fact feature column {name!r} contains missing values.")
+        columns[name] = series.reset_index(drop=True)
+        provenance["columns"][name] = {"table": spec.fact, "column": name}
+
+    if not columns:
+        raise SchemaError("spec selects no feature columns.")
+
+    X = pd.DataFrame(columns)
+    if len(X) != len(fact):
+        raise SchemaError(
+            f"row count changed during flattening: {len(fact)} fact rows produced {len(X)}."
+        )
+    return FlattenResult(X=X, y=y, provenance=provenance)
