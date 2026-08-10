@@ -172,3 +172,29 @@ def test_payload_churn_fields_json_safe() -> None:
     seg = next(s for s in parsed["segments"] if s["is_churn"])
     assert isinstance(seg["is_churn"], bool)
     assert isinstance(parsed["meta"]["n_churn_segments"], int)
+
+
+def test_package_version_falls_back_when_metadata_is_absent(monkeypatch) -> None:
+    """The footer version must degrade to "unknown", never raise. Previously
+    this path was a blind `except Exception` marked `# pragma: no cover`, so
+    the fallback it promised was never actually exercised.
+    """
+    import importlib.metadata
+
+    from impact_split.viz.data import _package_version
+
+    def _absent(_name: str) -> str:
+        raise importlib.metadata.PackageNotFoundError("impact_split")
+
+    monkeypatch.setattr(importlib.metadata, "version", _absent)
+    assert _package_version() == "unknown"
+
+
+def test_package_version_reaches_the_payload_footer() -> None:
+    """A real environment resolves a real version, so the fallback above is a
+    fallback and not the normal path.
+    """
+    from impact_split.viz.data import _package_version
+
+    assert _package_version() != "unknown"
+    assert ImpactSplitter().fit(*demo_frame()).to_dict()["meta"]["package_version"] != "unknown"

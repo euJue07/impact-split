@@ -101,12 +101,30 @@ prints "has no effect because preview is not enabled") and only stabilises in
 **Add `"ISC004"` to `extend-select` as part of the 0.16 bump**, where it is
 stable and free.
 
-## Still open: `BLE001`
+## `BLE001` — done
 
-- `BLE001` at `viz/data.py:49` guards an `importlib.metadata` lookup that
-  already carries a `# pragma: no cover` and deliberately degrades to
-  `"unknown"`. A blind catch is arguably correct here; narrowing it or ignoring
-  the rule are both defensible. It will fire again on a bump past 0.15.x.
+Narrowed rather than suppressed, because the narrowing turned out to be free.
+`PackageNotFoundError` — the "metadata absent in odd envs" case the comment
+described — **subclasses `ImportError`**, as does a failure of the local
+`from importlib.metadata import version`. So `except ImportError` covers the
+entire realistic surface of that block while naming what is expected to fail.
+
+The `# pragma: no cover` came off with it. That pragma meant the fallback the
+function promised had never once been exercised; there are now two tests, one
+forcing `PackageNotFoundError` and one asserting a real environment does *not*
+take the fallback, so it stays a fallback rather than quietly becoming the
+normal path.
+
+`BLE001` is now in `extend-select`. Unlike `ISC004` it is stable in 0.15.5, so
+the decision is enforced under the pin instead of deferred to the bump.
+
+**Residual risk, stated plainly:** if `importlib.metadata` raises something
+outside the `ImportError` tree in some pathological environment, the report
+render now fails where it previously returned `"unknown"`. That is judged
+acceptable — a blind catch on three lines of pure delegation hides nothing worth
+hiding, and the fallback is tested now where before it was only asserted by a
+comment. Revert to `except Exception` with a `# noqa: BLE001` if a real
+environment ever proves otherwise.
 ## Related
 
 See [followup-ruff-tests-scope.md](followup-ruff-tests-scope.md) — done; that

@@ -42,11 +42,18 @@ def fmt_pct(value: float | None) -> str:
 
 
 def _package_version() -> str:
+    """Version for the report footer, or ``"unknown"`` — never raises.
+
+    ``ImportError`` is the whole realistic surface here, and it is narrower than
+    it looks: ``PackageNotFoundError`` (metadata absent, the odd-env case)
+    subclasses it, and so does a failure of the local import itself. A cosmetic
+    footer string must not be able to take down a report render.
+    """
     try:
         from importlib.metadata import version
 
         return version("impact_split")
-    except Exception:  # pragma: no cover - metadata absent in odd envs
+    except ImportError:
         return "unknown"
 
 
